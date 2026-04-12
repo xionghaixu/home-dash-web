@@ -14,10 +14,26 @@ const routes = [
         path: 'folder/:folderId',
         component: () => import('@/views/file/index.vue'),
         props: true,
-        meta: { title: '文件列表' }
+        meta: { title: '全部文件' }
       },
       {
-        path: '/system',
+        path: 'recent',
+        component: () => import('@/views/recent/index.vue'),
+        meta: { title: '最近上传' }
+      },
+      {
+        path: 'category/:category?',
+        component: () => import('@/views/category/index.vue'),
+        props: true,
+        meta: { title: '基础分类浏览' }
+      },
+      {
+        path: 'transfers',
+        component: () => import('@/views/transfers/index.vue'),
+        meta: { title: '传输列表' }
+      },
+      {
+        path: 'system',
         component: () => import('@/views/system/index.vue'),
         meta: { title: '系统信息' }
       }

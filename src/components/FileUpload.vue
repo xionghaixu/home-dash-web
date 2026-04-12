@@ -17,33 +17,33 @@
       <UploaderList v-show="panelShow">
         <template #default="props">
           <div class="file-panel" :class="{ collapse: collapse }">
-          <div class="file-title">
-            <span>上传文件列表</span>
-            <div class="operate">
-              <el-button @click="fileListShow" text :title="collapse ? '展开' : '折叠'">
-                <el-icon><component :is="collapse ? FullScreen : Minus" /></el-icon>
-              </el-button>
-              <el-button @click="close" text title="关闭">
-                <el-icon><Close /></el-icon>
-              </el-button>
+            <div class="file-title">
+              <span>上传文件列表</span>
+              <div class="operate">
+                <el-button @click="fileListShow" text :title="collapse ? '展开' : '折叠'">
+                  <el-icon><component :is="collapse ? FullScreen : Minus" /></el-icon>
+                </el-button>
+                <el-button @click="close" text title="关闭">
+                  <el-icon><Close /></el-icon>
+                </el-button>
+              </div>
             </div>
-          </div>
 
-          <ul class="file-list" v-if="!collapse">
-            <li v-for="file in props.fileList" :key="file.id">
-              <UploaderFile
-                :class="'file_' + file.id"
-                ref="files"
-                :file="file"
-                :list="true"
-              ></UploaderFile>
-            </li>
-            <div class="no-file" v-if="!props.fileList.length">
-              <el-icon><Folder /></el-icon>
-              暂无待上传文件
-            </div>
-          </ul>
-        </div>
+            <ul class="file-list" v-if="!collapse">
+              <li v-for="file in props.fileList" :key="file.id">
+                <UploaderFile
+                  :class="'file_' + file.id"
+                  ref="files"
+                  :file="file"
+                  :list="true"
+                ></UploaderFile>
+              </li>
+              <div class="no-file" v-if="!props.fileList.length">
+                <el-icon><Folder /></el-icon>
+                暂无待上传文件
+              </div>
+            </ul>
+          </div>
         </template>
       </UploaderList>
     </Uploader>
@@ -51,11 +51,11 @@
 </template>
 
 <script>
-import Uploader from './uploader/Uploader.vue'
-import UploaderUnsupport from './uploader/Unsupport.vue'
-import UploaderBtn from './uploader/Btn.vue'
-import UploaderList from './uploader/List.vue'
-import UploaderFile from './uploader/File.vue'
+import Uploader from './uploader/uploader.vue'
+import UploaderUnsupport from './uploader/unsupport.vue'
+import UploaderBtn from './uploader/btn.vue'
+import UploaderList from './uploader/list.vue'
+import UploaderFile from './uploader/file.vue'
 import { resourceUploadUrl, mergeResource } from '@/apis/resource'
 import { useAppStore } from '@/stores/app'
 import { FullScreen, Minus, Close, Folder } from '@element-plus/icons-vue'
@@ -108,9 +108,10 @@ export default {
     }
   },
   methods: {
-    onFileAdded() {
-      this.fileMap[arguments[0].uniqueIdentifier] = this.store.folderId
+    onFileAdded(file) {
+      this.fileMap[file.uniqueIdentifier] = this.store.folderId
       this.panelShow = true
+      window.eventBus.emit('refreshTransfers')
     },
     onFileProgress(rootFile, file, chunk) {
       console.log(
@@ -119,41 +120,71 @@ export default {
         }`
       )
     },
-    onFileSuccess() {
-      const file = arguments[0].file,
-        resource = {
-          fileName: file.name,
-          size: file.size,
-          identifier: arguments[0].uniqueIdentifier,
-          parentId: this.fileMap[arguments[0].uniqueIdentifier]
-        }
+    onFileSuccess(rootFile) {
+      const file = rootFile.file
+      const resource = {
+        fileName: file.name,
+        size: file.size,
+        identifier: rootFile.uniqueIdentifier,
+        parentId: this.fileMap[rootFile.uniqueIdentifier]
+      }
       mergeResource(resource)
         .then(() => {
-          window.eventBus.emit('flushFileList', this.fileMap[arguments[0].uniqueIdentifier])
+          ElMessage.success(`上传完成：${file.name}`)
+          window.eventBus.emit('flushFileList', this.fileMap[rootFile.uniqueIdentifier])
+          window.eventBus.emit('refreshTransfers')
         })
-        .catch(() => {
-          ElMessage.error('文件合并失败，请重新上传')
+        .catch(error => {
+          const message = error?.data?.msg || '文件合并失败，请重新上传'
+          ElMessage.error(message)
+          window.eventBus.emit('refreshTransfers')
         })
     },
-    onFileError() {},
-    fileListShow() {
-      this.collapse = !this.collapse
+    onFileError(rootFile, file, response) {
+      const message = typeof response === 'string' && response ? response : '上传失败，请重试'
+      ElMessage.error(`${file?.name || '文件'}：${message}`)
+      window.eventBus.emit('refreshTransfers')
     },
-    close() {
-      this.uploader.cancel()
-      this.panelShow = false
-    }
-  },
-  mounted() {
-    window.eventBus.on('openUploader', query => {
+    cancelByIdentifier(identifier) {
+      if (!this.uploader?.files?.length) {
+        return
+      }
+      const targetFile = this.uploader.files.find(file => file.uniqueIdentifier === identifier)
+      if (!targetFile) {
+        return
+      }
+      if (typeof targetFile.cancel === 'function') {
+        targetFile.cancel()
+      }
+      if (typeof this.uploader.removeFile === 'function') {
+        this.uploader.removeFile(targetFile)
+      }
+      window.eventBus.emit('refreshTransfers')
+    },
+    handleOpenUploader(query) {
       this.params = query || {}
       if (this.$refs.uploadFileBtn) {
         this.$refs.uploadFileBtn.$el.click()
       }
-    })
+    },
+    fileListShow() {
+      this.collapse = !this.collapse
+    },
+    close() {
+      if (this.uploader) {
+        this.uploader.cancel()
+      }
+      this.panelShow = false
+      window.eventBus.emit('refreshTransfers')
+    }
+  },
+  mounted() {
+    window.eventBus.on('openUploader', this.handleOpenUploader)
+    window.eventBus.on('cancelUploadByIdentifier', this.cancelByIdentifier)
   },
   unmounted() {
-    window.eventBus.off('openUploader')
+    window.eventBus.off('openUploader', this.handleOpenUploader)
+    window.eventBus.off('cancelUploadByIdentifier', this.cancelByIdentifier)
   }
 }
 </script>

@@ -1,154 +1,156 @@
 <template>
-  <div class="file-list-container">
-    <div class="operater">
-      <el-button type="primary" :icon="Upload" @click="uploadFileTrigger">
-        上传文件
-      </el-button>
-      <el-button :icon="FolderAdd" plain @click="createFolder">新增文件夹</el-button>
-      <el-button-group class="extend-btn">
+  <div class="workspace-page">
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">全部文件</h2>
+        <p class="page-subtitle">在当前目录中完成上传、整理、下载和批量操作。</p>
+      </div>
+      <div class="page-actions">
+        <el-button type="primary" :icon="Upload" @click="uploadFileTrigger">上传文件</el-button>
+        <el-button plain :icon="FolderAdd" @click="createFolder">新增文件夹</el-button>
+        <el-button plain :icon="RefreshRight" :loading="loading" @click="renderFileList">
+          刷新当前目录
+        </el-button>
+      </div>
+    </div>
+
+    <div class="navigation-card">
+      <div class="navigation-top">
+        <div class="section-label">当前位置</div>
+        <div class="section-count">当前目录 {{ fileList.length }} 项</div>
+      </div>
+      <div class="navigation-row">
         <el-button
-          :icon="Edit"
-          v-if="selection.length === 1"
-          @click="renameFile(selection[0])"
-          plain
+          v-if="navigation.length > 1"
+          link
+          :icon="Back"
+          @click="goToFolder(navigation[navigation.length - 2].id)"
         >
+          返回上一级
+        </el-button>
+        <el-breadcrumb separator="/">
+          <el-breadcrumb-item v-for="nav in navigation" :key="nav.id">
+            <el-button link @click="goToFolder(nav.id)">{{ nav.fileName }}</el-button>
+          </el-breadcrumb-item>
+        </el-breadcrumb>
+      </div>
+    </div>
+
+    <div class="batch-toolbar">
+      <div class="batch-info">
+        <span class="section-label">批量操作</span>
+        <span class="selection-text">{{ selectionSummary }}</span>
+      </div>
+      <div class="batch-actions">
+        <el-button plain :icon="Edit" :disabled="!canRename" @click="renameFile(selection[0])">
           重命名
         </el-button>
-        <el-button
-          :icon="Download"
-          v-if="canDownload()"
-          @click="downloadFiles(selection)"
-          plain
-        >
+        <el-button plain :icon="Download" :disabled="!canDownloadSelected" @click="downloadFiles(selection)">
           下载
         </el-button>
-        <el-button
-          :icon="Delete"
-          v-if="selection.length > 0"
-          plain
-          @click="deleteFiles(selection)"
-        >
+        <el-button plain :icon="Delete" :disabled="selection.length === 0" @click="deleteFiles(selection)">
           删除
         </el-button>
-        <el-button plain v-if="selection.length > 0" @click="moveTo(selection)">移动到</el-button>
-        <el-button plain v-if="selection.length > 0" @click="copyTo(selection)">复制到</el-button>
-      </el-button-group>
-    </div>
-    <div class="navigation">
-      <div class="previous-level" v-if="navigation.length > 1">
-        <router-link :to="'/folder/' + navigation[navigation.length - 2].id">
-          <span>返回上一级</span>
-        </router-link>
-        <span class="navigation-separator">|</span>
-      </div>
-      <div class="breadcrumb">
-        <div
-          class="breadcrumb-item"
-          v-for="(nav, index) in navigation"
-          :key="'navigation-' + index"
-        >
-          <router-link :to="'/folder/' + nav.id">
-            <span class="breadcrumb-name">{{ nav.fileName }}</span>
-          </router-link>
-          <span class="navigation-separator" v-if="index !== navigation.length - 1">/</span>
-        </div>
+        <el-button plain :disabled="selection.length === 0" @click="moveTo(selection)">移动到</el-button>
+        <el-button plain :disabled="selection.length === 0" @click="copyTo(selection)">复制到</el-button>
       </div>
     </div>
-    <div class="file-list">
-      <el-table
-        :data="fileList"
-        style="width: 100%"
-        height="100%"
-        :default-sort="{ prop: 'fileName', order: 'ascending' }"
-        @selection-change="handleSelectionChange"
-        @sort-change="handleSortChange"
-      >
-        <el-table-column type="selection" show-overflow-tooltip min-width="2"></el-table-column>
-        <el-table-column
-          prop="fileName"
-          label="文件名"
-          sortable
-          show-overflow-tooltip
-          min-width="33"
+
+    <PageState
+      :loading="loading"
+      :error="Boolean(errorMessage)"
+      :error-description="errorMessage"
+      :empty="!loading && !errorMessage && fileList.length === 0"
+      empty-description="当前目录暂无文件，可以先上传文件或新建文件夹。"
+      min-height="420px"
+      @retry="renderFileList"
+    >
+      <div class="table-card">
+        <el-table
+          :data="fileList"
+          row-key="id"
+          height="100%"
+          @selection-change="handleSelectionChange"
+          @sort-change="handleSortChange"
         >
-          <template #default="scope">
-            <div class="file-icon" :class="getFileType(scope.row.type)"></div>
-            <router-link
-              class="file-name"
-              :to="'/folder/' + scope.row.id"
-              v-if="getFileType(scope.row.type) === 'folder'"
-            >
-              {{ scope.row.fileName }}
-            </router-link>
-            <router-link
-              target="_blank"
-              class="file-name"
-              :to="'/video/' + scope.row.id"
-              v-else-if="getFileType(scope.row.type) === 'video'"
-            >
-              {{ scope.row.fileName }}
-            </router-link>
-            <router-link class="file-name" to="" v-else>{{ scope.row.fileName }}</router-link>
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="size"
-          label="大小"
-          sortable
-          :formatter="sizeFormatter"
-          min-width="12"
-        ></el-table-column>
-        <el-table-column
-          prop="updateTime"
-          label="修改日期"
-          sortable
-          show-overflow-tooltip
-          :formatter="dateFormatter"
-          min-width="22"
-        ></el-table-column>
-        <el-table-column min-width="15" label="操作">
-          <template #default="scope">
-            <el-dropdown>
-              <span>
-                <el-icon><More /></el-icon>
-              </span>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item @click="moveTo([scope.row])">移动到</el-dropdown-item>
-                  <el-dropdown-item @click="copyTo([scope.row])">复制到</el-dropdown-item>
-                  <el-dropdown-item @click="renameFile(scope.row)">重命名</el-dropdown-item>
-                  <el-dropdown-item
-                    @click="downloadFiles([scope.row])"
-                    v-if="getFileType(scope.row.type) != 'folder'"
-                  >
-                    下载
-                  </el-dropdown-item>
-                  <el-dropdown-item @click="deleteFiles([scope.row])">删除</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
+          <el-table-column type="selection" width="52" />
+          <el-table-column prop="fileName" label="文件名" min-width="320" sortable="custom">
+            <template #default="{ row }">
+              <div class="name-cell">
+                <FileTypeIcon :type="row.type" />
+                <el-button link class="name-button" @click="openRow(row)">
+                  {{ row.fileName }}
+                </el-button>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="size" label="大小" width="140" sortable="custom">
+            <template #default="{ row }">{{ formatFileSize(row) }}</template>
+          </el-table-column>
+          <el-table-column prop="updateTime" label="修改时间" min-width="180" sortable="custom">
+            <template #default="{ row }">{{ formatFileDate(row.updateTime) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" min-width="280" fixed="right">
+            <template #default="{ row }">
+              <div class="row-actions">
+                <el-button link @click="showDetail(row)">详情</el-button>
+                <el-button link @click="openRow(row)">
+                  {{ row.type === 'folder' ? '打开' : row.type === 'video' ? '播放' : '查看' }}
+                </el-button>
+                <el-button v-if="row.type !== 'folder'" link @click="downloadFiles([row])">下载</el-button>
+                <el-dropdown>
+                  <el-button link>
+                    更多
+                    <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item @click="moveTo([row])">移动到</el-dropdown-item>
+                      <el-dropdown-item @click="copyTo([row])">复制到</el-dropdown-item>
+                      <el-dropdown-item @click="renameFile(row)">重命名</el-dropdown-item>
+                      <el-dropdown-item @click="deleteFiles([row])">删除</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </PageState>
+
     <FolderTreeDialog v-if="folderTreeVisible" v-bind="folderTreeProps" @return="dealReturn" />
+    <FileDetailDrawer v-model="detailVisible" :file-id="detailFileId" />
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Upload, FolderAdd, Edit, Download, Delete, More } from '@element-plus/icons-vue'
 import {
-  getFileList,
+  ArrowDown,
+  Back,
+  Delete,
+  Download,
+  Edit,
+  FolderAdd,
+  RefreshRight,
+  Upload
+} from '@element-plus/icons-vue'
+import {
   createFile,
-  renameFile as renameFileApi,
   deleteFiles as deleteFilesApi,
+  downloadFileUrl,
+  getFileList,
   moveOrCopyFiles,
-  downloadFileUrl
+  renameFile as renameFileApi
 } from '@/apis/file'
-import { formatSize, formatDateTime } from '@/utils'
 import FolderTreeDialog from '@/components/FolderTreeDialog.vue'
+import PageState from '@/components/PageState.vue'
+import FileTypeIcon from '@/components/FileTypeIcon.vue'
+import FileDetailDrawer from '@/components/FileDetailDrawer.vue'
+import { formatFileDate, formatFileSize, resolveErrorMessage } from '@/utils/file'
 import { useAppStore } from '@/stores/app'
 
 const props = defineProps({
@@ -158,6 +160,7 @@ const props = defineProps({
   }
 })
 
+const router = useRouter()
 const store = useAppStore()
 
 const folderTreeVisible = ref(false)
@@ -169,354 +172,372 @@ const folderTreeProps = ref({
 const fileList = ref([])
 const navigation = ref([])
 const selection = ref([])
+const loading = ref(false)
+const errorMessage = ref('')
+const detailVisible = ref(false)
+const detailFileId = ref(null)
+const sortState = ref({
+  sortBy: 'fileName',
+  sortOrder: 'asc'
+})
+
+const selectionSummary = computed(() => {
+  if (selection.value.length === 0) {
+    return '未选择文件'
+  }
+  return `已选 ${selection.value.length} 项`
+})
+
+const canRename = computed(() => selection.value.length === 1)
+const canDownloadSelected = computed(
+  () => selection.value.length > 0 && selection.value.every(item => item.type !== 'folder')
+)
+
+const handleErrorMessage = (error, fallback) => {
+  ElMessage.error(resolveErrorMessage(error, fallback))
+}
 
 const uploadFileTrigger = () => {
   window.eventBus.emit('openUploader')
 }
 
-const renderFileList = () => {
-  getFileList(props.folderId)
-    .then(response => {
-      fileList.value = response.data
-      navigation.value = response.extra
-    })
-    .catch(() => {})
+const renderFileList = async () => {
+  loading.value = true
+  errorMessage.value = ''
+  selection.value = []
+  try {
+    const response = await getFileList(props.folderId, sortState.value)
+    fileList.value = response.data || []
+    navigation.value = response.extra || []
+  } catch (error) {
+    fileList.value = []
+    navigation.value = []
+    errorMessage.value = resolveErrorMessage(error, '文件列表加载失败')
+  } finally {
+    loading.value = false
+  }
 }
 
 const createFolder = () => {
-  ElMessageBox.prompt('请输入文件夹名', '提示', {
+  ElMessageBox.prompt('请输入文件夹名', '新增文件夹', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     inputPattern: /^.{1,100}$/,
     inputErrorMessage: '文件夹名长度必须小于100'
   })
-    .then(({ value }) => {
-      createFile(props.folderId, value, 'folder')
-        .then(() => {
-          ElMessage.success('创建成功')
-          renderFileList()
-        })
-        .catch(error => {
-          if (error.data) {
-            ElMessage.error(error.data.msg)
-          }
-        })
+    .then(async ({ value }) => {
+      try {
+        await createFile(Number(props.folderId), value, 'folder')
+        ElMessage.success('文件夹创建成功')
+        renderFileList()
+      } catch (error) {
+        handleErrorMessage(error, '文件夹创建失败')
+      }
     })
     .catch(() => {})
 }
 
 const renameFile = (row) => {
-  ElMessageBox.prompt('请输入文件夹名', '提示', {
+  if (!row) {
+    return
+  }
+  ElMessageBox.prompt('请输入新的文件名称', '重命名', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     inputPattern: /^.{1,100}$/,
     inputValue: row.fileName,
-    inputErrorMessage: '文件夹名长度必须小于100'
+    inputErrorMessage: '文件名长度必须小于100'
   })
-    .then(({ value }) => {
-      renameFileApi(row.id, value)
-        .then(() => {
-          ElMessage.success('文件重命名成功')
-          renderFileList()
-        })
-        .catch(error => {
-          if (error.data) {
-            ElMessage.error(error.data.msg)
-          }
-        })
+    .then(async ({ value }) => {
+      try {
+        await renameFileApi(row.id, value)
+        ElMessage.success('文件重命名成功')
+        renderFileList()
+      } catch (error) {
+        handleErrorMessage(error, '文件重命名失败')
+      }
     })
     .catch(() => {})
 }
 
-const deleteFiles = (arr) => {
-  const ids = arr.map(f => f.id)
-  ElMessageBox.confirm('确定删除文件?', '提示', {
-    confirmButtonText: '确定',
+const deleteFiles = (rows) => {
+  if (!rows.length) {
+    return
+  }
+  const ids = rows.map(item => item.id)
+  ElMessageBox.confirm('删除后不可恢复，确认继续吗？', '删除文件', {
+    confirmButtonText: '确定删除',
     cancelButtonText: '取消',
     type: 'warning'
   })
-    .then(() => {
-      deleteFilesApi(ids)
-        .then(() => {
-          ElMessage.success('文件删除成功')
-          renderFileList()
-        })
-        .catch(() => {
-          ElMessage.error('文件删除失败')
-          renderFileList()
-        })
+    .then(async () => {
+      try {
+        await deleteFilesApi(ids)
+        ElMessage.success('文件删除成功')
+        renderFileList()
+      } catch (error) {
+        handleErrorMessage(error, '文件删除失败')
+      }
     })
     .catch(() => {})
 }
 
-const moveTo = (arr) => {
+const moveTo = (rows) => {
+  if (!rows.length) {
+    return
+  }
   folderTreeProps.value = {
     type: 'move',
     title: '移动到',
-    sourceFiles: arr
+    sourceFiles: rows
   }
   nextTick(() => {
     folderTreeVisible.value = true
   })
 }
 
-const copyTo = (arr) => {
+const copyTo = (rows) => {
+  if (!rows.length) {
+    return
+  }
   folderTreeProps.value = {
     type: 'copy',
     title: '复制到',
-    sourceFiles: arr
+    sourceFiles: rows
   }
   nextTick(() => {
     folderTreeVisible.value = true
   })
 }
 
-const dealReturn = (val) => {
-  if (val.type === 'cancel') {
+const dealReturn = async (payload) => {
+  if (payload.type === 'cancel') {
     folderTreeVisible.value = false
     return
-  } else {
-    const arr = val.value
-    const sourceIds = folderTreeProps.value.sourceFiles.map(f => f.id)
+  }
 
-    const operate = (sourceIds, targetIds, type, successCallback) => {
-      moveOrCopyFiles(sourceIds, targetIds, type)
-        .then(() => {
-          successCallback()
-          folderTreeVisible.value = false
-          renderFileList()
-        })
-        .catch(() => {})
-    }
+  const targetIds = payload.value || []
+  const sourceIds = folderTreeProps.value.sourceFiles.map(file => file.id)
 
-    if (folderTreeProps.value.type === 'move') {
-      if (arr.length !== 1) {
-        ElMessage.error('必须选择一个目标文件夹')
-      } else {
-        operate(sourceIds, arr, 'move', () => {
-          ElMessage.success('移动文件成功')
-        })
-      }
-    } else if (folderTreeProps.value.type === 'copy') {
-      if (arr.length !== 1) {
-        ElMessage.error('请选择文件夹')
-      } else {
-        operate(sourceIds, arr, 'copy', () => {
-          ElMessage.success('复制文件成功')
-        })
-      }
-    }
+  if (folderTreeProps.value.type === 'move' && targetIds.length !== 1) {
+    ElMessage.error('移动操作必须选择一个目标文件夹')
+    return
+  }
+  if (folderTreeProps.value.type === 'copy' && targetIds.length !== 1) {
+    ElMessage.error('复制操作必须选择一个目标文件夹')
+    return
+  }
+
+  try {
+    await moveOrCopyFiles(sourceIds, targetIds, folderTreeProps.value.type)
+    ElMessage.success(folderTreeProps.value.type === 'move' ? '文件移动成功' : '文件复制成功')
+    folderTreeVisible.value = false
+    renderFileList()
+  } catch (error) {
+    handleErrorMessage(error, folderTreeProps.value.type === 'move' ? '文件移动失败' : '文件复制失败')
   }
 }
 
-const handleSelectionChange = (val) => {
-  selection.value = val
+const handleSelectionChange = (rows) => {
+  selection.value = rows
 }
 
 const handleSortChange = ({ prop, order }) => {
-  if (prop && order) {
-    getFileList(props.folderId, {
-      sortBy: prop,
-      sortOrder: order === 'ascending' ? 'asc' : 'desc'
-    })
-      .then(response => {
-        fileList.value = response.data
-      })
-      .catch(() => {})
+  sortState.value = {
+    sortBy: prop || 'fileName',
+    sortOrder: order === 'descending' ? 'desc' : 'asc'
   }
-}
-
-const canDownload = () => {
-  let hasFolder = false
-  for (let i = 0; i < selection.value.length; i++) {
-    if (selection.value[i].type === 'folder') {
-      hasFolder = true
-      break
-    }
-  }
-  return !hasFolder && selection.value.length > 0
-}
-
-const downloadFiles = (arr = []) => {
-  if (arr.length === 0) return
-
-  const download = (url) => {
-    const tag = document.createElement('a')
-    tag.setAttribute('href', url)
-    tag.click()
-  }
-
-  let index = 0
-  download(downloadFileUrl(arr[index].id))
-  index++
-
-  const interval = setInterval(() => {
-    if (index < arr.length) {
-      download(downloadFileUrl(arr[index].id))
-      index++
-    } else {
-      clearInterval(interval)
-    }
-  }, 2000)
-}
-
-const FILE_TYPE_ICONS = new Set([
-  'default',
-  'folder',
-  'pdf',
-  'compress_file',
-  'web',
-  'video',
-  'audio',
-  'picture',
-  'doc',
-  'txt',
-  'torrent',
-  'ppt',
-  'code'
-])
-
-const getFileType = (originType) => {
-  return FILE_TYPE_ICONS.has(originType) ? originType : 'default'
-}
-
-const sizeFormatter = (row) => {
-  const size = formatSize(row.size, 2)
-  if (row.type === 'folder' || size === undefined) {
-    return '-'
-  }
-  return size
-}
-
-const dateFormatter = (row) => {
-  return formatDateTime(row.updateTime)
-}
-
-watch(() => props.folderId, () => {
-  store.setFolderId(props.folderId)
   renderFileList()
-})
+}
+
+const showDetail = (row) => {
+  detailFileId.value = row.id
+  detailVisible.value = true
+}
+
+const goToFolder = (folderId) => {
+  router.push(`/folder/${folderId}`)
+}
+
+const openVideo = (fileId) => {
+  const routeLocation = router.resolve(`/video/${fileId}`)
+  window.open(routeLocation.href, '_blank')
+}
+
+const openRow = (row) => {
+  if (row.type === 'folder') {
+    goToFolder(row.id)
+    return
+  }
+  if (row.type === 'video') {
+    openVideo(row.id)
+    return
+  }
+  showDetail(row)
+}
+
+const downloadFiles = (rows = []) => {
+  if (!rows.length) {
+    return
+  }
+  if (rows.some(item => item.type === 'folder')) {
+    ElMessage.warning('文件夹暂不支持直接下载')
+    return
+  }
+
+  rows.forEach((item, index) => {
+    window.setTimeout(() => {
+      const link = document.createElement('a')
+      link.href = downloadFileUrl(item.id)
+      link.click()
+    }, index * 300)
+  })
+}
+
+const handleFlush = () => {
+  renderFileList()
+}
+
+watch(
+  () => props.folderId,
+  (folderId) => {
+    store.setFolderId(Number(folderId))
+    renderFileList()
+  },
+  { immediate: true }
+)
 
 onMounted(() => {
-  renderFileList()
-  window.eventBus.on('flushFileList', query => {
-    renderFileList()
-  })
+  window.eventBus.on('flushFileList', handleFlush)
 })
 
 onUnmounted(() => {
-  window.eventBus.off('flushFileList')
+  window.eventBus.off('flushFileList', handleFlush)
 })
 </script>
 
 <style lang="scss" scoped>
-.file-list-container {
+.workspace-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   height: 100%;
-  position: relative;
-  a {
-    color: #000;
-    text-decoration: none;
-    &:visited {
-      color: #000;
-    }
-    &:hover {
-      color: #3794ff;
-    }
+}
+
+.page-header,
+.navigation-card,
+.batch-toolbar,
+.table-card {
+  background-color: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 12px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 20px 24px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 24px;
+  color: #303133;
+}
+
+.page-subtitle {
+  margin: 8px 0 0;
+  color: #606266;
+}
+
+.page-actions,
+.batch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.navigation-card {
+  padding: 16px 24px;
+}
+
+.navigation-top,
+.batch-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.navigation-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.section-label {
+  font-size: 13px;
+  color: #909399;
+}
+
+.section-count,
+.selection-text {
+  font-size: 14px;
+  color: #606266;
+}
+
+.batch-toolbar {
+  padding: 16px 24px;
+}
+
+.batch-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.table-card {
+  height: calc(100vh - 320px);
+  min-height: 420px;
+  padding: 8px 0;
+}
+
+.name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.name-button {
+  min-width: 0;
+  justify-content: flex-start;
+  white-space: normal;
+  word-break: break-all;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+@media (max-width: 960px) {
+  .page-header,
+  .navigation-top,
+  .batch-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
   }
-  .extend-btn {
-    margin-left: 30px;
+
+  .table-card {
+    height: auto;
+    min-height: 360px;
   }
-  .navigation {
-    font-size: 14px;
-    font-weight: 450;
-    margin: 10px 0px;
-    .previous-level {
-      cursor: pointer;
-      display: inline-block;
-      span:first-child:hover {
-        color: #3794ff;
-      }
-    }
-    .breadcrumb,
-    .breadcrumb-item {
-      display: inline-block;
-      .breadcrumb-name {
-        cursor: pointer;
-        &:hover {
-          color: #3794ff;
-        }
-      }
-    }
-    .navigation-separator {
-      padding: 0 5px;
-    }
-  }
-  .file-list {
-    width: 100%;
-    position: absolute;
-    top: 70px;
-    left: 0;
-    bottom: 0;
-  }
-}
-.el-icon {
-  cursor: pointer;
-  font-size: 18px;
-  &:hover {
-    color: #3794ff;
-  }
-}
-.file-icon {
-  display: inline-block;
-  background-image: url(../../assets/file_icons.png);
-  background-repeat: no-repeat;
-  width: 26px;
-  height: 23px;
-}
-.file-name {
-  display: inline-block;
-  padding-left: 8px;
-  text-decoration: none;
-  color: #000;
-  cursor: pointer;
-}
-.default {
-  background-position: -596px -566px;
-}
-.folder {
-  background-position: -594px -862px;
-}
-.pdf {
-  background-position: -596px -136px;
-}
-.compress_file {
-  background-position: -596px -1664px;
-}
-.video {
-  background-position: -596px -1630px;
-}
-.audio {
-  background-position: -596px -442px;
-}
-.picture {
-  background-position: -596px -306px;
-}
-.doc {
-  background-position: -596px -170px;
-}
-.txt {
-  background-position: -596px -102px;
-}
-.ppt {
-  background-position: -596px -204px;
-}
-.torrent {
-  background-position: -596px 0px;
-}
-.web {
-  background-position: -594px -1458px;
-}
-.code {
-  background-position: -596px -1424px;
 }
 </style>

@@ -10,10 +10,9 @@ import { getDownloadUrl } from './url'
  * @returns {Promise} 文件列表Promise
  */
 export const getFileList = (parentId, options = {}) => {
-  const params = { parentId, ...options }
   return request({
     url: `/v1/file/parent/${parentId}`,
-    params
+    params: options
   })
 }
 
@@ -25,6 +24,41 @@ export const getFileList = (parentId, options = {}) => {
 export const getFile = fileId => {
   return request({
     url: `/v1/file/${fileId}`
+  })
+}
+
+/**
+ * 获取最近上传文件列表
+ * @param {Number} [limit=20] - 最近上传数量
+ * @returns {Promise} 最近上传文件Promise
+ */
+export const getRecentFiles = (limit = 20) => {
+  return request({
+    url: '/v1/file/recent',
+    params: { limit }
+  })
+}
+
+/**
+ * 获取分类摘要
+ * @returns {Promise} 分类摘要Promise
+ */
+export const getCategorySummary = () => {
+  return request({
+    url: '/v1/file/category-summary'
+  })
+}
+
+/**
+ * 获取分类文件列表
+ * @param {String} category - 分类编码
+ * @param {Object} [options] - 查询参数
+ * @returns {Promise} 分类文件列表Promise
+ */
+export const getCategoryFiles = (category, options = {}) => {
+  return request({
+    url: `/v1/file/category/${category}`,
+    params: options
   })
 }
 
@@ -101,5 +135,16 @@ export const moveOrCopyFiles = (fileIds, targetIds, type) => {
       targetIds,
       type
     }
+  })
+}
+
+/**
+ * 校验文件完整性
+ * @param {Number} fileId - 文件ID
+ * @returns {Promise} 完整性校验结果Promise
+ */
+export const verifyFileMd5 = fileId => {
+  return request({
+    url: `/v1/file/${fileId}/verify-md5`
   })
 }

@@ -27,3 +27,38 @@ export const mergeResource = resource => {
     data: resource
   })
 }
+
+/**
+ * 获取传输任务列表
+ * @returns {Promise} 传输任务列表Promise
+ */
+export const getTransferTasks = () => {
+  return request({
+    url: '/v1/resource/transfers'
+  })
+}
+
+/**
+ * 取消上传任务
+ * @param {String} identifier - 任务标识
+ * @returns {Promise} 取消结果Promise
+ */
+export const cancelUploadTask = identifier => {
+  return request({
+    url: `/v1/resource/upload/${identifier}`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 清理传输任务记录
+ * @param {String} [status='completed'] - 需要清理的状态
+ * @returns {Promise} 清理结果Promise
+ */
+export const clearTransferTasks = (status = 'completed') => {
+  return request({
+    url: '/v1/resource/transfers',
+    method: 'delete',
+    params: { status }
+  })
+}

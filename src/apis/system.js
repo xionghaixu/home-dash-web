@@ -7,6 +7,6 @@ import request from './request'
  */
 export const systemInfo = () => {
   return request({
-    url: `/v1/system`
+    url: '/v1/system/info'
   })
 }
