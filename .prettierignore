@@ -1,0 +1,6 @@
+node_modules
+dist
+public
+*.md
+*.log
+.DS_Store
