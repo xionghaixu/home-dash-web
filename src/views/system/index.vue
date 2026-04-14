@@ -1,11 +1,13 @@
 <template>
   <div class="system-page">
     <div class="page-header">
-      <div>
-        <h2 class="page-title">系统信息</h2>
-        <p class="page-subtitle">查看容量概况、文件统计和阶段一工作台的基础摘要。</p>
+      <div class="page-header__left">
+        <h1 class="page-header__title">系统信息</h1>
+        <p class="page-header__subtitle">查看容量概况、文件统计和存储分布。</p>
       </div>
-      <el-button plain :icon="RefreshRight" :loading="loading" @click="loadSystemInfo">刷新</el-button>
+      <div class="page-header__actions">
+        <el-button plain :icon="RefreshRight" :loading="loading" @click="loadSystemInfo">刷新</el-button>
+      </div>
     </div>
 
     <PageState
@@ -20,66 +22,93 @@
       <div v-if="systemData" class="system-content">
         <div class="storage-card">
           <div class="storage-header">
-            <span class="card-title">容量概况</span>
-            <span class="storage-rate">已使用 {{ usedRate }}%</span>
+            <h3 class="storage-title">容量概况</h3>
+            <span class="storage-rate" :class="rateClass">{{ usedRate }}% 已使用</span>
           </div>
-          <div class="storage-stats">
-            <div class="storage-item">
-              <span class="storage-label">总容量</span>
-              <strong>{{ formatToGB(systemData.totalCap) }} GB</strong>
+          <div class="storage-body">
+            <div class="storage-ring">
+              <CapacityRing :percentage="usedRate" />
             </div>
-            <div class="storage-item">
-              <span class="storage-label">已使用</span>
-              <strong>{{ formatToGB(usedCap) }} GB</strong>
-            </div>
-            <div class="storage-item">
-              <span class="storage-label">剩余</span>
-              <strong>{{ formatToGB(systemData.usableCap) }} GB</strong>
+            <div class="storage-stats">
+              <div class="storage-stat">
+                <span class="stat-label">总容量</span>
+                <strong class="stat-value">{{ formatToGB(systemData.totalCap) }}</strong>
+                <span class="stat-unit">GB</span>
+              </div>
+              <div class="storage-stat">
+                <span class="stat-label">已使用</span>
+                <strong class="stat-value used">{{ formatToGB(usedCap) }}</strong>
+                <span class="stat-unit">GB</span>
+              </div>
+              <div class="storage-stat">
+                <span class="stat-label">剩余空间</span>
+                <strong class="stat-value free">{{ formatToGB(systemData.usableCap) }}</strong>
+                <span class="stat-unit">GB</span>
+              </div>
             </div>
           </div>
-          <el-progress :percentage="usedRate" :stroke-width="12" />
         </div>
 
+        <div class="section-title">文件统计</div>
         <div class="stats-grid">
-          <div class="stat-card">
-            <span class="stat-label">文件总数</span>
-            <strong>{{ systemData.fileNum }}</strong>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">文件夹总数</span>
-            <strong>{{ systemData.folderNum }}</strong>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">最近上传</span>
-            <strong>{{ systemData.recentUploadNum }}</strong>
-          </div>
+          <DataCard
+            label="文件总数"
+            :value="systemData.fileNum"
+            :icon="Document"
+            type="primary"
+          />
+          <DataCard
+            label="文件夹"
+            :value="systemData.folderNum"
+            :icon="Folder"
+            type="info"
+          />
+          <DataCard
+            label="最近上传"
+            :value="systemData.recentUploadNum"
+            :icon="Upload"
+            type="success"
+          />
         </div>
 
-        <div class="stats-grid detail-grid">
-          <div class="stat-card">
-            <span class="stat-label">图片</span>
-            <strong>{{ systemData.pictureNum }}</strong>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">视频</span>
-            <strong>{{ systemData.videoNum }}</strong>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">音频</span>
-            <strong>{{ systemData.audioNum }}</strong>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">文档</span>
-            <strong>{{ systemData.docNum }}</strong>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">压缩包</span>
-            <strong>{{ systemData.compressNum }}</strong>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">其他文件</span>
-            <strong>{{ systemData.otherNum }}</strong>
-          </div>
+        <div class="section-title">文件类型分布</div>
+        <div class="category-grid">
+          <DataCard
+            label="图片"
+            :value="systemData.pictureNum"
+            :icon="Picture"
+            type="primary"
+          />
+          <DataCard
+            label="视频"
+            :value="systemData.videoNum"
+            :icon="VideoCamera"
+            type="warning"
+          />
+          <DataCard
+            label="音频"
+            :value="systemData.audioNum"
+            :icon="Microphone"
+            type="info"
+          />
+          <DataCard
+            label="文档"
+            :value="systemData.docNum"
+            :icon="Document"
+            type="primary"
+          />
+          <DataCard
+            label="压缩包"
+            :value="systemData.compressNum"
+            :icon="FolderOpened"
+            type="warning"
+          />
+          <DataCard
+            label="其他文件"
+            :value="systemData.otherNum"
+            :icon="More"
+            type="info"
+          />
         </div>
       </div>
     </PageState>
@@ -88,9 +117,11 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { RefreshRight } from '@element-plus/icons-vue'
+import { RefreshRight, Document, Folder, Upload, Picture, VideoCamera, Microphone, FolderOpened, More } from '@element-plus/icons-vue'
 import { systemInfo } from '@/apis/system'
 import PageState from '@/components/PageState.vue'
+import CapacityRing from '@/components/CapacityRing.vue'
+import DataCard from '@/components/DataCard.vue'
 import { resolveErrorMessage } from '@/utils/file'
 
 const systemData = ref(null)
@@ -109,6 +140,12 @@ const usedRate = computed(() => {
     return 0
   }
   return Math.min(100, Math.round((usedCap.value / systemData.value.totalCap) * 100))
+})
+
+const rateClass = computed(() => {
+  if (usedRate.value >= 90) return 'rate--danger'
+  if (usedRate.value >= 75) return 'rate--warning'
+  return 'rate--normal'
 })
 
 const formatToGB = (size, pointLength = 2) => {
@@ -141,95 +178,168 @@ onMounted(() => {
 .system-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.page-header,
-.storage-card,
-.stat-card {
-  background-color: #fff;
-  border: 1px solid #ebeef5;
-  border-radius: 12px;
+  gap: var(--spacing-lg);
+  height: 100%;
+  animation: fadeInUp 0.3s ease;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 20px 24px;
-}
+  align-items: flex-start;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-2xl);
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-lighter);
 
-.page-title {
-  margin: 0;
-  font-size: 24px;
-  color: #303133;
-}
+  &__left {
+    flex: 1;
+    min-width: 0;
+  }
 
-.page-subtitle {
-  margin: 8px 0 0;
-  color: #606266;
+  &__title {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+  }
+
+  &__subtitle {
+    margin: var(--spacing-sm) 0 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+  }
+
+  &__actions {
+    display: flex;
+    gap: var(--spacing-md);
+  }
 }
 
 .system-content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-lg);
 }
 
 .storage-card {
-  padding: 24px;
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-lighter);
+  padding: var(--spacing-2xl);
 }
 
 .storage-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-xl);
 }
 
-.card-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #303133;
+.storage-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
 }
 
 .storage-rate {
-  color: #409eff;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-full);
+
+  &.rate--normal {
+    background: var(--color-success-light);
+    color: var(--color-success);
+  }
+
+  &.rate--warning {
+    background: var(--color-warning-light);
+    color: var(--color-warning);
+  }
+
+  &.rate--danger {
+    background: var(--color-danger-light);
+    color: var(--color-danger);
+  }
 }
 
-.storage-stats,
+.storage-body {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3xl);
+}
+
+.storage-ring {
+  flex-shrink: 0;
+}
+
+.storage-stats {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-xl);
+}
+
+.storage-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xl);
+  background: var(--color-fill-base);
+  border-radius: var(--radius-lg);
+}
+
+.stat-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.stat-value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  line-height: 1;
+
+  &.used {
+    color: var(--color-primary);
+  }
+
+  &.free {
+    color: var(--color-success);
+  }
+}
+
+.stat-unit {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-placeholder);
+}
+
+.section-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: var(--spacing-sm) 0;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--spacing-lg);
 }
 
-.storage-item,
-.stat-card {
-  padding: 18px;
-}
-
-.storage-label,
-.stat-label {
-  display: block;
-  margin-bottom: 8px;
-  color: #909399;
-  font-size: 14px;
-}
-
-.storage-item strong,
-.stat-card strong {
-  font-size: 28px;
-  color: #303133;
-}
-
-.detail-grid {
+.category-grid {
+  display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--spacing-lg);
 }
 
-@media (max-width: 1200px) {
-  .detail-grid {
+@media (max-width: 1280px) {
+  .category-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
@@ -237,19 +347,30 @@ onMounted(() => {
 @media (max-width: 960px) {
   .page-header {
     flex-direction: column;
-    align-items: flex-start;
   }
 
-  .storage-stats,
-  .stats-grid {
+  .storage-body {
+    flex-direction: column;
+  }
+
+  .storage-stats {
+    width: 100%;
+  }
+
+  .stats-grid,
+  .category-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
-  .storage-stats,
-  .stats-grid {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
+  .storage-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid,
+  .category-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

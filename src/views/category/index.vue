@@ -1,29 +1,26 @@
 <template>
   <div class="workspace-page">
     <div class="page-header">
-      <div>
-        <h2 class="page-title">基础分类浏览</h2>
-        <p class="page-subtitle">按图片、视频、音频、文档和其他文件进行轻量浏览。</p>
+      <div class="page-header__left">
+        <h1 class="page-header__title">基础分类浏览</h1>
+        <p class="page-header__subtitle">按图片、视频、音频、文档和其他文件进行轻量浏览。</p>
       </div>
-      <div class="page-actions">
-        <el-button plain :icon="RefreshRight" :loading="loading" @click="refreshAll">
-          刷新
-        </el-button>
+      <div class="page-header__actions">
+        <el-button plain :icon="RefreshRight" :loading="loading" @click="refreshAll">刷新</el-button>
       </div>
     </div>
 
-    <div class="summary-grid">
+    <div class="category-tabs">
       <button
         v-for="item in categorySummaries"
         :key="item.category"
-        type="button"
-        class="summary-card"
+        class="category-tab"
         :class="{ active: item.category === activeCategory }"
         @click="switchCategory(item.category)"
       >
-        <span class="summary-label">{{ item.label }}</span>
-        <strong class="summary-count">{{ item.count }}</strong>
-        <span class="summary-desc">{{ item.description }}</span>
+        <span class="tab-icon"><component :is="getCategoryIcon(item.category)" /></span>
+        <span class="tab-label">{{ item.label }}</span>
+        <span class="tab-count">{{ item.count }}</span>
       </button>
     </div>
 
@@ -37,7 +34,7 @@
       @retry="refreshAll"
     >
       <div class="table-card">
-        <el-table :data="fileList" row-key="id" height="100%" @sort-change="handleSortChange">
+        <el-table :data="fileList" row-key="id" style="flex:1" @sort-change="handleSortChange">
           <el-table-column prop="fileName" label="文件名" min-width="320" sortable="custom">
             <template #default="{ row }">
               <div class="name-cell">
@@ -84,7 +81,15 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { RefreshRight } from '@element-plus/icons-vue'
+import {
+  RefreshRight,
+  Picture,
+  VideoCamera,
+  Microphone,
+  Document,
+  FolderOpened,
+  Files
+} from '@element-plus/icons-vue'
 import { downloadFileUrl, getCategoryFiles, getCategorySummary } from '@/apis/file'
 import FileDetailDrawer from '@/components/FileDetailDrawer.vue'
 import FileTypeIcon from '@/components/FileTypeIcon.vue'
@@ -111,6 +116,15 @@ const sortState = ref({
   sortOrder: 'desc'
 })
 
+const categoryIconMap = {
+  picture: Picture,
+  video: VideoCamera,
+  audio: Microphone,
+  doc: Document,
+  compress: FolderOpened,
+  other: Files
+}
+
 const isValidCategory = (category) => {
   return CATEGORY_OPTIONS.some(item => item.key === category)
 }
@@ -135,6 +149,10 @@ const categorySummaries = computed(() => {
     }
   })
 })
+
+const getCategoryIcon = (category) => {
+  return categoryIconMap[category] || Files
+}
 
 const loadSummary = async () => {
   const response = await getCategorySummary()
@@ -221,132 +239,149 @@ watch(
 .workspace-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-lg);
   height: 100%;
-}
-
-.page-header,
-.table-card {
-  background-color: #fff;
-  border: 1px solid #ebeef5;
-  border-radius: 12px;
+  animation: fadeInUp 0.3s ease;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 20px 24px;
-}
-
-.page-title {
-  margin: 0;
-  font-size: 24px;
-  color: #303133;
-}
-
-.page-subtitle {
-  margin: 8px 0 0;
-  color: #606266;
-}
-
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.summary-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   align-items: flex-start;
-  padding: 16px;
-  border: 1px solid #ebeef5;
-  border-radius: 12px;
-  background-color: #fff;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-2xl);
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-lighter);
+
+  &__left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+  }
+
+  &__subtitle {
+    margin: var(--spacing-sm) 0 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+  }
+
+  &__actions {
+    display: flex;
+    gap: var(--spacing-md);
+  }
+}
+
+.category-tabs {
+  display: flex;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-lighter);
+  overflow-x: auto;
+}
+
+.category-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: var(--color-fill-base);
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition:
-    border-color 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+
+  &:hover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-bg);
+  }
+
+  &.active {
+    border-color: var(--color-primary);
+    background: var(--color-primary-bg);
+    color: var(--color-primary);
+  }
 }
 
-.summary-card:hover,
-.summary-card.active {
-  border-color: #409eff;
-  box-shadow: 0 10px 24px rgba(64, 158, 255, 0.12);
-  transform: translateY(-2px);
+.tab-icon {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
 }
 
-.summary-label {
-  font-size: 14px;
-  color: #606266;
+.tab-label {
+  font-weight: var(--font-weight-medium);
 }
 
-.summary-count {
-  font-size: 26px;
-  color: #303133;
-}
+.tab-count {
+  padding: 2px 8px;
+  background: var(--color-border-lighter);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
 
-.summary-desc {
-  font-size: 12px;
-  color: #909399;
-  text-align: left;
+  .active & {
+    background: var(--color-primary);
+    color: #fff;
+  }
 }
 
 .table-card {
-  height: calc(100vh - 320px);
-  min-height: 420px;
-  padding: 8px 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-lighter);
+  overflow: hidden;
+  min-height: 400px;
+
+  :deep(.el-table) {
+    flex: 1;
+  }
 }
 
 .name-cell {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--spacing-md);
   min-width: 0;
 }
 
 .name-button {
   min-width: 0;
   justify-content: flex-start;
-  white-space: normal;
-  word-break: break-all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .row-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-@media (max-width: 1280px) {
-  .summary-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+  align-items: center;
+  gap: var(--spacing-xs);
 }
 
 @media (max-width: 960px) {
   .page-header {
     flex-direction: column;
-    align-items: flex-start;
   }
 
-  .summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .table-card {
-    height: auto;
-    min-height: 360px;
-  }
-}
-
-@media (max-width: 640px) {
-  .summary-grid {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
+  .category-tabs {
+    gap: var(--spacing-sm);
   }
 }
 </style>

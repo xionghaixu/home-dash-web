@@ -1,48 +1,58 @@
 <template>
-  <el-container class="app-container">
-    <el-header height="50px">
-      <Header :aside-visible="false"></Header>
-    </el-header>
-    <el-container>
-      <el-main>
-        <div class="video-container">
-          <div class="header">
-            <div class="video-title">
-              {{ title }}
-            </div>
-            <div class="other">
-              <el-link type="primary" @click="download">下载</el-link>
-            </div>
-          </div>
-          <div class="video-content">
-            <video
-              ref="videoPlayer"
-              controls
-              class="video-player"
-              :src="videoSrc"
-            >
-              您的浏览器不支持视频播放
-            </video>
+  <el-container class="video-page">
+    <el-header height="56px">
+      <div class="header-container">
+        <div class="header-left">
+          <el-button :icon="ArrowLeft" text @click="goBack" class="back-btn">
+            返回
+          </el-button>
+          <div class="video-title">
+            <el-icon><VideoCamera /></el-icon>
+            <span>{{ title }}</span>
           </div>
         </div>
-      </el-main>
-    </el-container>
+        <div class="header-right">
+          <el-button type="primary" :icon="Download" @click="download">下载视频</el-button>
+        </div>
+      </div>
+    </el-header>
+    <el-main>
+      <div class="video-container">
+        <div class="player-wrapper">
+          <video
+            ref="videoPlayer"
+            controls
+            class="video-player"
+            :src="videoSrc"
+            preload="metadata"
+          >
+            您的浏览器不支持视频播放
+          </video>
+        </div>
+        <div class="video-info">
+          <div class="info-item">
+            <span class="info-label">文件名称</span>
+            <span class="info-value">{{ title }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">播放状态</span>
+            <span class="info-value status" :class="playerStatus">
+              <span class="status-dot"></span>
+              {{ statusText }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </el-main>
   </el-container>
 </template>
 
 <script setup>
-/**
- * VideoPlayer 组件 - 视频播放页面
- * @description 使用HTML5原生video播放器播放视频文件，支持视频下载功能
- * @component
- * @example
- * <video-player :fileId="videoFileId"></video-player>
- */
-import { ref, onMounted } from 'vue'
-import Header from '@/views/layout/Header.vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { ArrowLeft, VideoCamera, Download } from '@element-plus/icons-vue'
 import { getFile, downloadFileUrl } from '@/apis/file'
 
-// Props
 const props = defineProps({
   fileId: {
     type: String,
@@ -50,50 +60,222 @@ const props = defineProps({
   }
 })
 
-// 响应式数据
-const title = ref('')
+const router = useRouter()
+const title = ref('加载中...')
 const videoSrc = ref(downloadFileUrl(props.fileId))
 const videoPlayer = ref(null)
+const playerStatus = ref('idle')
 
-/**
- * 下载视频文件
- * @description 创建一个隐藏的a标签来触发视频文件下载
- */
-const download = () => {
-  const tag = document.createElement('a')
-  tag.setAttribute('href', downloadFileUrl(props.fileId))
-  tag.click()
+const statusText = computed(() => {
+  switch (playerStatus.value) {
+    case 'playing':
+      return '正在播放'
+    case 'paused':
+      return '已暂停'
+    case 'ended':
+      return '播放结束'
+    default:
+      return '准备就绪'
+  }
+})
+
+const goBack = () => {
+  router.back()
 }
 
-// 生命周期钩子
+const download = () => {
+  const link = document.createElement('a')
+  link.href = downloadFileUrl(props.fileId)
+  link.click()
+}
+
 onMounted(() => {
   getFile(props.fileId)
     .then(response => {
-      title.value = response.data.fileName
+      title.value = response.data.fileName || '未知文件'
     })
-    .catch(() => {})
+    .catch(() => {
+      title.value = '加载失败'
+    })
+
+  if (videoPlayer.value) {
+    videoPlayer.value.addEventListener('play', () => {
+      playerStatus.value = 'playing'
+    })
+    videoPlayer.value.addEventListener('pause', () => {
+      playerStatus.value = 'paused'
+    })
+    videoPlayer.value.addEventListener('ended', () => {
+      playerStatus.value = 'ended'
+    })
+  }
 })
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/layout.scss';
-.video-container {
-  width: 980px;
+.video-page {
+  height: 100vh;
+  background: #0d0d0d;
+}
+
+.header-container {
+  width: 100%;
   height: 100%;
-  margin: 0 auto;
-  .header {
-    height: 50px;
-    line-height: 50px;
-    display: flex;
-    justify-content: space-between;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--spacing-xl);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xl);
+}
+
+.back-btn {
+  color: #fff;
+  font-size: var(--font-size-sm);
+
+  &:hover {
+    color: var(--color-primary-light);
+    background: rgba(255, 255, 255, 0.1);
   }
-  .video-content {
-    width: 980px;
-    .video-player {
-      width: 100%;
-      max-height: 600px;
-      background-color: #000;
+}
+
+.video-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  color: #fff;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+
+  .el-icon {
+    font-size: 20px;
+    color: var(--color-primary-light);
+  }
+}
+
+.header-right {
+  :deep(.el-button) {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+
+    &:hover {
+      background: var(--color-primary-light);
+      border-color: var(--color-primary-light);
     }
+  }
+}
+
+.el-main {
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  overflow-y: auto;
+}
+
+.video-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-2xl);
+}
+
+.player-wrapper {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #000;
+  box-shadow: var(--shadow-xl);
+}
+
+.video-player {
+  width: 100%;
+  display: block;
+  max-height: 70vh;
+  background: #000;
+
+  &::-webkit-media-controls {
+    background: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.video-info {
+  display: flex;
+  gap: var(--spacing-3xl);
+  margin-top: var(--spacing-2xl);
+  padding: var(--spacing-xl);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-lg);
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.info-label {
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: var(--font-size-base);
+  color: rgba(255, 255, 255, 0.9);
+
+  &.status {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-success);
+
+  .status--playing & {
+    background: var(--color-primary);
+    animation: pulse 1.5s infinite;
+  }
+
+  .status--paused & {
+    background: var(--color-warning);
+  }
+
+  .status--ended & {
+    background: var(--color-info);
+  }
+}
+
+@media (max-width: 960px) {
+  .video-container {
+    padding: var(--spacing-lg);
+  }
+
+  .video-info {
+    flex-direction: column;
+    gap: var(--spacing-lg);
+  }
+
+  .header-left {
+    gap: var(--spacing-md);
+  }
+
+  .video-title span {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 </style>

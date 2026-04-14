@@ -1,45 +1,46 @@
 <template>
   <div class="workspace-page">
     <div class="page-header">
-      <div>
-        <h2 class="page-title">全部文件</h2>
-        <p class="page-subtitle">在当前目录中完成上传、整理、下载和批量操作。</p>
+      <div class="page-header__left">
+        <h1 class="page-header__title">全部文件</h1>
+        <p class="page-header__subtitle">在当前目录中完成上传、整理、下载和批量操作。</p>
       </div>
-      <div class="page-actions">
+      <div class="page-header__actions">
         <el-button type="primary" :icon="Upload" @click="uploadFileTrigger">上传文件</el-button>
-        <el-button plain :icon="FolderAdd" @click="createFolder">新增文件夹</el-button>
+        <el-button plain :icon="FolderAdd" @click="createFolder">新建文件夹</el-button>
         <el-button plain :icon="RefreshRight" :loading="loading" @click="renderFileList">
-          刷新当前目录
+          刷新
         </el-button>
       </div>
     </div>
 
-    <div class="navigation-card">
-      <div class="navigation-top">
-        <div class="section-label">当前位置</div>
-        <div class="section-count">当前目录 {{ fileList.length }} 项</div>
-      </div>
-      <div class="navigation-row">
-        <el-button
-          v-if="navigation.length > 1"
-          link
-          :icon="Back"
-          @click="goToFolder(navigation[navigation.length - 2].id)"
-        >
-          返回上一级
-        </el-button>
-        <el-breadcrumb separator="/">
+    <div class="toolbar-card">
+      <div class="toolbar-info">
+        <span class="toolbar-label">当前位置</span>
+        <el-breadcrumb separator="/" class="toolbar-breadcrumb">
           <el-breadcrumb-item v-for="nav in navigation" :key="nav.id">
             <el-button link @click="goToFolder(nav.id)">{{ nav.fileName }}</el-button>
           </el-breadcrumb-item>
         </el-breadcrumb>
+        <el-button
+          v-if="navigation.length > 1"
+          link
+          :icon="Back"
+          class="back-btn"
+          @click="goToFolder(navigation[navigation.length - 2].id)"
+        >
+          返回上级
+        </el-button>
+      </div>
+      <div class="toolbar-divider"></div>
+      <div class="toolbar-info">
+        <span class="item-count">{{ fileList.length }} 项</span>
       </div>
     </div>
 
-    <div class="batch-toolbar">
+    <div v-if="selection.length > 0" class="batch-toolbar">
       <div class="batch-info">
-        <span class="section-label">批量操作</span>
-        <span class="selection-text">{{ selectionSummary }}</span>
+        <span class="batch-count">已选择 {{ selection.length }} 项</span>
       </div>
       <div class="batch-actions">
         <el-button plain :icon="Edit" :disabled="!canRename" @click="renameFile(selection[0])">
@@ -51,8 +52,8 @@
         <el-button plain :icon="Delete" :disabled="selection.length === 0" @click="deleteFiles(selection)">
           删除
         </el-button>
-        <el-button plain :disabled="selection.length === 0" @click="moveTo(selection)">移动到</el-button>
-        <el-button plain :disabled="selection.length === 0" @click="copyTo(selection)">复制到</el-button>
+        <el-button plain :disabled="selection.length === 0" @click="moveTo(selection)">移动</el-button>
+        <el-button plain :disabled="selection.length === 0" @click="copyTo(selection)">复制</el-button>
       </div>
     </div>
 
@@ -69,7 +70,7 @@
         <el-table
           :data="fileList"
           row-key="id"
-          height="100%"
+          style="flex:1"
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
         >
@@ -90,25 +91,39 @@
           <el-table-column prop="updateTime" label="修改时间" min-width="180" sortable="custom">
             <template #default="{ row }">{{ formatFileDate(row.updateTime) }}</template>
           </el-table-column>
-          <el-table-column label="操作" min-width="280" fixed="right">
+          <el-table-column label="操作" min-width="240" fixed="right">
             <template #default="{ row }">
               <div class="row-actions">
                 <el-button link @click="showDetail(row)">详情</el-button>
                 <el-button link @click="openRow(row)">
                   {{ row.type === 'folder' ? '打开' : row.type === 'video' ? '播放' : '查看' }}
                 </el-button>
-                <el-button v-if="row.type !== 'folder'" link @click="downloadFiles([row])">下载</el-button>
-                <el-dropdown>
-                  <el-button link>
+                <el-dropdown v-if="row.type !== 'folder'">
+                  <el-button link class="more-btn">
                     更多
                     <el-icon class="el-icon--right"><ArrowDown /></el-icon>
                   </el-button>
                   <template #dropdown>
                     <el-dropdown-menu>
-                      <el-dropdown-item @click="moveTo([row])">移动到</el-dropdown-item>
-                      <el-dropdown-item @click="copyTo([row])">复制到</el-dropdown-item>
+                      <el-dropdown-item @click="downloadFiles([row])">下载</el-dropdown-item>
+                      <el-dropdown-item @click="moveTo([row])">移动</el-dropdown-item>
+                      <el-dropdown-item @click="copyTo([row])">复制</el-dropdown-item>
                       <el-dropdown-item @click="renameFile(row)">重命名</el-dropdown-item>
-                      <el-dropdown-item @click="deleteFiles([row])">删除</el-dropdown-item>
+                      <el-dropdown-item divided @click="deleteFiles([row])">删除</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+                <el-dropdown v-else>
+                  <el-button link class="more-btn">
+                    更多
+                    <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item @click="moveTo([row])">移动</el-dropdown-item>
+                      <el-dropdown-item @click="copyTo([row])">复制</el-dropdown-item>
+                      <el-dropdown-item @click="renameFile(row)">重命名</el-dropdown-item>
+                      <el-dropdown-item divided @click="deleteFiles([row])">删除</el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
@@ -420,124 +435,175 @@ onUnmounted(() => {
 .workspace-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-lg);
   height: 100%;
-}
-
-.page-header,
-.navigation-card,
-.batch-toolbar,
-.table-card {
-  background-color: #fff;
-  border: 1px solid #ebeef5;
-  border-radius: 12px;
+  animation: fadeInUp 0.3s ease;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-  padding: 20px 24px;
+  align-items: flex-start;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-2xl);
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-lighter);
+
+  &__left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+  }
+
+  &__subtitle {
+    margin: var(--spacing-sm) 0 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+  }
 }
 
-.page-title {
-  margin: 0;
-  font-size: 24px;
-  color: #303133;
-}
-
-.page-subtitle {
-  margin: 8px 0 0;
-  color: #606266;
-}
-
-.page-actions,
-.batch-actions {
+.toolbar-card {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) var(--spacing-2xl);
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-lighter);
 }
 
-.navigation-card {
-  padding: 16px 24px;
+.toolbar-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
 }
 
-.navigation-top,
+.toolbar-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.toolbar-breadcrumb {
+  :deep(.el-breadcrumb__item) {
+    float: none;
+  }
+}
+
+.back-btn {
+  margin-left: var(--spacing-sm);
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--color-border-lighter);
+}
+
+.item-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
 .batch-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-}
-
-.navigation-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-top: 12px;
-}
-
-.section-label {
-  font-size: 13px;
-  color: #909399;
-}
-
-.section-count,
-.selection-text {
-  font-size: 14px;
-  color: #606266;
-}
-
-.batch-toolbar {
-  padding: 16px 24px;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) var(--spacing-2xl);
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-lg);
 }
 
 .batch-info {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.batch-count {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary);
+}
+
+.batch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
 }
 
 .table-card {
-  height: calc(100vh - 320px);
-  min-height: 420px;
-  padding: 8px 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-lighter);
+  overflow: hidden;
+  min-height: 400px;
+
+  :deep(.el-table) {
+    flex: 1;
+  }
 }
 
 .name-cell {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--spacing-md);
   min-width: 0;
 }
 
 .name-button {
   min-width: 0;
   justify-content: flex-start;
-  white-space: normal;
-  word-break: break-all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .row-actions {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--spacing-xs);
+}
+
+.more-btn {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 @media (max-width: 960px) {
-  .page-header,
-  .navigation-top,
-  .batch-toolbar {
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar-card {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .table-card {
-    height: auto;
-    min-height: 360px;
+  .toolbar-divider {
+    display: none;
   }
 }
 </style>

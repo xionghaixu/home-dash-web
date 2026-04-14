@@ -16,11 +16,14 @@ const FILE_TYPE_LABELS = {
   audio: '音频',
   pdf: 'PDF 文档',
   doc: '文档',
+  document: '文档',
   txt: '文本',
   ppt: '演示文稿',
   web: '网页文件',
   code: '代码文件',
-  compress_file: '压缩包'
+  compress: '压缩包',
+  compress_file: '压缩包',
+  other: '其他文件'
 }
 
 const FILE_TYPE_ICONS = new Set([

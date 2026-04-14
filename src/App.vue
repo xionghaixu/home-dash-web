@@ -13,14 +13,5 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 </script>
 
 <style lang="scss">
-* {
-  margin: 0px;
-  padding: 0px;
-}
-html,
-body,
-#app {
-  width: 100%;
-  height: 100%;
-}
+@import '@/styles/index.scss';
 </style>

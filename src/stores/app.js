@@ -10,7 +10,8 @@ export const useAppStore = defineStore('app', {
    * @returns {Object} 状态对象
    */
   state: () => ({
-    folderId: 0
+    folderId: 0,
+    transferCount: 0
   }),
 
   /**

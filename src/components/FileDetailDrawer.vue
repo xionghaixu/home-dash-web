@@ -205,16 +205,16 @@ watch([() => props.modelValue, () => props.fileId], loadDetail, { immediate: tru
 .drawer-content {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--spacing-xl);
 }
 
 .title-block {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: linear-gradient(135deg, #f5f7fa, #eef4ff);
-  border-radius: 12px;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl);
+  background: linear-gradient(135deg, var(--color-fill-base), var(--color-primary-bg));
+  border-radius: var(--radius-lg);
 }
 
 .title-info {
@@ -222,22 +222,22 @@ watch([() => props.modelValue, () => props.fileId], loadDetail, { immediate: tru
 }
 
 .file-name {
-  font-size: 18px;
-  font-weight: 600;
-  color: #303133;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
   word-break: break-all;
 }
 
 .file-meta {
-  margin-top: 6px;
-  color: #606266;
-  font-size: 13px;
+  margin-top: var(--spacing-xs);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
 }
 
 .action-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--spacing-md);
 }
 
 .detail-descriptions {

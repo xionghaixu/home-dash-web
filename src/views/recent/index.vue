@@ -1,14 +1,12 @@
 <template>
   <div class="workspace-page">
     <div class="page-header">
-      <div>
-        <h2 class="page-title">最近上传</h2>
-        <p class="page-subtitle">集中查看最近进入系统的文件，快速跳转、下载或播放。</p>
+      <div class="page-header__left">
+        <h1 class="page-header__title">最近上传</h1>
+        <p class="page-header__subtitle">集中查看最近进入系统的文件，快速跳转、下载或播放。</p>
       </div>
-      <div class="page-actions">
-        <el-button plain :icon="RefreshRight" :loading="loading" @click="loadRecentFiles">
-          刷新
-        </el-button>
+      <div class="page-header__actions">
+        <el-button plain :icon="RefreshRight" :loading="loading" @click="loadRecentFiles">刷新</el-button>
       </div>
     </div>
 
@@ -22,7 +20,7 @@
       @retry="loadRecentFiles"
     >
       <div class="table-card">
-        <el-table :data="fileList" row-key="id" height="100%">
+        <el-table :data="fileList" row-key="id" style="flex:1">
           <el-table-column prop="fileName" label="文件名" min-width="320">
             <template #default="{ row }">
               <div class="name-cell">
@@ -133,71 +131,86 @@ onMounted(() => {
 .workspace-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-lg);
   height: 100%;
-}
-
-.page-header,
-.table-card {
-  background-color: #fff;
-  border: 1px solid #ebeef5;
-  border-radius: 12px;
+  animation: fadeInUp 0.3s ease;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 20px 24px;
-}
+  align-items: flex-start;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-2xl);
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-lighter);
 
-.page-title {
-  margin: 0;
-  font-size: 24px;
-  color: #303133;
-}
+  &__left {
+    flex: 1;
+    min-width: 0;
+  }
 
-.page-subtitle {
-  margin: 8px 0 0;
-  color: #606266;
+  &__title {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+  }
+
+  &__subtitle {
+    margin: var(--spacing-sm) 0 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+  }
+
+  &__actions {
+    display: flex;
+    gap: var(--spacing-md);
+  }
 }
 
 .table-card {
-  height: calc(100vh - 240px);
-  min-height: 420px;
-  padding: 8px 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-lighter);
+  overflow: hidden;
+  min-height: 400px;
+
+  :deep(.el-table) {
+    flex: 1;
+  }
 }
 
 .name-cell {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--spacing-md);
   min-width: 0;
 }
 
 .name-button {
   min-width: 0;
   justify-content: flex-start;
-  white-space: normal;
-  word-break: break-all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .row-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: var(--spacing-xs);
 }
 
 @media (max-width: 960px) {
   .page-header {
     flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .table-card {
-    height: auto;
-    min-height: 360px;
   }
 }
 </style>

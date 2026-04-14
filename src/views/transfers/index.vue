@@ -1,11 +1,11 @@
 <template>
   <div class="workspace-page">
     <div class="page-header">
-      <div>
-        <h2 class="page-title">传输列表</h2>
-        <p class="page-subtitle">查看上传中的任务、已完成记录和失败原因，统一管理当前传输状态。</p>
+      <div class="page-header__left">
+        <h1 class="page-header__title">传输列表</h1>
+        <p class="page-header__subtitle">查看上传中的任务、已完成记录和失败原因，统一管理当前传输状态。</p>
       </div>
-      <div class="page-actions">
+      <div class="page-header__actions">
         <el-button type="primary" @click="triggerUpload">继续上传</el-button>
         <el-button plain :icon="RefreshRight" :loading="loading" @click="loadTransfers">刷新</el-button>
         <el-button plain :disabled="completedCount === 0" @click="clearCompletedRecords">
@@ -15,17 +15,48 @@
     </div>
 
     <div class="summary-grid">
-      <div v-for="item in summaryCards" :key="item.key" class="summary-card">
-        <span class="summary-label">{{ item.label }}</span>
-        <strong class="summary-count">{{ item.value }}</strong>
-      </div>
+      <DataCard
+        label="全部任务"
+        :value="tasks.length"
+        :icon="Document"
+        type="info"
+      />
+      <DataCard
+        label="上传中"
+        :value="summaryCards.find(s => s.key === 'uploading')?.value || 0"
+        :icon="Upload"
+        type="primary"
+      />
+      <DataCard
+        label="已完成"
+        :value="summaryCards.find(s => s.key === 'completed')?.value || 0"
+        :icon="Check"
+        type="success"
+      />
+      <DataCard
+        label="失败"
+        :value="summaryCards.find(s => s.key === 'failed')?.value || 0"
+        :icon="WarningFilled"
+        type="danger"
+      />
+      <DataCard
+        label="已取消"
+        :value="summaryCards.find(s => s.key === 'cancelled')?.value || 0"
+        :icon="CircleClose"
+        type="info"
+      />
     </div>
 
     <div class="filter-bar">
-      <span class="filter-label">状态筛选</span>
-      <el-radio-group v-model="statusFilter" size="small">
+      <el-radio-group v-model="statusFilter" size="default">
         <el-radio-button value="all">全部</el-radio-button>
-        <el-radio-button value="uploading">上传中</el-radio-button>
+        <el-radio-button value="uploading">
+          上传中
+          <el-badge v-if="summaryCards.find(s => s.key === 'uploading')?.value > 0"
+            :value="summaryCards.find(s => s.key === 'uploading')?.value"
+            class="filter-badge"
+          />
+        </el-radio-button>
         <el-radio-button value="completed">已完成</el-radio-button>
         <el-radio-button value="failed">失败</el-radio-button>
         <el-radio-button value="cancelled">已取消</el-radio-button>
@@ -42,16 +73,28 @@
       @retry="loadTransfers"
     >
       <div class="table-card">
-        <el-table :data="filteredTasks" row-key="identifier" height="100%">
+        <el-table :data="filteredTasks" row-key="identifier" style="flex:1">
           <el-table-column prop="fileName" label="文件名" min-width="260" />
           <el-table-column label="状态" width="120">
             <template #default="{ row }">
-              <el-tag :type="statusTagType(row.status)">{{ statusLabel(row.status) }}</el-tag>
+              <el-tag :type="statusTagType(row.status)" size="small" effect="light">
+                <span class="status-dot" :class="`status-dot--${row.status}`"></span>
+                {{ statusLabel(row.status) }}
+              </el-tag>
             </template>
           </el-table-column>
           <el-table-column label="总进度" min-width="220">
             <template #default="{ row }">
-              <el-progress :percentage="row.progress || 0" :status="progressStatus(row.status)" />
+              <div class="progress-cell">
+                <el-progress
+                  :percentage="row.progress || 0"
+                  :status="progressStatus(row.status)"
+                  :stroke-width="6"
+                />
+                <span v-if="row.status === 'uploading'" class="progress-text">
+                  {{ row.progress || 0 }}%
+                </span>
+              </div>
             </template>
           </el-table-column>
           <el-table-column label="文件大小" width="140">
@@ -64,16 +107,18 @@
           </el-table-column>
           <el-table-column label="说明" min-width="220">
             <template #default="{ row }">
-              <span class="message-text">{{ row.errorMessage || statusHint(row.status) }}</span>
+              <span class="message-text" :class="{ 'message-text--error': row.status === 'failed' }">
+                {{ row.errorMessage || statusHint(row.status) }}
+              </span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" min-width="220" fixed="right">
+          <el-table-column label="操作" min-width="180" fixed="right">
             <template #default="{ row }">
               <div class="row-actions">
-                <el-button v-if="row.parentId" link @click="goToFolder(row.parentId)">所在目录</el-button>
-                <el-button v-if="row.fileId" link @click="openCompletedTask(row)">打开文件</el-button>
+                <el-button v-if="row.parentId" link @click="goToFolder(row.parentId)">目录</el-button>
+                <el-button v-if="row.fileId" link @click="openCompletedTask(row)">打开</el-button>
                 <el-button v-if="row.status === 'uploading'" link @click="cancelTask(row)">取消</el-button>
-                <el-button v-if="row.status !== 'uploading'" link @click="triggerUpload">重新上传</el-button>
+                <el-button v-if="row.status === 'failed'" link @click="retryTask(row)">重试</el-button>
               </div>
             </template>
           </el-table-column>
@@ -87,9 +132,17 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { RefreshRight } from '@element-plus/icons-vue'
+import {
+  RefreshRight,
+  Document,
+  Upload,
+  Check,
+  WarningFilled,
+  CircleClose
+} from '@element-plus/icons-vue'
 import { cancelUploadTask, clearTransferTasks, getTransferTasks } from '@/apis/resource'
 import PageState from '@/components/PageState.vue'
+import DataCard from '@/components/DataCard.vue'
 import { formatFileDate, resolveErrorMessage } from '@/utils/file'
 import { formatSize } from '@/utils'
 
@@ -110,6 +163,7 @@ const filteredTasks = computed(() => {
 })
 
 const completedCount = computed(() => Number(summary.value.completed || 0))
+
 const summaryCards = computed(() => [
   { key: 'total', label: '全部任务', value: Number(summary.value.total || tasks.value.length) },
   { key: 'uploading', label: '上传中', value: Number(summary.value.uploading || 0) },
@@ -165,6 +219,10 @@ const cancelTask = async (task) => {
   } catch (error) {
     ElMessage.error(resolveErrorMessage(error, '取消上传任务失败'))
   }
+}
+
+const retryTask = (task) => {
+  triggerUpload()
 }
 
 const goToFolder = (folderId) => {
@@ -239,94 +297,138 @@ onUnmounted(() => {
 .workspace-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-lg);
   height: 100%;
-}
-
-.page-header,
-.filter-bar,
-.table-card,
-.summary-card {
-  background-color: #fff;
-  border: 1px solid #ebeef5;
-  border-radius: 12px;
+  animation: fadeInUp 0.3s ease;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 20px 24px;
-}
+  align-items: flex-start;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-2xl);
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-lighter);
 
-.page-title {
-  margin: 0;
-  font-size: 24px;
-  color: #303133;
-}
+  &__left {
+    flex: 1;
+    min-width: 0;
+  }
 
-.page-subtitle {
-  margin: 8px 0 0;
-  color: #606266;
-}
+  &__title {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+  }
 
-.page-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  &__subtitle {
+    margin: var(--spacing-sm) 0 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+  }
 }
 
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.summary-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
-}
-
-.summary-label {
-  font-size: 14px;
-  color: #606266;
-}
-
-.summary-count {
-  font-size: 28px;
-  color: #303133;
+  gap: var(--spacing-lg);
 }
 
 .filter-bar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 24px;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) var(--spacing-2xl);
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-lighter);
 }
 
-.filter-label {
-  color: #606266;
-  font-size: 14px;
+.filter-badge {
+  margin-left: var(--spacing-xs);
 }
 
 .table-card {
-  height: calc(100vh - 360px);
-  min-height: 420px;
-  padding: 8px 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-lighter);
+  overflow: hidden;
+  min-height: 400px;
+
+  :deep(.el-table) {
+    flex: 1;
+  }
+}
+
+.progress-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+
+  :deep(.el-progress) {
+    flex: 1;
+  }
+}
+
+.progress-text {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  min-width: 32px;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: var(--spacing-xs);
+
+  &--uploading {
+    background: var(--color-primary);
+    animation: pulse 1.5s infinite;
+  }
+
+  &--completed {
+    background: var(--color-success);
+  }
+
+  &--failed {
+    background: var(--color-danger);
+  }
+
+  &--cancelled {
+    background: var(--color-info);
+  }
+}
+
+.message-text {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+
+  &--error {
+    color: var(--color-danger);
+  }
 }
 
 .row-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.message-text {
-  color: #606266;
-  word-break: break-all;
+  align-items: center;
+  gap: var(--spacing-xs);
 }
 
 @media (max-width: 1200px) {
@@ -336,25 +438,22 @@ onUnmounted(() => {
 }
 
 @media (max-width: 960px) {
-  .page-header,
-  .filter-bar {
+  .page-header {
     flex-direction: column;
-    align-items: flex-start;
+  }
+
+  .filter-bar {
+    flex-wrap: wrap;
   }
 
   .summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .table-card {
-    height: auto;
-    min-height: 360px;
-  }
 }
 
 @media (max-width: 640px) {
   .summary-grid {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 }
 </style>
