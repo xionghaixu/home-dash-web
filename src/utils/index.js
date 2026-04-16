@@ -65,8 +65,23 @@ export const formatDateTime = (timestamp, format = 'yyyy/MM/dd hh:mm:ss') => {
     const reg = new RegExp('(' + k + ')')
     const match = format.match(reg)
     if (match) {
-      format = format.replace(match[1], (match[1].length === 1) ? (o[k]) : (('00' + o[k]).substr(('' + o[k]).length)))
+      format = format.replace(
+        match[1],
+        match[1].length === 1 ? o[k] : ('00' + o[k]).substr(('' + o[k]).length)
+      )
     }
   }
   return format
+}
+
+/**
+ * 事件名称常量
+ * @description 统一管理所有事件总线事件名称，避免硬编码和拼写错误
+ */
+export const EventNames = {
+  // 上传相关
+  OPEN_UPLOADER: 'openUploader',
+  FLUSH_FILE_LIST: 'flushFileList',
+  CANCEL_UPLOAD_BY_IDENTIFIER: 'cancelUploadByIdentifier',
+  REFRESH_TRANSFERS: 'refreshTransfers'
 }

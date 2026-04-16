@@ -6,7 +6,9 @@
         <p class="page-header__subtitle">按图片、视频、音频、文档和其他文件进行轻量浏览。</p>
       </div>
       <div class="page-header__actions">
-        <el-button plain :icon="RefreshRight" :loading="loading" @click="refreshAll">刷新</el-button>
+        <el-button plain :icon="RefreshRight" :loading="loading" @click="refreshAll">
+          刷新
+        </el-button>
       </div>
     </div>
 
@@ -20,7 +22,9 @@
       >
         <span class="tab-icon"><component :is="getCategoryIcon(item.category)" /></span>
         <span class="tab-label">{{ item.label }}</span>
-        <span class="tab-count">{{ item.count }}</span>
+        <span class="tab-count" :class="{ 'tab-count--active': item.category === activeCategory }">
+          {{ item.count }}
+        </span>
       </button>
     </div>
 
@@ -34,7 +38,7 @@
       @retry="refreshAll"
     >
       <div class="table-card">
-        <el-table :data="fileList" row-key="id" style="flex:1" @sort-change="handleSortChange">
+        <el-table :data="fileList" row-key="id" style="flex: 1" @sort-change="handleSortChange">
           <el-table-column prop="fileName" label="文件名" min-width="320" sortable="custom">
             <template #default="{ row }">
               <div class="name-cell">
@@ -64,7 +68,9 @@
               <div class="row-actions">
                 <el-button link @click="showDetail(row)">详情</el-button>
                 <el-button link @click="goToFolder(row.parentId)">所在目录</el-button>
-                <el-button v-if="row.type === 'video'" link @click="openVideo(row.id)">播放</el-button>
+                <el-button v-if="row.type === 'video'" link @click="openVideo(row.id)">
+                  播放
+                </el-button>
                 <el-button v-else link @click="downloadFile(row.id)">下载</el-button>
               </div>
             </template>
@@ -125,7 +131,7 @@ const categoryIconMap = {
   other: Files
 }
 
-const isValidCategory = (category) => {
+const isValidCategory = category => {
   return CATEGORY_OPTIONS.some(item => item.key === category)
 }
 
@@ -150,18 +156,28 @@ const categorySummaries = computed(() => {
   })
 })
 
-const getCategoryIcon = (category) => {
+const getCategoryIcon = category => {
   return categoryIconMap[category] || Files
 }
 
 const loadSummary = async () => {
-  const response = await getCategorySummary()
-  summaries.value = response.data || []
+  try {
+    const response = await getCategorySummary()
+    summaries.value = response.data || []
+  } catch (error) {
+    console.warn('分类摘要加载失败:', error)
+    summaries.value = []
+  }
 }
 
 const loadCategoryFiles = async () => {
-  const response = await getCategoryFiles(activeCategory.value, sortState.value)
-  fileList.value = response.data || []
+  try {
+    const response = await getCategoryFiles(activeCategory.value, sortState.value)
+    fileList.value = response.data || []
+  } catch (error) {
+    fileList.value = []
+    throw error
+  }
 }
 
 const refreshAll = async () => {
@@ -170,14 +186,13 @@ const refreshAll = async () => {
   try {
     await Promise.all([loadSummary(), loadCategoryFiles()])
   } catch (error) {
-    fileList.value = []
     errorMessage.value = resolveErrorMessage(error, '分类文件加载失败')
   } finally {
     loading.value = false
   }
 }
 
-const switchCategory = (category) => {
+const switchCategory = category => {
   router.push(`/category/${category}`)
 }
 
@@ -189,21 +204,25 @@ const handleSortChange = ({ prop, order }) => {
   refreshAll()
 }
 
-const showDetail = (row) => {
+const showDetail = row => {
   detailFileId.value = row.id
   detailVisible.value = true
 }
 
-const goToFolder = (folderId) => {
+const goToFolder = folderId => {
+  if (!folderId && folderId !== 0) {
+    ElMessage.warning('无法确定文件所在目录')
+    return
+  }
   router.push(`/folder/${folderId}`)
 }
 
-const openVideo = (fileId) => {
+const openVideo = fileId => {
   const routeLocation = router.resolve(`/video/${fileId}`)
   window.open(routeLocation.href, '_blank')
 }
 
-const openRow = (row) => {
+const openRow = row => {
   if (row.type === 'video') {
     openVideo(row.id)
     return
@@ -211,16 +230,20 @@ const openRow = (row) => {
   showDetail(row)
 }
 
-const downloadFile = (fileId) => {
-  const link = document.createElement('a')
-  link.href = downloadFileUrl(fileId)
-  link.click()
-  ElMessage.success('下载任务已开始')
+const downloadFile = fileId => {
+  try {
+    const link = document.createElement('a')
+    link.href = downloadFileUrl(fileId)
+    link.click()
+    ElMessage.success('下载任务已开始')
+  } catch {
+    ElMessage.error('下载失败，请稍后重试')
+  }
 }
 
 watch(
   () => route.params.category,
-  (category) => {
+  category => {
     if (!category) {
       router.replace('/category/picture')
       return
@@ -288,6 +311,15 @@ watch(
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--color-border-lighter);
   overflow-x: auto;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-border-lighter);
+    border-radius: 2px;
+  }
 }
 
 .category-tab {
@@ -302,16 +334,30 @@ watch(
   transition: all var(--transition-fast);
   white-space: nowrap;
   font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
 
   &:hover {
-    border-color: var(--color-primary);
+    border-color: var(--color-primary-light);
     background: var(--color-primary-bg);
+    color: var(--color-primary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
   }
 
   &.active {
     border-color: var(--color-primary);
-    background: var(--color-primary-bg);
-    color: var(--color-primary);
+    background: var(--color-primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(var(--color-primary-rgb), 0.3);
+
+    .tab-icon {
+      color: #fff;
+    }
+
+    .tab-count {
+      background: rgba(255, 255, 255, 0.25);
+      color: #fff;
+    }
   }
 }
 
@@ -319,6 +365,8 @@ watch(
   display: flex;
   align-items: center;
   font-size: 16px;
+  color: var(--color-text-secondary);
+  transition: color var(--transition-fast);
 }
 
 .tab-label {
@@ -331,8 +379,9 @@ watch(
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
 
-  .active & {
+  &--active {
     background: var(--color-primary);
     color: #fff;
   }
@@ -375,13 +424,92 @@ watch(
   gap: var(--spacing-xs);
 }
 
+@media (max-width: 1280px) {
+  .table-card {
+    min-height: 350px;
+  }
+}
+
 @media (max-width: 960px) {
   .page-header {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-header__actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .category-tabs {
     gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+  }
+
+  .category-tab {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .table-card {
+    min-height: 300px;
+  }
+
+  .row-actions {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .row-actions .el-button {
+    padding: 2px 4px;
+    font-size: var(--font-size-xs);
+  }
+}
+
+@media (max-width: 640px) {
+  .page-header {
+    padding: var(--spacing-lg);
+  }
+
+  .table-card {
+    min-height: 250px;
+  }
+
+  .page-header__actions {
+    flex-direction: column;
+    width: 100%;
+    gap: var(--spacing-sm);
+  }
+
+  .page-header__actions .el-button {
+    width: 100%;
+  }
+
+  :deep(.el-table) {
+    font-size: var(--font-size-xs);
+  }
+
+  :deep(.el-table__header th) {
+    padding: 8px 4px;
+  }
+
+  :deep(.el-table__body td) {
+    padding: 8px 4px;
+  }
+
+  .name-cell {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  .category-tab {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    text-align: center;
+  }
+
+  .tab-label {
+    font-size: var(--font-size-xs);
   }
 }
 </style>

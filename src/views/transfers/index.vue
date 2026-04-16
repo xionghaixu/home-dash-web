@@ -3,11 +3,15 @@
     <div class="page-header">
       <div class="page-header__left">
         <h1 class="page-header__title">传输列表</h1>
-        <p class="page-header__subtitle">查看上传中的任务、已完成记录和失败原因，统一管理当前传输状态。</p>
+        <p class="page-header__subtitle">
+          查看上传中的任务、已完成记录和失败原因，统一管理当前传输状态。
+        </p>
       </div>
       <div class="page-header__actions">
         <el-button type="primary" @click="triggerUpload">继续上传</el-button>
-        <el-button plain :icon="RefreshRight" :loading="loading" @click="loadTransfers">刷新</el-button>
+        <el-button plain :icon="RefreshRight" :loading="loading" @click="loadTransfers">
+          刷新
+        </el-button>
         <el-button plain :disabled="completedCount === 0" @click="clearCompletedRecords">
           清空已完成
         </el-button>
@@ -15,12 +19,7 @@
     </div>
 
     <div class="summary-grid">
-      <DataCard
-        label="全部任务"
-        :value="tasks.length"
-        :icon="Document"
-        type="info"
-      />
+      <DataCard label="全部任务" :value="tasks.length" :icon="Document" type="info" />
       <DataCard
         label="上传中"
         :value="summaryCards.find(s => s.key === 'uploading')?.value || 0"
@@ -52,7 +51,8 @@
         <el-radio-button value="all">全部</el-radio-button>
         <el-radio-button value="uploading">
           上传中
-          <el-badge v-if="summaryCards.find(s => s.key === 'uploading')?.value > 0"
+          <el-badge
+            v-if="summaryCards.find(s => s.key === 'uploading')?.value > 0"
             :value="summaryCards.find(s => s.key === 'uploading')?.value"
             class="filter-badge"
           />
@@ -73,7 +73,7 @@
       @retry="loadTransfers"
     >
       <div class="table-card">
-        <el-table :data="filteredTasks" row-key="identifier" style="flex:1">
+        <el-table :data="filteredTasks" row-key="identifier" style="flex: 1">
           <el-table-column prop="fileName" label="文件名" min-width="260" />
           <el-table-column label="状态" width="120">
             <template #default="{ row }">
@@ -107,7 +107,10 @@
           </el-table-column>
           <el-table-column label="说明" min-width="220">
             <template #default="{ row }">
-              <span class="message-text" :class="{ 'message-text--error': row.status === 'failed' }">
+              <span
+                class="message-text"
+                :class="{ 'message-text--error': row.status === 'failed' }"
+              >
                 {{ row.errorMessage || statusHint(row.status) }}
               </span>
             </template>
@@ -115,10 +118,16 @@
           <el-table-column label="操作" min-width="180" fixed="right">
             <template #default="{ row }">
               <div class="row-actions">
-                <el-button v-if="row.parentId" link @click="goToFolder(row.parentId)">目录</el-button>
+                <el-button v-if="row.parentId" link @click="goToFolder(row.parentId)">
+                  目录
+                </el-button>
                 <el-button v-if="row.fileId" link @click="openCompletedTask(row)">打开</el-button>
-                <el-button v-if="row.status === 'uploading'" link @click="cancelTask(row)">取消</el-button>
-                <el-button v-if="row.status === 'failed'" link @click="retryTask(row)">重试</el-button>
+                <el-button v-if="row.status === 'uploading'" link @click="cancelTask(row)">
+                  取消
+                </el-button>
+                <el-button v-if="row.status === 'failed'" link @click="retryTask(row)">
+                  重试
+                </el-button>
               </div>
             </template>
           </el-table-column>
@@ -210,7 +219,7 @@ const clearCompletedRecords = async () => {
   }
 }
 
-const cancelTask = async (task) => {
+const cancelTask = async task => {
   try {
     await cancelUploadTask(task.identifier)
     window.eventBus.emit('cancelUploadByIdentifier', task.identifier)
@@ -221,16 +230,29 @@ const cancelTask = async (task) => {
   }
 }
 
-const retryTask = (task) => {
+const retryTask = task => {
+  if (!task?.identifier) {
+    ElMessage.warning('无法重试该任务')
+    return
+  }
+  ElMessage.info('请重新选择文件上传以完成该任务')
   triggerUpload()
 }
 
-const goToFolder = (folderId) => {
+const goToFolder = folderId => {
+  if (!folderId && folderId !== 0) {
+    ElMessage.warning('无法确定文件所在目录')
+    return
+  }
   router.push(`/folder/${folderId}`)
 }
 
-const openCompletedTask = (task) => {
-  if (!task.fileId) {
+const openCompletedTask = task => {
+  if (!task?.fileId) {
+    return
+  }
+  if (!task?.parentId) {
+    ElMessage.warning('无法确定文件所在目录')
     return
   }
   if (task.fileName && task.fileName.toLowerCase().endsWith('.mp4')) {
@@ -241,38 +263,46 @@ const openCompletedTask = (task) => {
   router.push(`/folder/${task.parentId}`)
 }
 
-const statusLabel = (status) => {
-  return {
-    uploading: '上传中',
-    completed: '已完成',
-    failed: '失败',
-    cancelled: '已取消'
-  }[status] || '未知'
+const statusLabel = status => {
+  return (
+    {
+      uploading: '上传中',
+      completed: '已完成',
+      failed: '失败',
+      cancelled: '已取消'
+    }[status] || '未知'
+  )
 }
 
-const statusTagType = (status) => {
-  return {
-    uploading: 'primary',
-    completed: 'success',
-    failed: 'danger',
-    cancelled: 'info'
-  }[status] || 'info'
+const statusTagType = status => {
+  return (
+    {
+      uploading: 'primary',
+      completed: 'success',
+      failed: 'danger',
+      cancelled: 'info'
+    }[status] || 'info'
+  )
 }
 
-const progressStatus = (status) => {
-  return {
-    completed: 'success',
-    failed: 'exception'
-  }[status] || ''
+const progressStatus = status => {
+  return (
+    {
+      completed: 'success',
+      failed: 'exception'
+    }[status] || ''
+  )
 }
 
-const statusHint = (status) => {
-  return {
-    uploading: '任务正在上传中',
-    completed: '文件已上传完成',
-    failed: '上传失败，可重新选择文件上传',
-    cancelled: '任务已被取消'
-  }[status] || '暂无状态说明'
+const statusHint = status => {
+  return (
+    {
+      uploading: '任务正在上传中',
+      completed: '文件已上传完成',
+      failed: '上传失败，可重新选择文件上传',
+      cancelled: '任务已被取消'
+    }[status] || '暂无状态说明'
+  )
 }
 
 const handleRefresh = () => {

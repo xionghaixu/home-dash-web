@@ -8,11 +8,28 @@
       ref="tree"
       check-strictly
       show-checkbox
+      @check="handleNodeCheck"
     ></el-tree>
+    <div v-if="conflictFiles.length > 0" class="conflict-warning">
+      <el-alert type="warning" :closable="false" show-icon>
+        <template #title>
+          检测到目标目录存在以下同名文件：
+        </template>
+      </el-alert>
+      <ul class="conflict-list">
+        <li v-for="file in conflictFiles" :key="file.id" class="conflict-item">
+          <el-icon><Warning /></el-icon>
+          <span class="conflict-name">{{ file.fileName }}</span>
+          <span class="conflict-size">({{ formatSize(file.size) }})</span>
+        </li>
+      </ul>
+    </div>
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="$emit('return', { type: 'cancel' })">取 消</el-button>
-        <el-button type="primary" @click="submit">确 定</el-button>
+        <el-button type="primary" :disabled="selectedKeys.length === 0" @click="submit">
+          确 定
+        </el-button>
       </span>
     </template>
   </el-dialog>
@@ -31,8 +48,12 @@
  * ></folder-tree-dialog>
  */
 import { getFileList } from '@/apis/file'
+import { Warning } from '@element-plus/icons-vue'
+import { formatSize } from '@/utils'
 
 export default {
+  name: 'FolderTreeDialog',
+  components: { Warning },
   props: {
     title: {
       type: String,
@@ -50,10 +71,13 @@ export default {
       dialogVisible: true,
       props: {
         label: 'fileName'
-      }
+      },
+      selectedKeys: [],
+      conflictFiles: []
     }
   },
   methods: {
+    formatSize,
     /**
      * 加载树节点
      * @description 懒加载文件夹树节点，只显示文件夹类型
@@ -84,13 +108,50 @@ export default {
         .catch(() => {})
     },
     /**
+     * 处理节点选择
+     * @description 当选择目标文件夹时，检测是否有同名文件
+     */
+    handleNodeCheck(data, checked) {
+      this.selectedKeys = checked.checkedKeys.filter(id => id !== 0)
+      if (this.selectedKeys.length === 1) {
+        this.checkConflict(this.selectedKeys[0])
+      } else {
+        this.conflictFiles = []
+      }
+    },
+    /**
+     * 检测同名冲突
+     * @description 获取目标文件夹的文件列表，检查是否有与源文件同名的文件
+     */
+    checkConflict(targetFolderId) {
+      const sourceNames = this.sourceFiles.map(f => f.fileName)
+      if (sourceNames.length === 0) {
+        this.conflictFiles = []
+        return
+      }
+
+      getFileList(targetFolderId)
+        .then(response => {
+          this.conflictFiles = response.data.filter(
+            f => sourceNames.includes(f.fileName) && !this.contains(this.sourceFiles, f)
+          )
+        })
+        .catch(() => {
+          this.conflictFiles = []
+        })
+    },
+    /**
      * 提交选择
-     * @description 触发return事件，返回选中的文件夹ID
+     * @description 触发return事件，返回选中的文件夹ID和冲突文件信息
      */
     submit() {
+      if (this.selectedKeys.length === 0) {
+        return
+      }
       this.$emit('return', {
         type: 'submit',
-        value: this.$refs.tree.getCheckedKeys()
+        value: this.selectedKeys,
+        conflicts: this.conflictFiles
       })
     },
     /**
@@ -112,3 +173,49 @@ export default {
   }
 }
 </script>
+
+<style lang="scss" scoped>
+.conflict-warning {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: var(--color-warning-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-warning);
+
+  :deep(.el-alert) {
+    background: transparent;
+    padding: 0;
+
+    .el-alert__title {
+      font-weight: var(--font-weight-medium);
+    }
+  }
+}
+
+.conflict-list {
+  list-style: none;
+  margin: var(--spacing-md) 0 0;
+  padding: 0;
+}
+
+.conflict-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) 0;
+  color: var(--color-warning-dark);
+
+  .el-icon {
+    color: var(--color-warning);
+  }
+}
+
+.conflict-name {
+  font-weight: var(--font-weight-medium);
+}
+
+.conflict-size {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+</style>

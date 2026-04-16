@@ -41,19 +41,50 @@
     <div v-if="selection.length > 0" class="batch-toolbar">
       <div class="batch-info">
         <span class="batch-count">已选择 {{ selection.length }} 项</span>
+        <el-button link type="primary" @click="clearSelection" class="clear-btn">清空选择</el-button>
       </div>
+      <div class="batch-divider"></div>
       <div class="batch-actions">
-        <el-button plain :icon="Edit" :disabled="!canRename" @click="renameFile(selection[0])">
+        <el-button
+          plain
+          :icon="Edit"
+          :disabled="selection.length !== 1"
+          :title="selection.length !== 1 ? '请选择一项进行重命名' : ''"
+          @click="renameFile(selection[0])"
+        >
           重命名
         </el-button>
-        <el-button plain :icon="Download" :disabled="!canDownloadSelected" @click="downloadFiles(selection)">
+        <el-button
+          plain
+          :icon="Download"
+          :disabled="!canDownloadSelected"
+          :title="!canDownloadSelected && selection.some(item => item.type === 'folder') ? '文件夹暂不支持直接下载' : '下载所选文件'"
+          @click="downloadFiles(selection)"
+        >
           下载
         </el-button>
-        <el-button plain :icon="Delete" :disabled="selection.length === 0" @click="deleteFiles(selection)">
+        <el-button
+          plain
+          :icon="Delete"
+          :disabled="selection.length === 0"
+          @click="deleteFiles(selection)"
+        >
           删除
         </el-button>
-        <el-button plain :disabled="selection.length === 0" @click="moveTo(selection)">移动</el-button>
-        <el-button plain :disabled="selection.length === 0" @click="copyTo(selection)">复制</el-button>
+        <el-button
+          plain
+          :disabled="selection.length === 0"
+          @click="moveTo(selection)"
+        >
+          移动
+        </el-button>
+        <el-button
+          plain
+          :disabled="selection.length === 0"
+          @click="copyTo(selection)"
+        >
+          复制
+        </el-button>
       </div>
     </div>
 
@@ -70,7 +101,7 @@
         <el-table
           :data="fileList"
           row-key="id"
-          style="flex:1"
+          style="flex: 1"
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
         >
@@ -196,13 +227,6 @@ const sortState = ref({
   sortOrder: 'asc'
 })
 
-const selectionSummary = computed(() => {
-  if (selection.value.length === 0) {
-    return '未选择文件'
-  }
-  return `已选 ${selection.value.length} 项`
-})
-
 const canRename = computed(() => selection.value.length === 1)
 const canDownloadSelected = computed(
   () => selection.value.length > 0 && selection.value.every(item => item.type !== 'folder')
@@ -252,7 +276,7 @@ const createFolder = () => {
     .catch(() => {})
 }
 
-const renameFile = (row) => {
+const renameFile = row => {
   if (!row) {
     return
   }
@@ -275,7 +299,7 @@ const renameFile = (row) => {
     .catch(() => {})
 }
 
-const deleteFiles = (rows) => {
+const deleteFiles = rows => {
   if (!rows.length) {
     return
   }
@@ -297,7 +321,7 @@ const deleteFiles = (rows) => {
     .catch(() => {})
 }
 
-const moveTo = (rows) => {
+const moveTo = rows => {
   if (!rows.length) {
     return
   }
@@ -311,7 +335,7 @@ const moveTo = (rows) => {
   })
 }
 
-const copyTo = (rows) => {
+const copyTo = rows => {
   if (!rows.length) {
     return
   }
@@ -325,13 +349,14 @@ const copyTo = (rows) => {
   })
 }
 
-const dealReturn = async (payload) => {
+const dealReturn = async payload => {
   if (payload.type === 'cancel') {
     folderTreeVisible.value = false
     return
   }
 
   const targetIds = payload.value || []
+  const conflicts = payload.conflicts || []
   const sourceIds = folderTreeProps.value.sourceFiles.map(file => file.id)
 
   if (folderTreeProps.value.type === 'move' && targetIds.length !== 1) {
@@ -343,18 +368,46 @@ const dealReturn = async (payload) => {
     return
   }
 
+  // 如果存在同名文件，显示警告
+  if (conflicts.length > 0) {
+    const conflictNames = conflicts.map(f => f.fileName).join('、')
+    const actionType = folderTreeProps.value.type === 'move' ? '移动' : '复制'
+    try {
+      await ElMessageBox.confirm(
+        `目标目录中存在同名文件：${conflictNames}。${actionType}将覆盖这些文件，是否继续？`,
+        '同名文件冲突',
+        {
+          confirmButtonText: '继续',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+    } catch {
+      // 用户取消操作
+      folderTreeVisible.value = false
+      return
+    }
+  }
+
   try {
     await moveOrCopyFiles(sourceIds, targetIds, folderTreeProps.value.type)
     ElMessage.success(folderTreeProps.value.type === 'move' ? '文件移动成功' : '文件复制成功')
     folderTreeVisible.value = false
     renderFileList()
   } catch (error) {
-    handleErrorMessage(error, folderTreeProps.value.type === 'move' ? '文件移动失败' : '文件复制失败')
+    handleErrorMessage(
+      error,
+      folderTreeProps.value.type === 'move' ? '文件移动失败' : '文件复制失败'
+    )
   }
 }
 
-const handleSelectionChange = (rows) => {
+const handleSelectionChange = rows => {
   selection.value = rows
+}
+
+const clearSelection = () => {
+  selection.value = []
 }
 
 const handleSortChange = ({ prop, order }) => {
@@ -365,21 +418,21 @@ const handleSortChange = ({ prop, order }) => {
   renderFileList()
 }
 
-const showDetail = (row) => {
+const showDetail = row => {
   detailFileId.value = row.id
   detailVisible.value = true
 }
 
-const goToFolder = (folderId) => {
+const goToFolder = folderId => {
   router.push(`/folder/${folderId}`)
 }
 
-const openVideo = (fileId) => {
+const openVideo = fileId => {
   const routeLocation = router.resolve(`/video/${fileId}`)
   window.open(routeLocation.href, '_blank')
 }
 
-const openRow = (row) => {
+const openRow = row => {
   if (row.type === 'folder') {
     goToFolder(row.id)
     return
@@ -400,22 +453,22 @@ const downloadFiles = (rows = []) => {
     return
   }
 
-  rows.forEach((item, index) => {
-    window.setTimeout(() => {
-      const link = document.createElement('a')
-      link.href = downloadFileUrl(item.id)
-      link.click()
-    }, index * 300)
-  })
-}
-
-const handleFlush = () => {
-  renderFileList()
+  try {
+    rows.forEach((item, index) => {
+      window.setTimeout(() => {
+        const link = document.createElement('a')
+        link.href = downloadFileUrl(item.id)
+        link.click()
+      }, index * 300)
+    })
+  } catch (error) {
+    handleErrorMessage(error, '下载失败')
+  }
 }
 
 watch(
   () => props.folderId,
-  (folderId) => {
+  folderId => {
     store.setFolderId(Number(folderId))
     renderFileList()
   },
@@ -423,11 +476,11 @@ watch(
 )
 
 onMounted(() => {
-  window.eventBus.on('flushFileList', handleFlush)
+  window.eventBus.on('flushFileList', renderFileList)
 })
 
 onUnmounted(() => {
-  window.eventBus.off('flushFileList', handleFlush)
+  window.eventBus.off('flushFileList', renderFileList)
 })
 </script>
 
@@ -528,6 +581,18 @@ onUnmounted(() => {
   background: var(--color-primary-bg);
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-lg);
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .batch-info {
@@ -538,8 +603,20 @@ onUnmounted(() => {
 
 .batch-count {
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-primary);
+}
+
+.clear-btn {
+  font-size: var(--font-size-xs);
+  padding: 2px 8px;
+}
+
+.batch-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--color-primary);
+  opacity: 0.3;
 }
 
 .batch-actions {
@@ -591,19 +668,97 @@ onUnmounted(() => {
   gap: 2px;
 }
 
+@media (max-width: 1280px) {
+  .toolbar-card {
+    gap: var(--spacing-md);
+  }
+}
+
 @media (max-width: 960px) {
   .page-header {
     flex-direction: column;
     align-items: stretch;
   }
 
+  .page-header__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
   .toolbar-card {
     flex-direction: column;
     align-items: flex-start;
+    gap: var(--spacing-md);
   }
 
   .toolbar-divider {
     display: none;
+  }
+
+  .batch-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+  }
+
+  .batch-divider {
+    width: 100%;
+    height: 1px;
+  }
+
+  .batch-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .table-card {
+    min-height: 300px;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-header {
+    padding: var(--spacing-lg);
+  }
+
+  .toolbar-card {
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+
+  .batch-toolbar {
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+
+  .page-header__actions {
+    flex-direction: column;
+    width: 100%;
+    gap: var(--spacing-sm);
+  }
+
+  .page-header__actions .el-button {
+    width: 100%;
+  }
+
+  :deep(.el-table) {
+    font-size: var(--font-size-xs);
+  }
+
+  :deep(.el-table__header th) {
+    padding: 8px 4px;
+  }
+
+  :deep(.el-table__body td) {
+    padding: 8px 4px;
+  }
+
+  .row-actions {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .row-actions .el-button {
+    padding: 2px 4px;
+    font-size: var(--font-size-xs);
   }
 }
 </style>

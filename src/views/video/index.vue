@@ -3,9 +3,7 @@
     <el-header height="56px">
       <div class="header-container">
         <div class="header-left">
-          <el-button :icon="ArrowLeft" text @click="goBack" class="back-btn">
-            返回
-          </el-button>
+          <el-button :icon="ArrowLeft" text @click="goBack" class="back-btn">返回</el-button>
           <div class="video-title">
             <el-icon><VideoCamera /></el-icon>
             <span>{{ title }}</span>
@@ -17,41 +15,54 @@
       </div>
     </el-header>
     <el-main>
-      <div class="video-container">
-        <div class="player-wrapper">
-          <video
-            ref="videoPlayer"
-            controls
-            class="video-player"
-            :src="videoSrc"
-            preload="metadata"
-          >
-            您的浏览器不支持视频播放
-          </video>
-        </div>
-        <div class="video-info">
-          <div class="info-item">
-            <span class="info-label">文件名称</span>
-            <span class="info-value">{{ title }}</span>
+      <PageState
+        :loading="loading"
+        :error="Boolean(errorMessage)"
+        :error-description="errorMessage"
+        :empty="false"
+        min-height="70vh"
+        @retry="loadVideoInfo"
+      >
+        <div class="video-container">
+          <div class="player-wrapper">
+            <video
+              ref="videoPlayer"
+              controls
+              class="video-player"
+              :src="videoSrc"
+              preload="metadata"
+              @error="handleVideoError"
+              @loadeddata="handleVideoLoaded"
+            >
+              您的浏览器不支持视频播放
+            </video>
           </div>
-          <div class="info-item">
-            <span class="info-label">播放状态</span>
-            <span class="info-value status" :class="playerStatus">
-              <span class="status-dot"></span>
-              {{ statusText }}
-            </span>
+          <div class="video-info">
+            <div class="info-item">
+              <span class="info-label">文件名称</span>
+              <span class="info-value">{{ title }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">播放状态</span>
+              <span class="info-value status" :class="playerStatus">
+                <span class="status-dot"></span>
+                {{ statusText }}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      </PageState>
     </el-main>
   </el-container>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, VideoCamera, Download } from '@element-plus/icons-vue'
 import { getFile, downloadFileUrl } from '@/apis/file'
+import PageState from '@/components/PageState.vue'
+import { resolveErrorMessage } from '@/utils/file'
 
 const props = defineProps({
   fileId: {
@@ -62,9 +73,12 @@ const props = defineProps({
 
 const router = useRouter()
 const title = ref('加载中...')
-const videoSrc = ref(downloadFileUrl(props.fileId))
+const videoSrc = ref('')
 const videoPlayer = ref(null)
 const playerStatus = ref('idle')
+const loading = ref(false)
+const errorMessage = ref('')
+const videoEvents = []
 
 const statusText = computed(() => {
   switch (playerStatus.value) {
@@ -74,41 +88,87 @@ const statusText = computed(() => {
       return '已暂停'
     case 'ended':
       return '播放结束'
+    case 'error':
+      return '加载失败'
     default:
       return '准备就绪'
   }
 })
+
+const addVideoEvent = (event, handler) => {
+  if (videoPlayer.value) {
+    videoPlayer.value.addEventListener(event, handler)
+    videoEvents.push({ event, handler })
+  }
+}
+
+const removeVideoEvents = () => {
+  if (videoPlayer.value) {
+    videoEvents.forEach(({ event, handler }) => {
+      videoPlayer.value.removeEventListener(event, handler)
+    })
+    videoEvents.length = 0
+  }
+}
+
+const loadVideoInfo = async () => {
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    const response = await getFile(props.fileId)
+    title.value = response.data.fileName || '未知文件'
+    videoSrc.value = downloadFileUrl(props.fileId)
+  } catch (error) {
+    title.value = '加载失败'
+    errorMessage.value = resolveErrorMessage(error, '视频信息加载失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleVideoError = () => {
+  playerStatus.value = 'error'
+}
+
+const handleVideoLoaded = () => {
+  if (playerStatus.value !== 'playing' && playerStatus.value !== 'paused') {
+    playerStatus.value = 'idle'
+  }
+}
 
 const goBack = () => {
   router.back()
 }
 
 const download = () => {
-  const link = document.createElement('a')
-  link.href = downloadFileUrl(props.fileId)
-  link.click()
+  if (!props.fileId) {
+    return
+  }
+  try {
+    const link = document.createElement('a')
+    link.href = downloadFileUrl(props.fileId)
+    link.click()
+  } catch (error) {
+    console.error('下载失败:', error)
+  }
 }
 
 onMounted(() => {
-  getFile(props.fileId)
-    .then(response => {
-      title.value = response.data.fileName || '未知文件'
-    })
-    .catch(() => {
-      title.value = '加载失败'
-    })
+  loadVideoInfo()
 
-  if (videoPlayer.value) {
-    videoPlayer.value.addEventListener('play', () => {
-      playerStatus.value = 'playing'
-    })
-    videoPlayer.value.addEventListener('pause', () => {
-      playerStatus.value = 'paused'
-    })
-    videoPlayer.value.addEventListener('ended', () => {
-      playerStatus.value = 'ended'
-    })
-  }
+  addVideoEvent('play', () => {
+    playerStatus.value = 'playing'
+  })
+  addVideoEvent('pause', () => {
+    playerStatus.value = 'paused'
+  })
+  addVideoEvent('ended', () => {
+    playerStatus.value = 'ended'
+  })
+})
+
+onUnmounted(() => {
+  removeVideoEvents()
 })
 </script>
 
@@ -255,6 +315,20 @@ onMounted(() => {
   .status--ended & {
     background: var(--color-info);
   }
+
+  .status--error & {
+    background: var(--color-danger);
+  }
+}
+
+@media (max-width: 1280px) {
+  .video-container {
+    max-width: 100%;
+  }
+
+  .player-wrapper {
+    border-radius: var(--radius-md);
+  }
 }
 
 @media (max-width: 960px) {
@@ -276,6 +350,44 @@ onMounted(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .header-container {
+    padding: 0 var(--spacing-lg);
+  }
+}
+
+@media (max-width: 640px) {
+  .video-container {
+    padding: var(--spacing-md);
+  }
+
+  .header-container {
+    padding: 0 var(--spacing-md);
+  }
+
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .video-title {
+    font-size: var(--font-size-sm);
+  }
+
+  .video-info {
+    padding: var(--spacing-md);
+    gap: var(--spacing-md);
+  }
+
+  .info-item {
+    width: 100%;
   }
 }
 </style>

@@ -24,15 +24,9 @@
         </div>
 
         <div class="action-row">
-          <el-button type="primary" plain @click="openFolder">
-            打开所在目录
-          </el-button>
-          <el-button v-if="detail.downloadable" plain @click="downloadFile">
-            下载
-          </el-button>
-          <el-button v-if="detail.playable" plain @click="playVideo">
-            播放视频
-          </el-button>
+          <el-button type="primary" plain @click="openFolder">打开所在目录</el-button>
+          <el-button v-if="detail.downloadable" plain @click="downloadFile">下载</el-button>
+          <el-button v-if="detail.playable" plain @click="playVideo">播放视频</el-button>
           <el-button v-if="detail.downloadable" plain :loading="verifying" @click="verifyIntegrity">
             校验完整性
           </el-button>
@@ -49,12 +43,18 @@
         <el-descriptions :column="1" border class="detail-descriptions">
           <el-descriptions-item label="文件名">{{ detail.fileName }}</el-descriptions-item>
           <el-descriptions-item label="文件类型">{{ fileTypeLabel }}</el-descriptions-item>
-          <el-descriptions-item label="文件扩展名">{{ detail.extension || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="文件扩展名">
+            {{ detail.extension || '-' }}
+          </el-descriptions-item>
           <el-descriptions-item label="文件大小">{{ fileSize }}</el-descriptions-item>
           <el-descriptions-item label="修改时间">{{ updateTime }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ createTime }}</el-descriptions-item>
-          <el-descriptions-item label="所在目录">{{ detail.folderPath || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="资源标识">{{ detail.resourceId || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="所在目录">
+            {{ detail.folderPath || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="资源标识">
+            {{ detail.resourceId || '-' }}
+          </el-descriptions-item>
         </el-descriptions>
       </div>
     </PageState>

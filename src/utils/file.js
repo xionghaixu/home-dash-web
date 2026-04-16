@@ -42,17 +42,17 @@ const FILE_TYPE_ICONS = new Set([
   'code'
 ])
 
-export const getFileIconType = (type) => {
+export const getFileIconType = type => {
   return FILE_TYPE_ICONS.has(type) ? type : 'default'
 }
 
-export const getFileTypeLabel = (type) => {
+export const getFileTypeLabel = type => {
   return FILE_TYPE_LABELS[type] || '其他文件'
 }
 
-export const isFolderFile = (file) => file?.type === 'folder'
+export const isFolderFile = file => file?.type === 'folder'
 
-export const isVideoFile = (file) => file?.type === 'video'
+export const isVideoFile = file => file?.type === 'video'
 
 export const formatFileSize = (file, pointLength = 2) => {
   if (!file || isFolderFile(file) || file.size === null || file.size === undefined) {
@@ -61,7 +61,7 @@ export const formatFileSize = (file, pointLength = 2) => {
   return formatSize(file.size, pointLength)
 }
 
-export const formatFileDate = (value) => {
+export const formatFileDate = value => {
   if (!value) {
     return '-'
   }
@@ -69,5 +69,44 @@ export const formatFileDate = (value) => {
 }
 
 export const resolveErrorMessage = (error, fallback = '请求失败，请稍后重试') => {
-  return error?.data?.msg || error?.msg || error?.message || fallback
+  if (!error) return fallback
+
+  if (typeof error === 'string') {
+    return error
+  }
+
+  if (error.data?.msg) {
+    return error.data.msg
+  }
+
+  if (error.msg) {
+    return error.msg
+  }
+
+  if (error.message) {
+    if (error.message.includes('timeout')) {
+      return '请求超时，请稍后重试'
+    }
+    if (error.message.includes('Network') || error.message.includes('network')) {
+      return '网络连接失败，请检查网络'
+    }
+    return error.message
+  }
+
+  if (error.response?.data?.msg) {
+    return error.response.data.msg
+  }
+
+  if (error.response?.status) {
+    const statusMessages = {
+      400: '请求参数错误',
+      403: '拒绝访问',
+      404: '请求的资源不存在',
+      500: '服务器内部错误',
+      503: '服务不可用'
+    }
+    return statusMessages[error.response.status] || `请求失败 (${error.response.status})`
+  }
+
+  return fallback
 }

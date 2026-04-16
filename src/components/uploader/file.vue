@@ -14,7 +14,9 @@
         <div class="file-meta">
           <span class="file-size">{{ formatedSize }}</span>
           <span v-if="status === 'uploading'" class="upload-speed">{{ formatedAverageSpeed }}</span>
-          <span v-if="status === 'uploading'" class="time-remaining">{{ formatedTimeRemaining }}</span>
+          <span v-if="status === 'uploading'" class="time-remaining">
+            {{ formatedTimeRemaining }}
+          </span>
         </div>
       </div>
 
@@ -63,14 +65,7 @@
           @click="retry"
           title="重试"
         />
-        <el-button
-          :icon="Close"
-          circle
-          size="small"
-          text
-          @click="remove"
-          title="移除"
-        />
+        <el-button :icon="Close" circle size="small" text @click="remove" title="移除" />
       </div>
     </div>
   </div>
@@ -175,7 +170,7 @@ export default {
       return 'waiting'
     },
     formatedTimeRemaining() {
-      if (timeRemaining === Number.POSITIVE_INFINITY || timeRemaining === 0) {
+      if (this.timeRemaining === Number.POSITIVE_INFINITY || this.timeRemaining === 0) {
         return ''
       }
       return secondsToStr(this.timeRemaining)

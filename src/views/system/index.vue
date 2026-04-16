@@ -6,7 +6,9 @@
         <p class="page-header__subtitle">查看容量概况、文件统计和存储分布。</p>
       </div>
       <div class="page-header__actions">
-        <el-button plain :icon="RefreshRight" :loading="loading" @click="loadSystemInfo">刷新</el-button>
+        <el-button plain :icon="RefreshRight" :loading="loading" @click="loadSystemInfo">
+          刷新
+        </el-button>
       </div>
     </div>
 
@@ -51,18 +53,8 @@
 
         <div class="section-title">文件统计</div>
         <div class="stats-grid">
-          <DataCard
-            label="文件总数"
-            :value="systemData.fileNum"
-            :icon="Document"
-            type="primary"
-          />
-          <DataCard
-            label="文件夹"
-            :value="systemData.folderNum"
-            :icon="Folder"
-            type="info"
-          />
+          <DataCard label="文件总数" :value="systemData.fileNum" :icon="Document" type="primary" />
+          <DataCard label="文件夹" :value="systemData.folderNum" :icon="Folder" type="info" />
           <DataCard
             label="最近上传"
             :value="systemData.recentUploadNum"
@@ -73,42 +65,17 @@
 
         <div class="section-title">文件类型分布</div>
         <div class="category-grid">
-          <DataCard
-            label="图片"
-            :value="systemData.pictureNum"
-            :icon="Picture"
-            type="primary"
-          />
-          <DataCard
-            label="视频"
-            :value="systemData.videoNum"
-            :icon="VideoCamera"
-            type="warning"
-          />
-          <DataCard
-            label="音频"
-            :value="systemData.audioNum"
-            :icon="Microphone"
-            type="info"
-          />
-          <DataCard
-            label="文档"
-            :value="systemData.docNum"
-            :icon="Document"
-            type="primary"
-          />
+          <DataCard label="图片" :value="systemData.pictureNum" :icon="Picture" type="primary" />
+          <DataCard label="视频" :value="systemData.videoNum" :icon="VideoCamera" type="warning" />
+          <DataCard label="音频" :value="systemData.audioNum" :icon="Microphone" type="info" />
+          <DataCard label="文档" :value="systemData.docNum" :icon="Document" type="primary" />
           <DataCard
             label="压缩包"
             :value="systemData.compressNum"
             :icon="FolderOpened"
             type="warning"
           />
-          <DataCard
-            label="其他文件"
-            :value="systemData.otherNum"
-            :icon="More"
-            type="info"
-          />
+          <DataCard label="其他文件" :value="systemData.otherNum" :icon="More" type="info" />
         </div>
       </div>
     </PageState>
@@ -117,7 +84,17 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { RefreshRight, Document, Folder, Upload, Picture, VideoCamera, Microphone, FolderOpened, More } from '@element-plus/icons-vue'
+import {
+  RefreshRight,
+  Document,
+  Folder,
+  Upload,
+  Picture,
+  VideoCamera,
+  Microphone,
+  FolderOpened,
+  More
+} from '@element-plus/icons-vue'
 import { systemInfo } from '@/apis/system'
 import PageState from '@/components/PageState.vue'
 import CapacityRing from '@/components/CapacityRing.vue'

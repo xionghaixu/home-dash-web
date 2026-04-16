@@ -1,14 +1,7 @@
 <template>
   <div class="capacity-ring">
     <svg viewBox="0 0 120 120" class="ring-svg">
-      <circle
-        class="ring-bg"
-        cx="60"
-        cy="60"
-        r="52"
-        fill="none"
-        stroke-width="12"
-      />
+      <circle class="ring-bg" cx="60" cy="60" r="52" fill="none" stroke-width="12" />
       <circle
         class="ring-progress"
         :class="progressClass"
@@ -76,7 +69,9 @@ const progressClass = computed(() => {
 
 .ring-progress {
   stroke: var(--color-success);
-  transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease;
+  transition:
+    stroke-dashoffset 0.6s ease,
+    stroke 0.3s ease;
 
   &--success {
     stroke: var(--color-success);

@@ -21,7 +21,7 @@ export const getApiBaseUrl = () => {
  * @param {String} path - API路径
  * @returns {String} 完整的API URL
  */
-export const buildApiUrl = (path) => {
+export const buildApiUrl = path => {
   const baseUrl = getApiBaseUrl()
   return `${baseUrl}${path}`
 }
@@ -32,7 +32,7 @@ export const buildApiUrl = (path) => {
  * @param {Number} fileId - 文件ID
  * @returns {String} 文件下载URL
  */
-export const getDownloadUrl = (fileId) => {
+export const getDownloadUrl = fileId => {
   return buildApiUrl(`/v1/file/${fileId}/download`)
 }
 
@@ -51,7 +51,7 @@ export const getUploadUrl = () => {
  * @param {Number} fileId - 文件ID
  * @returns {String} 视频播放URL
  */
-export const getVideoUrl = (fileId) => {
+export const getVideoUrl = fileId => {
   return buildApiUrl(`/v1/file/${fileId}/download`)
 }
 

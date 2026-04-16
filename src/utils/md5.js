@@ -23,7 +23,7 @@ export const calculateFileMD5 = (file, options = {}) => {
     const fileReader = new FileReader()
     let currentChunk = 0
 
-    fileReader.onload = (e) => {
+    fileReader.onload = e => {
       spark.append(e.target.result)
       currentChunk++
 
@@ -103,12 +103,12 @@ export const calculateQuickMD5 = async (file, sampleSize = 512 * 1024) => {
  * @param {Blob} chunk - 分片数据
  * @returns {Promise<String>} MD5哈希值
  */
-export const calculateChunkMD5 = (chunk) => {
+export const calculateChunkMD5 = chunk => {
   return new Promise((resolve, reject) => {
     const spark = new SparkMD5.ArrayBuffer()
     const fileReader = new FileReader()
 
-    fileReader.onload = (e) => {
+    fileReader.onload = e => {
       spark.append(e.target.result)
       resolve(spark.end())
     }

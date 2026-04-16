@@ -30,7 +30,12 @@
         <el-menu-item index="/transfers" @click="linkTo('/transfers')">
           <el-icon><UploadFilled /></el-icon>
           <span>传输列表</span>
-          <el-badge v-if="transferCount > 0" :value="transferCount" :max="99" class="transfer-badge" />
+          <el-badge
+            v-if="transferCount > 0"
+            :value="transferCount"
+            :max="99"
+            class="transfer-badge"
+          />
         </el-menu-item>
       </div>
 
@@ -52,30 +57,28 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
-import {
-  Document,
-  Clock,
-  Grid,
-  Setting,
-  UploadFilled
-} from '@element-plus/icons-vue'
+import { useThemeStore } from '@/stores/theme'
+import { Document, Clock, Grid, Setting, UploadFilled } from '@element-plus/icons-vue'
 
 const store = useAppStore()
+const themeStore = useThemeStore()
 const route = useRoute()
 const router = useRouter()
 
 const active = ref('/folder')
-const isCollapsed = ref(false)
 const transferCount = ref(0)
+
+/** 侧边栏是否折叠 */
+const isCollapsed = computed(() => themeStore.sidebarCollapsed)
 
 const linkToFileList = () => {
   router.push('/folder/' + store.folderId)
 }
 
-const linkTo = (path) => {
+const linkTo = path => {
   router.push(path)
 }
 
@@ -105,9 +108,13 @@ const updateActive = () => {
 watch(() => route.path, updateActive, { immediate: true })
 
 // Listen for transfer count updates
-watch(() => store.transferCount, (val) => {
-  transferCount.value = val
-}, { immediate: true })
+watch(
+  () => store.transferCount,
+  val => {
+    transferCount.value = val
+  },
+  { immediate: true }
+)
 </script>
 
 <style lang="scss" scoped>

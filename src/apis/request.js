@@ -7,7 +7,10 @@ import { errorHandler } from '@/utils/errorHandler'
  */
 const req = Axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '',
-  timeout: 15000
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 })
 
 /**
@@ -15,10 +18,12 @@ const req = Axios.create({
  * @description 在请求发送前进行处理，如添加认证信息
  */
 req.interceptors.request.use(
-  (config) => {
+  config => {
+    const startTime = Date.now()
+    config.metadata = { startTime }
     return config
   },
-  (error) => {
+  error => {
     return Promise.reject(error)
   }
 )
@@ -28,11 +33,38 @@ req.interceptors.request.use(
  * @description 统一处理响应和错误
  */
 req.interceptors.response.use(
-  (response) => {
-    return response.data
+  response => {
+    const { config } = response
+    if (config?.metadata?.startTime) {
+      const duration = Date.now() - config.metadata.startTime
+      if (import.meta.env.DEV && duration > 3000) {
+        console.warn(`[API Slow] ${config.url} took ${duration}ms`)
+      }
+    }
+
+    const data = response.data
+
+    if (data && typeof data === 'object' && 'code' in data) {
+      if (data.code !== 200 && data.code !== 0 && data.code !== '00000') {
+        const error = new Error(data.msg || '业务处理失败')
+        error.data = data
+        errorHandler.handleBusinessError(data, false)
+        return Promise.reject(error)
+      }
+    }
+
+    return data
   },
-  (error) => {
-    const { response } = error
+  error => {
+    const { response, config } = error
+
+    if (config?.metadata?.startTime) {
+      const duration = Date.now() - config.metadata.startTime
+      if (import.meta.env.DEV) {
+        console.error(`[API Error] ${config?.url || 'unknown'} failed after ${duration}ms`, error)
+      }
+    }
+
     if (response) {
       errorHandler.handleHttpError(error, { redirect: true })
       return Promise.reject(response)

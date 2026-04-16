@@ -67,11 +67,15 @@ import Aside from '@/views/layout/Aside.vue'
 
 // Page transition animations
 .page-fade-slide-enter-active {
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
 }
 
 .page-fade-slide-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .page-fade-slide-enter-from {
@@ -82,5 +86,35 @@ import Aside from '@/views/layout/Aside.vue'
 .page-fade-slide-leave-to {
   opacity: 0;
   transform: translateY(-8px);
+}
+
+// Responsive adaptations
+@media (max-width: 768px) {
+  .el-aside {
+    position: fixed;
+    left: -220px;
+    top: 56px;
+    height: calc(100vh - 56px);
+    z-index: var(--z-index-fixed);
+    box-shadow: var(--shadow-xl);
+
+    &.is-mobile-open {
+      left: 0;
+    }
+  }
+
+  .main-area {
+    width: 100%;
+  }
+
+  .main-container {
+    padding: var(--spacing-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .main-container {
+    padding: var(--spacing-sm);
+  }
 }
 </style>

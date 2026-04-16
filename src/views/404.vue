@@ -8,9 +8,7 @@
         </svg>
       </div>
       <h1 class="not-found-title">页面不存在</h1>
-      <p class="not-found-description">
-        抱歉，您访问的页面可能已删除或暂时无法访问。
-      </p>
+      <p class="not-found-description">抱歉，您访问的页面可能已删除或暂时无法访问。</p>
       <div class="not-found-actions">
         <el-button type="primary" @click="goHome">返回首页</el-button>
         <el-button @click="goBack">返回上一页</el-button>

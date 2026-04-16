@@ -11,17 +11,17 @@ export default defineConfig({
     AutoImport({
       resolvers: [ElementPlusResolver()],
       imports: ['vue', 'vue-router', 'pinia'],
-      dts: false,
+      dts: false
     }),
     Components({
       resolvers: [ElementPlusResolver()],
-      dts: false,
-    }),
+      dts: false
+    })
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
-    },
+      '@': path.resolve(__dirname, 'src')
+    }
   },
   server: {
     port: 8180,
@@ -31,9 +31,9 @@ export default defineConfig({
     proxy: {
       '/v1': {
         target: 'http://localhost:8190',
-        changeOrigin: true,
-      },
-    },
+        changeOrigin: true
+      }
+    }
   },
   build: {
     outDir: 'dist',
@@ -43,7 +43,7 @@ export default defineConfig({
     reportCompressedSize: true,
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
+        manualChunks: id => {
           if (id.includes('node_modules')) {
             if (id.includes('element-plus')) {
               return 'element-plus'
@@ -59,17 +59,17 @@ export default defineConfig({
         },
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
-        assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
-      },
+        assetFileNames: 'assets/[ext]/[name]-[hash].[ext]'
+      }
     },
     terserOptions: {
       compress: {
         drop_console: true,
-        drop_debugger: true,
-      },
-    },
+        drop_debugger: true
+      }
+    }
   },
   optimizeDeps: {
-    include: ['vue', 'vue-router', 'pinia', 'axios', 'element-plus'],
-  },
+    include: ['vue', 'vue-router', 'pinia', 'axios', 'element-plus']
+  }
 })

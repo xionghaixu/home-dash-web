@@ -1,0 +1,311 @@
+// ============================================
+// home-dash-web Dark Theme Styles
+// 夜间模式主题样式
+// ============================================
+
+/**
+ * 夜间模式色彩变量
+ * 当 .dark class 存在于 html 元素时生效
+ */
+html.dark {
+  // Primary - 夜间模式下略微调亮以保持可见性
+  --color-primary: #5a9bf6;
+  --color-primary-light: #7db4f8;
+  --color-primary-dark: #3d7dd8;
+  --color-primary-bg: rgba(90, 155, 246, 0.12);
+  --color-primary-hover: rgba(90, 155, 246, 0.18);
+
+  // Functional - 夜间模式颜色调整
+  --color-success: #7ddb5a;
+  --color-success-light: rgba(125, 219, 90, 0.15);
+  --color-warning: #f5b741;
+  --color-warning-light: rgba(245, 183, 65, 0.15);
+  --color-danger: #f67878;
+  --color-danger-light: rgba(246, 120, 120, 0.15);
+  --color-info: #a8abb3;
+  --color-info-light: rgba(168, 171, 179, 0.15);
+
+  // Text - 夜间模式文本颜色
+  --color-text-primary: #e8eaed;
+  --color-text-regular: #b8bcc4;
+  --color-text-secondary: #8b919a;
+  --color-text-placeholder: #5c6370;
+
+  // Border - 夜间模式边框颜色
+  --color-border: #3d4350;
+  --color-border-light: #2d323c;
+  --color-border-lighter: #252a33;
+
+  // Fill - 夜间模式填充色
+  --color-fill-base: #1e2128;
+  --color-fill-light: #282c34;
+  --color-bg-white: #252a33;
+  --color-bg-page: #1a1d24;
+
+  // Sidebar - 夜间模式侧边栏
+  --color-sidebar-bg: #16181d;
+  --color-sidebar-hover: rgba(255, 255, 255, 0.08);
+  --color-sidebar-active: rgba(90, 155, 246, 0.2);
+  --color-sidebar-text: rgba(255, 255, 255, 0.7);
+  --color-sidebar-text-active: #ffffff;
+  --color-sidebar-border: rgba(255, 255, 255, 0.06);
+
+  // Shadow - 夜间模式阴影
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.7);
+}
+
+/**
+ * 紧凑模式样式
+ */
+html.compact {
+  // 减小间距
+  --spacing-xs: 2px;
+  --spacing-sm: 4px;
+  --spacing-md: 8px;
+  --spacing-lg: 12px;
+  --spacing-xl: 16px;
+  --spacing-2xl: 20px;
+  --spacing-3xl: 24px;
+  --spacing-4xl: 32px;
+
+  // 减小头部高度
+  --header-height: 48px;
+
+  // 减小侧边栏宽度
+  --sidebar-width: 180px;
+}
+
+/**
+ * 高对比度模式
+ */
+html.high-contrast {
+  --color-text-primary: #ffffff;
+  --color-text-regular: #e0e0e0;
+  --color-text-secondary: #c0c0c0;
+  --color-border: #808080;
+  --color-border-light: #606060;
+  --color-border-lighter: #404040;
+}
+
+/**
+ * 列表密度样式
+ */
+/* 紧凑模式 */
+[data-list-density='compact'] {
+  .el-table {
+    --el-table-row-height: 40px;
+  }
+
+  .el-table__row {
+    height: 40px;
+  }
+
+  .el-dropdown-menu__item {
+    padding: 6px 16px;
+  }
+}
+
+/* 舒适模式 */
+[data-list-density='comfortable'] {
+  .el-table {
+    --el-table-row-height: 56px;
+  }
+
+  .el-table__row {
+    height: 56px;
+  }
+
+  .el-dropdown-menu__item {
+    padding: 12px 20px;
+  }
+}
+
+/**
+ * 滚动条样式
+ */
+/* 细滚动条 */
+[data-scrollbar-style='thin'] {
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+}
+
+/* 粗滚动条 */
+[data-scrollbar-style='thick'] {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+/**
+ * 透明背景效果
+ */
+html.transparent-bg {
+  body {
+    background: transparent !important;
+  }
+
+  .page-header,
+  .toolbar-card,
+  .table-card,
+  .storage-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+  }
+
+  html.dark & {
+    .page-header,
+    .toolbar-card,
+    .table-card,
+    .storage-card {
+      background: rgba(37, 42, 51, 0.85);
+    }
+  }
+}
+
+/**
+ * 毛玻璃效果
+ */
+html.blur-effect {
+  .page-header,
+  .toolbar-card,
+  .table-card,
+  .storage-card,
+  .el-dialog,
+  .el-drawer {
+    backdrop-filter: blur(12px);
+  }
+}
+
+/**
+ * 主题切换过渡动画
+ */
+html {
+  transition:
+    background-color var(--transition-slow),
+    color var(--transition-slow);
+}
+
+/* 禁用动画时的过渡 */
+html[style*='--transition-fast: 0s'] {
+  transition: none !important;
+}
+
+/**
+ * 夜间模式 Element Plus 覆盖
+ */
+html.dark {
+  .el-button--primary {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+
+    &:hover,
+    &:focus {
+      background: var(--color-primary-light);
+      border-color: var(--color-primary-light);
+    }
+  }
+
+  .el-table {
+    --el-table-border-color: var(--color-border-lighter);
+    --el-table-header-bg-color: var(--color-fill-base);
+    --el-table-row-hover-bg-color: var(--color-primary-bg);
+    --el-table-text-color: var(--color-text-primary);
+    --el-table-header-text-color: var(--color-text-secondary);
+    background: var(--color-bg-white);
+    color: var(--color-text-primary);
+
+    th.el-table__cell {
+      background: var(--color-fill-base);
+      color: var(--color-text-secondary);
+      font-weight: var(--font-weight-medium);
+    }
+
+    tr:hover > td.el-table__cell {
+      background: var(--color-primary-bg) !important;
+    }
+  }
+
+  .el-dialog {
+    background: var(--color-bg-white);
+
+    &__header {
+      border-bottom: 1px solid var(--color-border-lighter);
+
+      &-title {
+        color: var(--color-text-primary);
+      }
+    }
+
+    &__body {
+      color: var(--color-text-regular);
+    }
+  }
+
+  .el-input__wrapper {
+    background: var(--color-fill-base);
+    box-shadow: 0 0 0 1px var(--color-border) inset;
+
+    &:hover {
+      box-shadow: 0 0 0 1px var(--color-border-light) inset;
+    }
+  }
+
+  .el-input__inner {
+    color: var(--color-text-primary);
+
+    &::placeholder {
+      color: var(--color-text-placeholder);
+    }
+  }
+
+  .el-select__wrapper {
+    background: var(--color-fill-base);
+  }
+
+  .el-dropdown-menu {
+    background: var(--color-bg-white);
+    border-color: var(--color-border-lighter);
+
+    &__item {
+      color: var(--color-text-regular);
+
+      &:hover {
+        background: var(--color-fill-base);
+        color: var(--color-text-primary);
+      }
+    }
+  }
+
+  .el-message {
+    background: var(--color-bg-white);
+    border-color: var(--color-border-lighter);
+  }
+
+  .el-card {
+    background: var(--color-bg-white);
+    border-color: var(--color-border-lighter);
+    color: var(--color-text-primary);
+  }
+
+  .el-breadcrumb__inner {
+    color: var(--color-text-secondary);
+
+    &:hover {
+      color: var(--color-primary);
+    }
+  }
+
+  .el-pagination {
+    --el-pagination-bg-color: var(--color-fill-base);
+    --el-pagination-text-color: var(--color-text-secondary);
+    --el-pagination-button-disabled-bg-color: var(--color-fill-light);
+    --el-pagination-hover-color: var(--color-primary);
+  }
+}

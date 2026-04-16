@@ -14,7 +14,7 @@
 // Header
 .el-header {
   padding: 0;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  background: var(--color-primary);
   box-shadow: var(--shadow-md);
   line-height: var(--header-height);
   z-index: var(--z-index-sticky);
@@ -41,5 +41,49 @@
 
   &:hover {
     color: var(--color-primary-light);
+  }
+}
+
+// ============================================
+// Responsive Design
+// ============================================
+
+/* 大屏幕 (>= 1440px) */
+@media screen and (min-width: 1440px) {
+  :root {
+    --sidebar-width: 240px;
+  }
+}
+
+/* 中等屏幕 (960px - 1280px) */
+@media screen and (max-width: 1280px) {
+  :root {
+    --sidebar-width: 200px;
+  }
+}
+
+/* 小屏幕 (640px - 960px) */
+@media screen and (max-width: 960px) {
+  :root {
+    --sidebar-width: 64px;
+  }
+
+  .hide-when-collapsed {
+    display: none !important;
+  }
+}
+
+/* 手机屏幕 (< 640px) */
+@media screen and (max-width: 640px) {
+  :root {
+    --sidebar-width: 0px;
+  }
+
+  .el-header {
+    box-shadow: var(--shadow-sm);
+  }
+
+  .hide-on-mobile {
+    display: none !important;
   }
 }

@@ -3,10 +3,16 @@
 // 遵循 SKILLS_SPEC.md 规范，使用 CSS 变量统一管理设计 token
 // ============================================
 
+// 字体缩放因子
+:root {
+  --font-size-scale: 1;
+}
+
 // 主题色
 :root {
   // Primary
   --color-primary: #4182f3;
+  --color-primary-rgb: 65, 130, 243;
   --color-primary-light: #6ba3f6;
   --color-primary-dark: #2860c7;
   --color-primary-bg: rgba(65, 130, 243, 0.08);
@@ -17,6 +23,8 @@
   --color-success-light: rgba(103, 194, 58, 0.1);
   --color-warning: #e6a23c;
   --color-warning-light: rgba(230, 162, 60, 0.1);
+  --color-warning-bg: rgba(230, 162, 60, 0.08);
+  --color-warning-dark: #b35607;
   --color-danger: #f56c6c;
   --color-danger-light: rgba(245, 108, 108, 0.1);
   --color-info: #909399;
@@ -61,15 +69,15 @@
   --radius-xl: 16px;
   --radius-full: 9999px;
 
-  // Font
-  --font-size-xs: 12px;
-  --font-size-sm: 13px;
-  --font-size-base: 14px;
-  --font-size-md: 16px;
-  --font-size-lg: 18px;
-  --font-size-xl: 20px;
-  --font-size-2xl: 24px;
-  --font-size-3xl: 28px;
+  // Font (使用 calc 实现字体缩放)
+  --font-size-xs: calc(12px * var(--font-size-scale));
+  --font-size-sm: calc(13px * var(--font-size-scale));
+  --font-size-base: calc(14px * var(--font-size-scale));
+  --font-size-md: calc(16px * var(--font-size-scale));
+  --font-size-lg: calc(18px * var(--font-size-scale));
+  --font-size-xl: calc(20px * var(--font-size-scale));
+  --font-size-2xl: calc(24px * var(--font-size-scale));
+  --font-size-3xl: calc(28px * var(--font-size-scale));
 
   --font-weight-normal: 400;
   --font-weight-medium: 500;

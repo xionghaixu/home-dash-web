@@ -10,22 +10,10 @@
             <span class="header-count">{{ totalCount }} 个文件</span>
           </div>
           <div class="header-right">
-            <el-button
-              v-if="uploadingCount > 0"
-              size="small"
-              text
-              @click="pauseAll"
-            >
+            <el-button v-if="uploadingCount > 0" size="small" text @click="pauseAll">
               暂停全部
             </el-button>
-            <el-button
-              size="small"
-              text
-              type="danger"
-              @click="clearAll"
-            >
-              清空
-            </el-button>
+            <el-button size="small" text type="danger" @click="clearAll">清空</el-button>
           </div>
         </div>
 
@@ -39,11 +27,7 @@
             <span class="tab-name">传输中</span>
             <span v-if="uploadingCount > 0" class="tab-badge">{{ uploadingCount }}</span>
           </div>
-          <div
-            class="tab-item"
-            :class="{ active: activeTab === 'all' }"
-            @click="activeTab = 'all'"
-          >
+          <div class="tab-item" :class="{ active: activeTab === 'all' }" @click="activeTab = 'all'">
             <span class="tab-name">全部</span>
           </div>
           <div
@@ -171,13 +155,7 @@ import Uploader from './uploader/uploader.vue'
 import UploaderBtn from './uploader/btn.vue'
 import { resourceUploadUrl, mergeResource } from '@/apis/resource'
 import { useAppStore } from '@/stores/app'
-import {
-  Upload,
-  Close,
-  Refresh,
-  VideoPause,
-  VideoPlay
-} from '@element-plus/icons-vue'
+import { Upload, Close, Refresh, VideoPause, VideoPlay } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import UploaderUtils from 'simple-uploader.js'
 
@@ -238,7 +216,9 @@ export default {
     },
     filteredFiles() {
       if (this.activeTab === 'uploading') {
-        return this.files.filter(f => f.isUploading?.() || f.paused || (!f.isComplete && !f.error && !f.isUploading?.()))
+        return this.files.filter(
+          f => f.isUploading?.() || f.paused || (!f.isComplete && !f.error && !f.isUploading?.())
+        )
       } else if (this.activeTab === 'done') {
         return this.files.filter(f => f.isComplete && !f.error)
       }
@@ -586,8 +566,12 @@ export default {
 }
 
 @keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .slide-down-enter-active,

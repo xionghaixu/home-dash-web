@@ -1,5 +1,9 @@
 <template>
-  <div class="data-card" :class="[`data-card--${type}`, { 'data-card--clickable': clickable }]" @click="handleClick">
+  <div
+    class="data-card"
+    :class="[`data-card--${type}`, { 'data-card--clickable': clickable }]"
+    @click="handleClick"
+  >
     <div v-if="icon" class="data-card__icon">
       <el-icon :size="22"><component :is="icon" /></el-icon>
     </div>
@@ -34,7 +38,7 @@ const props = defineProps({
   type: {
     type: String,
     default: 'primary',
-    validator: (val) => ['primary', 'success', 'warning', 'danger', 'info'].includes(val)
+    validator: val => ['primary', 'success', 'warning', 'danger', 'info'].includes(val)
   },
   clickable: {
     type: Boolean,

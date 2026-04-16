@@ -176,27 +176,40 @@ home-dash-web/
 
 | 接口名称 | 请求方法 | 请求路径 | 说明 |
 |---------|---------|---------|------|
-| 获取文件列表 | GET | `/v1/file/list` | 获取文件列表，参数：folderId |
-| 创建文件/文件夹 | POST | `/v1/file/create` | 创建文件或文件夹 |
-| 重命名文件 | PUT | `/v1/file/rename` | 重命名文件 |
-| 删除文件 | DELETE | `/v1/file/delete` | 删除文件 |
-| 移动/复制文件 | PUT | `/v1/file/move` | 移动或复制文件 |
-| 获取文件下载链接 | GET | `/v1/file/download` | 获取文件下载地址 |
+| 获取文件列表 | GET | `/v1/file/parent/{parentId}` | 获取文件列表，参数：sortBy, sortOrder |
+| 获取文件详情 | GET | `/v1/file/{fileId}` | 获取单个文件详细信息 |
+| 创建文件/文件夹 | POST | `/v1/file` | 创建文件或文件夹，body: {parentId, fileName, type} |
+| 重命名文件 | PUT | `/v1/file/{fileId}/rename` | 重命名文件，body: {fileName} |
+| 删除文件 | DELETE | `/v1/file` | 删除文件，body: [fileId1, fileId2] |
+| 移动/复制文件 | PUT | `/v1/file` | 移动或复制，body: {fileIds, targetIds, type} |
+| 获取文件下载链接 | GET | `/v1/file/{fileId}/download` | 获取文件下载地址 |
+| 获取最近上传 | GET | `/v1/file/recent` | 获取最近上传文件列表 |
+| 获取分类摘要 | GET | `/v1/file/category-summary` | 获取分类统计摘要 |
+| 获取分类文件 | GET | `/v1/file/category/{category}` | 按分类获取文件列表 |
+| MD5预检 | GET | `/v1/file/md5/check` | 检查文件是否可秒传，参数: md5 |
+| 秒传 | POST | `/v1/file/instant-upload` | 秒传接口，body: {md5, fileName, parentId} |
+| 单文件上传 | POST | `/v1/file/upload` | 上传文件，form: file, parentId |
+| 文件完整性校验 | GET | `/v1/file/{fileId}/verify-md5` | 校验文件MD5 |
 
 **资源管理接口：**
 
 | 接口名称 | 请求方法 | 请求路径 | 说明 |
 |---------|---------|---------|------|
-| 获取资源列表 | GET | `/v1/resource/list` | 获取资源列表 |
-| 获取资源URL | GET | `/v1/resource/url` | 获取资源访问URL |
-| 获取视频播放地址 | GET | `/v1/resource/video` | 获取视频播放地址 |
+| 获取传输任务列表 | GET | `/v1/resource/transfers` | 获取上传任务列表 |
+| 合并分块 | POST | `/v1/resource/merge` | 合并分块上传的文件 |
+| 取消上传 | DELETE | `/v1/resource/upload/{identifier}` | 取消指定上传任务 |
+| 清理传输记录 | DELETE | `/v1/resource/transfers` | 清理传输记录，参数: status |
+| 分块检查 | GET | `/v1/resource/chunk` | 检查分块是否已上传 |
+| 上传分块 | POST | `/v1/resource/chunk` | 上传文件分块 |
+| 获取已上传分块 | GET | `/v1/resource/chunks/{identifier}` | 获取已上传的分块列表 |
+| 验证分块完整性 | GET | `/v1/resource/chunk/verify` | 验证分块MD5 |
+| 手动清理超时上传 | POST | `/v1/resource/cleanup` | 清理超时上传任务 |
 
 **系统接口：**
 
 | 接口名称 | 请求方法 | 请求路径 | 说明 |
 |---------|---------|---------|------|
-| 获取系统信息 | GET | `/v1/system/info` | 获取系统信息 |
-| 获取存储信息 | GET | `/v1/system/storage` | 获取存储信息 |
+| 获取系统信息 | GET | `/v1/system/info` 或 `/v1/system` | 获取系统统计信息 |
 
 **响应格式：**
 ```javascript
@@ -222,6 +235,32 @@ home-dash-web/
 - **代理配置**: 配置开发服务器代理
 - **构建优化**: 配置代码分割、压缩等优化选项
 - **插件配置**: 配置 Vue、Element Plus 等插件
+
+### 4.8 主题配置系统
+
+**主题配置功能（头像下拉菜单 → 主题配置）：**
+
+- **显示模式**: 日间模式 / 夜间模式 / 自动（跟随系统）
+- **主题颜色**: 8种预设颜色（默认蓝、极客绿、活力橙、热情红、神秘紫、湖水蓝、玫瑰粉、午夜蓝）
+- **预设主题**: 6种预设主题方案（默认蓝、深夜静谧、薄荷清晨、暖阳午后、玫瑰浪漫、神秘紫晶）
+- **字体大小**: 小 / 默认 / 大
+- **圆角风格**: 小 / 中 / 大
+- **列表密度**: 紧凑 / 默认 / 舒适
+- **动画速度**: 关闭 / 快 / 正常 / 慢
+- **界面布局**: 紧凑模式、毛玻璃效果、透明背景、高对比度
+- **滚动条样式**: 细 / 正常 / 粗
+- **图标与颜色**: 彩色图标、文件类型着色
+
+**相关文件：**
+- `src/stores/theme.js` - 主题状态管理
+- `src/styles/dark-theme.scss` - 夜间模式及特殊效果样式
+- `src/views/layout/Header.vue` - 主题配置UI
+
+**实现特性：**
+- 实时主题切换，无需刷新页面
+- 主题配置持久化（localStorage）
+- 跟随系统自动切换（auto模式）
+- 6种预设主题一键切换
 
 ## 6. Vue 3 迁移注意事项
 

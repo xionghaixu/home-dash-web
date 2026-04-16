@@ -23,7 +23,7 @@ export const useAppStore = defineStore('app', {
      * @param {Object} state - 状态对象
      * @returns {Number} 当前文件夹ID
      */
-    currentFolderId: (state) => state.folderId
+    currentFolderId: state => state.folderId
   },
 
   /**
