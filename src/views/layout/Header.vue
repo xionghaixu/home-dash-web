@@ -11,16 +11,15 @@
 
     <div class="header-center">
       <div class="search-box">
-        <el-icon class="search-icon"><Search /></el-icon>
-        <input
-          v-model="searchKeyword"
-          type="text"
-          class="search-input"
-          placeholder="搜索文件..."
-          @keyup.enter="handleSearch"
-        />
-        <span class="search-shortcut">Ctrl+K</span>
-      </div>
+          <el-icon class="search-icon"><Search /></el-icon>
+          <input
+            v-model="searchKeyword"
+            type="text"
+            class="search-input"
+            placeholder="搜索文件..."
+            @keyup.enter="handleSearch"
+          />
+        </div>
     </div>
 
     <div class="header-right">
@@ -47,12 +46,6 @@
             <el-dropdown-item command="theme">
               <el-icon><Brush /></el-icon>
               <span>主题配置</span>
-              <el-switch
-                :model-value="themeStore.isDark"
-                size="small"
-                @click.stop
-                @change="themeStore.toggleMode"
-              />
             </el-dropdown-item>
             <el-dropdown-item command="profile">
               <el-icon><User /></el-icon>
@@ -421,10 +414,10 @@ const handleCommand = command => {
       console.log('Logout')
       break
     case 'profile':
-      console.log('Profile')
+      router.push('/profile')
       break
     case 'settings':
-      console.log('Settings')
+      router.push('/settings')
       break
     case 'theme':
       themeDialogVisible.value = true

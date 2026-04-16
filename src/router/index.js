@@ -36,6 +36,16 @@ const routes = [
         path: 'system',
         component: () => import('@/views/system/index.vue'),
         meta: { title: '系统信息' }
+      },
+      {
+        path: 'profile',
+        component: () => import('@/views/profile/index.vue'),
+        meta: { title: '个人中心' }
+      },
+      {
+        path: 'settings',
+        component: () => import('@/views/settings/index.vue'),
+        meta: { title: '设置' }
       }
     ]
   },
