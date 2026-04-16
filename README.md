@@ -39,6 +39,8 @@
 ## 快速开始
 
 ```bash
+git clone git@github.com:xionghaixu/home-dash-web.git
+cd home-dash-web
 npm install
 npm run dev
 npm run build
