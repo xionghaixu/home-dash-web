@@ -10,26 +10,30 @@
       :collapse-transition="false"
     >
       <div class="menu-section">
-        <div class="section-title" v-if="!isCollapsed">工作台</div>
-        <el-menu-item index="/folder" @click="linkToFileList">
-          <el-icon><Document /></el-icon>
-          <span>全部文件</span>
+        <div v-if="!isCollapsed" class="section-title">文件管理</div>
+        <el-menu-item index="/files" @click="linkToFileList">
+          <el-icon><FolderOpened /></el-icon>
+          <span>文件列表</span>
         </el-menu-item>
+      </div>
+
+      <div class="menu-section">
+        <div v-if="!isCollapsed" class="section-title">快速浏览</div>
         <el-menu-item index="/recent" @click="linkTo('/recent')">
           <el-icon><Clock /></el-icon>
           <span>最近上传</span>
         </el-menu-item>
         <el-menu-item index="/category" @click="linkTo('/category/picture')">
           <el-icon><Grid /></el-icon>
-          <span>基础分类</span>
+          <span>分类浏览</span>
         </el-menu-item>
       </div>
 
       <div class="menu-section">
-        <div class="section-title" v-if="!isCollapsed">传输</div>
+        <div v-if="!isCollapsed" class="section-title">上传中心</div>
         <el-menu-item index="/transfers" @click="linkTo('/transfers')">
           <el-icon><UploadFilled /></el-icon>
-          <span>传输列表</span>
+          <span>上传任务</span>
           <el-badge
             v-if="transferCount > 0"
             :value="transferCount"
@@ -40,7 +44,7 @@
       </div>
 
       <div class="menu-section">
-        <div class="section-title" v-if="!isCollapsed">系统</div>
+        <div v-if="!isCollapsed" class="section-title">系统</div>
         <el-menu-item index="/system" @click="linkTo('/system')">
           <el-icon><Setting /></el-icon>
           <span>系统信息</span>
@@ -49,7 +53,7 @@
     </el-menu>
 
     <div class="sidebar-footer">
-      <div class="version-info" v-if="!isCollapsed">
+      <div v-if="!isCollapsed" class="version-info">
         <span>v1.0.0</span>
       </div>
     </div>
@@ -59,23 +63,24 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { getFileRoute } from '@/router'
 import { useAppStore } from '@/stores/app'
 import { useThemeStore } from '@/stores/theme'
-import { Document, Clock, Grid, Setting, UploadFilled } from '@element-plus/icons-vue'
+import { FolderOpened, Clock, Grid, Setting, UploadFilled } from '@element-plus/icons-vue'
 
 const store = useAppStore()
 const themeStore = useThemeStore()
 const route = useRoute()
 const router = useRouter()
 
-const active = ref('/folder')
+const active = ref('/files')
 const transferCount = ref(0)
 
 /** 侧边栏是否折叠 */
 const isCollapsed = computed(() => themeStore.sidebarCollapsed)
 
 const linkToFileList = () => {
-  router.push('/folder/' + store.folderId)
+  router.push(getFileRoute(store.folderId))
 }
 
 const linkTo = path => {
@@ -84,8 +89,8 @@ const linkTo = path => {
 
 const updateActive = () => {
   const currentPath = route.path
-  if (currentPath.startsWith('/folder')) {
-    active.value = '/folder'
+  if (currentPath.startsWith('/files') || currentPath === '/') {
+    active.value = '/files'
     return
   }
   if (currentPath.startsWith('/recent')) {

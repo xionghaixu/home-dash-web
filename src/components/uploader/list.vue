@@ -25,14 +25,14 @@ const COMPONENT_NAME = 'UploaderList'
 
 export default {
   name: COMPONENT_NAME,
+  components: {
+    UploaderFile
+  },
   mixins: [uploaderMixin],
   computed: {
     fileList() {
       return this.uploader.fileList
     }
-  },
-  components: {
-    UploaderFile
   }
 }
 </script>

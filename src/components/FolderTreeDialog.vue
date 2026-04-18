@@ -1,20 +1,18 @@
 <template>
-  <el-dialog :title="title" v-model="dialogVisible" width="40%">
+  <el-dialog v-model="dialogVisible" :title="title" width="40%">
     <el-tree
+      ref="tree"
       :props="props"
       :load="loadNode"
       node-key="id"
       lazy
-      ref="tree"
       check-strictly
       show-checkbox
       @check="handleNodeCheck"
     ></el-tree>
     <div v-if="conflictFiles.length > 0" class="conflict-warning">
       <el-alert type="warning" :closable="false" show-icon>
-        <template #title>
-          检测到目标目录存在以下同名文件：
-        </template>
+        <template #title>检测到目标目录存在以下同名文件：</template>
       </el-alert>
       <ul class="conflict-list">
         <li v-for="file in conflictFiles" :key="file.id" class="conflict-item">
@@ -66,6 +64,7 @@ export default {
       }
     }
   },
+  emits: ['return'],
   data() {
     return {
       dialogVisible: true,

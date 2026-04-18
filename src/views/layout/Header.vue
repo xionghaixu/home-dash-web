@@ -11,15 +11,15 @@
 
     <div class="header-center">
       <div class="search-box">
-          <el-icon class="search-icon"><Search /></el-icon>
-          <input
-            v-model="searchKeyword"
-            type="text"
-            class="search-input"
-            placeholder="搜索文件..."
-            @keyup.enter="handleSearch"
-          />
-        </div>
+        <el-icon class="search-icon"><Search /></el-icon>
+        <input
+          v-model="searchKeyword"
+          type="text"
+          class="search-input"
+          placeholder="搜索文件..."
+          @keyup.enter="handleSearch"
+        />
+      </div>
     </div>
 
     <div class="header-right">
@@ -391,7 +391,7 @@ const handleAnimationChange = val => {
 }
 
 const goHome = () => {
-  router.push('/folder/0')
+  router.push('/')
 }
 
 const triggerUpload = () => {
@@ -403,8 +403,9 @@ const refreshPage = () => {
 }
 
 const handleSearch = () => {
-  if (searchKeyword.value.trim()) {
-    console.log('Search:', searchKeyword.value)
+  const trimmedKeyword = searchKeyword.value.trim()
+  if (trimmedKeyword) {
+    router.push({ path: '/search', query: { q: trimmedKeyword } })
   }
 }
 
@@ -765,5 +766,101 @@ const handleCommand = command => {
 :deep(.el-dialog__footer) {
   padding: var(--spacing-lg) var(--spacing-2xl) var(--spacing-xl);
   border-top: 1px solid var(--color-border-lighter);
+}
+
+/* 搜索结果对话框样式 */
+.search-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  gap: var(--spacing-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.search-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  gap: var(--spacing-lg);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.search-results {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.search-results-header {
+  padding: var(--spacing-md) 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border-lighter);
+  margin-bottom: var(--spacing-sm);
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    background: var(--color-fill-base);
+  }
+}
+
+.result-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.result-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.result-name {
+  font-size: var(--font-size-base);
+  color: var(--color-text-regular);
+  font-weight: var(--font-weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-meta {
+  display: flex;
+  gap: var(--spacing-lg);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-xs);
+}
+
+.result-actions {
+  flex-shrink: 0;
+}
+
+.keyword-highlight {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  background: var(--color-primary-bg);
+  padding: 0 2px;
+  border-radius: 2px;
 }
 </style>

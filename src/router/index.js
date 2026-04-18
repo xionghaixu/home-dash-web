@@ -1,41 +1,42 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-/**
- * 路由配置
- * @description 定义应用的路由规则，包括文件列表、系统信息、视频播放等页面
- */
 const routes = [
   {
-    path: '',
-    redirect: '/folder/0',
+    path: '/',
     component: () => import('@/views/layout/Layout.vue'),
+    redirect: '/files',
     children: [
       {
-        path: 'folder/:folderId',
+        path: 'files',
+        component: () => import('@/views/file/index.vue'),
+        meta: { title: '文件列表', keepAlive: true }
+      },
+      {
+        path: 'files/:folderId',
         component: () => import('@/views/file/index.vue'),
         props: true,
-        meta: { title: '全部文件' }
+        meta: { title: '文件夹', keepAlive: true }
       },
       {
         path: 'recent',
         component: () => import('@/views/recent/index.vue'),
-        meta: { title: '最近上传' }
+        meta: { title: '最近上传', keepAlive: true }
       },
       {
-        path: 'category/:category?',
+        path: 'category',
+        component: () => import('@/views/category/index.vue'),
+        meta: { title: '分类浏览', keepAlive: true }
+      },
+      {
+        path: 'category/:categoryType',
         component: () => import('@/views/category/index.vue'),
         props: true,
-        meta: { title: '基础分类浏览' }
+        meta: { title: '分类详情', keepAlive: true }
       },
       {
         path: 'transfers',
         component: () => import('@/views/transfers/index.vue'),
-        meta: { title: '传输列表' }
-      },
-      {
-        path: 'system',
-        component: () => import('@/views/system/index.vue'),
-        meta: { title: '系统信息' }
+        meta: { title: '传输列表', keepAlive: true }
       },
       {
         path: 'profile',
@@ -46,6 +47,16 @@ const routes = [
         path: 'settings',
         component: () => import('@/views/settings/index.vue'),
         meta: { title: '设置' }
+      },
+      {
+        path: 'system',
+        component: () => import('@/views/system/index.vue'),
+        meta: { title: '系统信息' }
+      },
+      {
+        path: 'search',
+        component: () => import('@/views/search/index.vue'),
+        meta: { title: '搜索结果' }
       }
     ]
   },
@@ -53,7 +64,7 @@ const routes = [
     path: '/video/:fileId',
     component: () => import('@/views/video/index.vue'),
     props: true,
-    meta: { title: '播放视频' }
+    meta: { title: '视频播放' }
   },
   {
     path: '/:pathMatch(.*)*',
@@ -62,24 +73,49 @@ const routes = [
   }
 ]
 
-/**
- * 创建路由实例
- * @description 使用Vue Router 4的createRouter语法创建路由实例
- */
 const router = createRouter({
   history: createWebHistory(),
   routes
 })
 
-/**
- * 路由守卫
- * @description 在路由切换时修改页面标题
- */
 router.beforeEach((to, _, next) => {
   if (to.meta.title) {
     document.title = to.meta.title
   }
   next()
 })
+
+export const ROUTE_NAMES = {
+  FILE_ROOT: '/',
+  FILE_LIST: 'files',
+  FILE_FOLDER: 'files/:folderId',
+  RECENT: 'recent',
+  CATEGORY: 'category',
+  CATEGORY_TYPE: 'category/:categoryType',
+  TRANSFERS: 'transfers',
+  VIDEO: 'video/:fileId',
+  PROFILE: 'profile',
+  SETTINGS: 'settings',
+  SEARCH: 'search'
+}
+
+export const getFileRoute = (folderId = '0') => {
+  if (!folderId && folderId !== '0' && folderId !== 0) {
+    return '/files'
+  }
+  return folderId === '0' || folderId === 0 ? '/files' : `/files/${folderId}`
+}
+
+export function getCategoryRoute(categoryType) {
+  return categoryType ? `/category/${categoryType}` : '/category'
+}
+
+export function getVideoRoute(fileId) {
+  return `/video/${fileId}`
+}
+
+export function getSearchRoute(keyword) {
+  return keyword ? `/search?q=${encodeURIComponent(keyword)}` : '/search'
+}
 
 export default router

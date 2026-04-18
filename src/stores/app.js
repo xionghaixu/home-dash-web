@@ -30,12 +30,19 @@ export const useAppStore = defineStore('app', {
    * 操作方法
    */
   actions: {
-    /**
-     * 设置当前文件夹ID
-     * @param {Number} id - 文件夹ID
-     */
     setFolderId(id) {
       this.folderId = id
+    },
+    setTransferCount(count) {
+      this.transferCount = count
+    },
+    incrementTransferCount() {
+      this.transferCount++
+    },
+    decrementTransferCount() {
+      if (this.transferCount > 0) {
+        this.transferCount--
+      }
     }
   }
 })

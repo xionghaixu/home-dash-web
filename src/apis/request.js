@@ -45,7 +45,7 @@ req.interceptors.response.use(
     const data = response.data
 
     if (data && typeof data === 'object' && 'code' in data) {
-      if (data.code !== 200 && data.code !== 0 && data.code !== '00000') {
+      if (data.code !== 200) {
         const error = new Error(data.msg || '业务处理失败')
         error.data = data
         errorHandler.handleBusinessError(data, false)
@@ -67,7 +67,7 @@ req.interceptors.response.use(
 
     if (response) {
       errorHandler.handleHttpError(error, { redirect: true })
-      return Promise.reject(response)
+      return Promise.reject(error)
     } else {
       if (!window.navigator.onLine) {
         errorHandler.showError('网络连接已断开，请检查网络')

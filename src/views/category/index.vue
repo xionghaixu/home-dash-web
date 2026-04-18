@@ -2,7 +2,7 @@
   <div class="workspace-page">
     <div class="page-header">
       <div class="page-header__left">
-        <h1 class="page-header__title">基础分类浏览</h1>
+        <h1 class="page-header__title">分类浏览</h1>
         <p class="page-header__subtitle">按图片、视频、音频、文档和其他文件进行轻量浏览。</p>
       </div>
       <div class="page-header__actions">
@@ -37,56 +37,92 @@
       min-height="420px"
       @retry="refreshAll"
     >
+      <div v-if="fileList.length > 0" class="batch-toolbar">
+        <el-checkbox v-model="selectAll" :indeterminate="isIndeterminate" @change="handleSelectAll">
+          全选
+        </el-checkbox>
+        <span v-if="selectedFiles.length > 0" class="selected-info">
+          已选择 {{ selectedFiles.length }} 个文件
+        </span>
+        <div v-if="selectedFiles.length > 0" class="batch-actions">
+          <el-button type="primary" size="small" @click="batchDownload">
+            <el-icon><Download /></el-icon>
+            批量下载
+          </el-button>
+          <el-button type="danger" size="small" @click="batchDelete">
+            <el-icon><Delete /></el-icon>
+            批量删除
+          </el-button>
+          <el-button size="small" @click="clearSelection">取消选择</el-button>
+        </div>
+      </div>
+
       <div class="table-card">
-        <el-table :data="fileList" row-key="id" style="flex: 1" @sort-change="handleSortChange">
-          <el-table-column prop="fileName" label="文件名" min-width="320" sortable="custom">
-            <template #default="{ row }">
-              <div class="name-cell">
-                <FileTypeIcon :type="row.type" />
-                <el-button link class="name-button" @click="openRow(row)">
-                  {{ row.fileName }}
-                </el-button>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="文件类型" width="150">
-            <template #default="{ row }">{{ getFileTypeLabel(row.type) }}</template>
-          </el-table-column>
-          <el-table-column prop="size" label="大小" width="140" sortable="custom">
-            <template #default="{ row }">{{ formatFileSize(row) }}</template>
-          </el-table-column>
-          <el-table-column prop="updateTime" label="修改时间" min-width="180" sortable="custom">
-            <template #default="{ row }">{{ formatFileDate(row.updateTime) }}</template>
-          </el-table-column>
-          <el-table-column label="所在目录" min-width="150">
-            <template #default="{ row }">
-              <el-button link @click="goToFolder(row.parentId)">打开目录</el-button>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" min-width="220" fixed="right">
-            <template #default="{ row }">
-              <div class="row-actions">
-                <el-button link @click="showDetail(row)">详情</el-button>
-                <el-button link @click="goToFolder(row.parentId)">所在目录</el-button>
-                <el-button v-if="row.type === 'video'" link @click="openVideo(row.id)">
-                  播放
-                </el-button>
-                <el-button v-else link @click="downloadFile(row.id)">下载</el-button>
-              </div>
-            </template>
-          </el-table-column>
-        </el-table>
+        <transition name="fade" mode="out-in">
+          <el-table
+            :key="activeCategory"
+            :data="fileList"
+            row-key="id"
+            style="flex: 1"
+            @sort-change="handleSortChange"
+            @selection-change="handleSelectionChange"
+          >
+            <el-table-column type="selection" width="55" />
+            <el-table-column prop="fileName" label="文件名" min-width="320" sortable="custom">
+              <template #default="{ row }">
+                <div class="name-cell">
+                  <FileTypeIcon :type="row.type" />
+                  <el-button link class="name-button" @click="openRow(row)">
+                    {{ row.fileName }}
+                  </el-button>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="文件类型" width="150">
+              <template #default="{ row }">{{ getFileTypeLabel(row.type) }}</template>
+            </el-table-column>
+            <el-table-column prop="size" label="大小" width="140" sortable="custom">
+              <template #default="{ row }">{{ formatFileSize(row) }}</template>
+            </el-table-column>
+            <el-table-column prop="updateTime" label="修改时间" min-width="180" sortable="custom">
+              <template #default="{ row }">{{ formatFileDate(row.updateTime) }}</template>
+            </el-table-column>
+            <el-table-column label="所在目录" min-width="150">
+              <template #default="{ row }">
+                <el-button link @click="goToFolder(row.parentId)">打开目录</el-button>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" min-width="220" fixed="right">
+              <template #default="{ row }">
+                <div class="row-actions">
+                  <el-button link @click="showDetail(row)">详情</el-button>
+                  <el-button link @click="goToFolder(row.parentId)">所在目录</el-button>
+                  <el-button v-if="row.type === 'video'" link @click="openVideo(row.id)">
+                    播放
+                  </el-button>
+                  <el-button v-else link @click="downloadFile(row.id)">下载</el-button>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+        </transition>
       </div>
     </PageState>
 
     <FileDetailDrawer v-model="detailVisible" :file-id="detailFileId" />
+    <ImagePreview
+      v-model="imagePreviewVisible"
+      :file-list="imagePreviewList"
+      :initial-index="imagePreviewIndex"
+    />
   </div>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { getCategoryRoute, getFileRoute, getVideoRoute } from '@/router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   RefreshRight,
   Picture,
@@ -94,12 +130,15 @@ import {
   Microphone,
   Document,
   FolderOpened,
-  Files
+  Files,
+  Download,
+  Delete
 } from '@element-plus/icons-vue'
-import { downloadFileUrl, getCategoryFiles, getCategorySummary } from '@/apis/file'
+import { downloadFileUrl, getCategoryFiles, getCategorySummary, deleteFiles } from '@/apis/file'
 import FileDetailDrawer from '@/components/FileDetailDrawer.vue'
 import FileTypeIcon from '@/components/FileTypeIcon.vue'
 import PageState from '@/components/PageState.vue'
+import ImagePreview from '@/components/ImagePreview.vue'
 import {
   CATEGORY_OPTIONS,
   formatFileDate,
@@ -117,10 +156,15 @@ const loading = ref(false)
 const errorMessage = ref('')
 const detailVisible = ref(false)
 const detailFileId = ref(null)
+const imagePreviewVisible = ref(false)
+const imagePreviewIndex = ref(0)
+const imagePreviewList = ref([])
 const sortState = ref({
   sortBy: 'updateTime',
   sortOrder: 'desc'
 })
+const selectedFiles = ref([])
+const selectAll = ref(false)
 
 const categoryIconMap = {
   picture: Picture,
@@ -136,12 +180,16 @@ const isValidCategory = category => {
 }
 
 const activeCategory = computed(() => {
-  const category = route.params.category
+  const category = route.params.categoryType
   return isValidCategory(category) ? category : 'picture'
 })
 
 const activeCategoryLabel = computed(() => {
   return CATEGORY_OPTIONS.find(item => item.key === activeCategory.value)?.label || '当前'
+})
+
+const imageFiles = computed(() => {
+  return fileList.value.filter(item => item.type === 'picture')
 })
 
 const categorySummaries = computed(() => {
@@ -184,7 +232,8 @@ const refreshAll = async () => {
   loading.value = true
   errorMessage.value = ''
   try {
-    await Promise.all([loadSummary(), loadCategoryFiles()])
+    await loadSummary()
+    await loadCategoryFiles()
   } catch (error) {
     errorMessage.value = resolveErrorMessage(error, '分类文件加载失败')
   } finally {
@@ -193,7 +242,7 @@ const refreshAll = async () => {
 }
 
 const switchCategory = category => {
-  router.push(`/category/${category}`)
+  router.push(getCategoryRoute(category))
 }
 
 const handleSortChange = ({ prop, order }) => {
@@ -201,7 +250,10 @@ const handleSortChange = ({ prop, order }) => {
     sortBy: prop || 'updateTime',
     sortOrder: order === 'ascending' ? 'asc' : 'desc'
   }
-  refreshAll()
+  loading.value = true
+  loadCategoryFiles().finally(() => {
+    loading.value = false
+  })
 }
 
 const showDetail = row => {
@@ -214,17 +266,23 @@ const goToFolder = folderId => {
     ElMessage.warning('无法确定文件所在目录')
     return
   }
-  router.push(`/folder/${folderId}`)
+  router.push(getFileRoute(folderId))
 }
 
 const openVideo = fileId => {
-  const routeLocation = router.resolve(`/video/${fileId}`)
+  const routeLocation = router.resolve(getVideoRoute(fileId))
   window.open(routeLocation.href, '_blank')
 }
 
 const openRow = row => {
   if (row.type === 'video') {
     openVideo(row.id)
+    return
+  }
+  if (row.type === 'picture') {
+    imagePreviewList.value = imageFiles.value
+    imagePreviewIndex.value = imageFiles.value.findIndex(item => item.id === row.id)
+    imagePreviewVisible.value = true
     return
   }
   showDetail(row)
@@ -241,18 +299,82 @@ const downloadFile = fileId => {
   }
 }
 
+const isIndeterminate = computed(() => {
+  return selectedFiles.value.length > 0 && selectedFiles.value.length < fileList.value.length
+})
+
+const handleSelectAll = checked => {
+  if (checked) {
+    selectedFiles.value = [...fileList.value]
+  } else {
+    selectedFiles.value = []
+  }
+}
+
+const handleSelectionChange = selection => {
+  selectedFiles.value = selection
+}
+
+const clearSelection = () => {
+  selectedFiles.value = []
+  selectAll.value = false
+}
+
+const batchDownload = () => {
+  let successCount = 0
+  selectedFiles.value.forEach(file => {
+    try {
+      const link = document.createElement('a')
+      link.href = downloadFileUrl(file.id)
+      link.click()
+      successCount++
+    } catch {
+      // 忽略单个下载失败
+    }
+  })
+  ElMessage.success(`已开始下载 ${successCount} 个文件`)
+  clearSelection()
+}
+
+const batchDelete = async () => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedFiles.value.length} 个文件吗？此操作不可恢复。`,
+      '批量删除',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    const fileIds = selectedFiles.value.map(f => f.id)
+    await deleteFiles(fileIds)
+    ElMessage.success(`成功删除 ${fileIds.length} 个文件`)
+    clearSelection()
+    await refreshAll()
+  } catch {
+    // 用户取消或删除失败
+  }
+}
+
 watch(
-  () => route.params.category,
-  category => {
-    if (!category) {
+  () => route.params.categoryType,
+  categoryType => {
+    if (!categoryType) {
       router.replace('/category/picture')
       return
     }
-    if (category && !isValidCategory(category)) {
+    if (categoryType && !isValidCategory(categoryType)) {
       router.replace('/category/picture')
       return
     }
-    refreshAll()
+    selectedFiles.value = []
+    selectAll.value = false
+    loading.value = true
+    Promise.all([loadSummary().catch(() => {}), loadCategoryFiles()]).finally(() => {
+      loading.value = false
+    })
   },
   { immediate: true }
 )
@@ -265,6 +387,29 @@ watch(
   gap: var(--spacing-lg);
   height: 100%;
   animation: fadeInUp 0.3s ease;
+}
+
+.batch-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-bg-white);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-lighter);
+}
+
+.selected-info {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.batch-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-left: auto;
 }
 
 .page-header {
@@ -422,6 +567,16 @@ watch(
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 @media (max-width: 1280px) {

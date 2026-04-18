@@ -23,7 +23,7 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 const goHome = () => {
-  router.push('/folder/0')
+  router.push('/')
 }
 
 const goBack = () => {

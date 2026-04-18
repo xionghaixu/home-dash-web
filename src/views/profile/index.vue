@@ -4,7 +4,7 @@
       <h2>个人中心</h2>
       <p>管理您的个人信息和账户设置</p>
     </div>
-    
+
     <div class="profile-content">
       <div class="profile-section">
         <h3>个人信息</h3>
@@ -23,7 +23,7 @@
           </div>
         </div>
       </div>
-      
+
       <div class="profile-section">
         <h3>存储空间</h3>
         <div class="storage-info">
@@ -36,7 +36,7 @@
           </div>
         </div>
       </div>
-      
+
       <div class="profile-section">
         <h3>账户安全</h3>
         <div class="security-options">
@@ -70,14 +70,14 @@
 
 .profile-header {
   margin-bottom: var(--spacing-2xl);
-  
+
   h2 {
     font-size: var(--font-size-2xl);
     font-weight: var(--font-weight-bold);
     color: var(--color-text-primary);
     margin-bottom: var(--spacing-sm);
   }
-  
+
   p {
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
@@ -95,7 +95,7 @@
   border-radius: var(--radius-lg);
   padding: var(--spacing-xl);
   box-shadow: var(--shadow-sm);
-  
+
   h3 {
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-semibold);
@@ -114,13 +114,13 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  
+
   .info-label {
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
     min-width: 100px;
   }
-  
+
   .info-value {
     font-size: var(--font-size-sm);
     color: var(--color-text-primary);
@@ -139,7 +139,7 @@
   background: var(--color-border-lighter);
   border-radius: var(--radius-full);
   overflow: hidden;
-  
+
   .storage-used {
     height: 100%;
     background: var(--color-primary);
@@ -167,11 +167,11 @@
   align-items: center;
   padding: var(--spacing-sm) 0;
   border-bottom: 1px solid var(--color-border-lighter);
-  
+
   &:last-child {
     border-bottom: none;
   }
-  
+
   span {
     font-size: var(--font-size-sm);
     color: var(--color-text-primary);

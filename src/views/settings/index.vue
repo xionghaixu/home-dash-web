@@ -4,7 +4,7 @@
       <h2>设置</h2>
       <p>配置您的应用偏好和系统设置</p>
     </div>
-    
+
     <div class="settings-content">
       <div class="settings-section">
         <h3>通用设置</h3>
@@ -24,7 +24,7 @@
           </el-select>
         </div>
       </div>
-      
+
       <div class="settings-section">
         <h3>上传设置</h3>
         <div class="setting-item">
@@ -33,14 +33,20 @@
         </div>
         <div class="setting-item">
           <span class="setting-label">最大上传文件大小</span>
-          <el-input-number v-model="maxFileSize" :min="1" :max="1024" :step="1" suffix="GB"></el-input-number>
+          <el-input-number
+            v-model="maxFileSize"
+            :min="1"
+            :max="1024"
+            :step="1"
+            suffix="GB"
+          ></el-input-number>
         </div>
         <div class="setting-item">
           <span class="setting-label">自动重命名重复文件</span>
           <el-switch v-model="autoRename"></el-switch>
         </div>
       </div>
-      
+
       <div class="settings-section">
         <h3>通知设置</h3>
         <div class="setting-item">
@@ -49,14 +55,20 @@
         </div>
         <div class="setting-item">
           <span class="setting-label">上传完成通知</span>
-          <el-switch v-model="uploadCompleteNotification" :disabled="!enableNotifications"></el-switch>
+          <el-switch
+            v-model="uploadCompleteNotification"
+            :disabled="!enableNotifications"
+          ></el-switch>
         </div>
         <div class="setting-item">
           <span class="setting-label">下载完成通知</span>
-          <el-switch v-model="downloadCompleteNotification" :disabled="!enableNotifications"></el-switch>
+          <el-switch
+            v-model="downloadCompleteNotification"
+            :disabled="!enableNotifications"
+          ></el-switch>
         </div>
       </div>
-      
+
       <div class="settings-section">
         <h3>高级设置</h3>
         <div class="setting-item">
@@ -65,14 +77,21 @@
         </div>
         <div class="setting-item">
           <span class="setting-label">缓存大小限制</span>
-          <el-input-number v-model="cacheSize" :min="1" :max="100" :step="1" suffix="MB" :disabled="!enableCache"></el-input-number>
+          <el-input-number
+            v-model="cacheSize"
+            :min="1"
+            :max="100"
+            :step="1"
+            suffix="MB"
+            :disabled="!enableCache"
+          ></el-input-number>
         </div>
         <div class="setting-item">
           <span class="setting-label">自动清理缓存</span>
           <el-switch v-model="autoClearCache" :disabled="!enableCache"></el-switch>
         </div>
       </div>
-      
+
       <div class="settings-actions">
         <el-button @click="resetSettings">重置默认</el-button>
         <el-button type="primary" @click="saveSettings">保存设置</el-button>
@@ -128,14 +147,14 @@ const resetSettings = () => {
 
 .settings-header {
   margin-bottom: var(--spacing-2xl);
-  
+
   h2 {
     font-size: var(--font-size-2xl);
     font-weight: var(--font-weight-bold);
     color: var(--color-text-primary);
     margin-bottom: var(--spacing-sm);
   }
-  
+
   p {
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
@@ -153,7 +172,7 @@ const resetSettings = () => {
   border-radius: var(--radius-lg);
   padding: var(--spacing-xl);
   box-shadow: var(--shadow-sm);
-  
+
   h3 {
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-semibold);
@@ -168,11 +187,11 @@ const resetSettings = () => {
   justify-content: space-between;
   padding: var(--spacing-md) 0;
   border-bottom: 1px solid var(--color-border-lighter);
-  
+
   &:last-child {
     border-bottom: none;
   }
-  
+
   .setting-label {
     font-size: var(--font-size-sm);
     color: var(--color-text-primary);

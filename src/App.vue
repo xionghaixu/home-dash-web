@@ -17,5 +17,5 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 </script>
 
 <style lang="scss">
-@import '@/styles/index.scss';
+@use '@/styles/index.scss';
 </style>

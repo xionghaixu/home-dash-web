@@ -34,6 +34,14 @@ const UPLOAD_START_EVENT = 'uploadStart'
 
 export default {
   name: COMPONENT_NAME,
+  components: {
+    UploaderBtn,
+    UploaderDrop,
+    UploaderUnsupport,
+    UploaderList
+    // UploaderFiles,
+    // UploaderFile
+  },
   provide() {
     return {
       uploader: this
@@ -69,6 +77,30 @@ export default {
       files: [],
       fileList: []
     }
+  },
+  created() {
+    // 创建uploader实例，配置初始暂停状态
+    const options = { ...this.options, initialPaused: !this.autoStart }
+    const uploader = new Uploader(options)
+    this.uploader = uploader
+    this.uploader.fileStatusText = this.fileStatusText
+
+    // 注册事件监听器
+    uploader.on('catchAll', this.allEvent)
+    uploader.on(FILE_ADDED_EVENT, this.fileAdded)
+    uploader.on(FILES_ADDED_EVENT, this.filesAdded)
+    uploader.on('fileRemoved', this.fileRemoved)
+    uploader.on('filesSubmitted', this.filesSubmitted)
+  },
+  unmounted() {
+    // 组件销毁时移除所有事件监听器，避免内存泄漏
+    const uploader = this.uploader
+    uploader.off('catchAll', this.allEvent)
+    uploader.off(FILE_ADDED_EVENT, this.fileAdded)
+    uploader.off(FILES_ADDED_EVENT, this.filesAdded)
+    uploader.off('fileRemoved', this.fileRemoved)
+    uploader.off('filesSubmitted', this.filesSubmitted)
+    this.uploader = null
   },
   methods: {
     /**
@@ -157,38 +189,6 @@ export default {
       args[0] = kebabCase(name)
       this.$emit.apply(this, args)
     }
-  },
-  created() {
-    // 创建uploader实例，配置初始暂停状态
-    const options = { ...this.options, initialPaused: !this.autoStart }
-    const uploader = new Uploader(options)
-    this.uploader = uploader
-    this.uploader.fileStatusText = this.fileStatusText
-
-    // 注册事件监听器
-    uploader.on('catchAll', this.allEvent)
-    uploader.on(FILE_ADDED_EVENT, this.fileAdded)
-    uploader.on(FILES_ADDED_EVENT, this.filesAdded)
-    uploader.on('fileRemoved', this.fileRemoved)
-    uploader.on('filesSubmitted', this.filesSubmitted)
-  },
-  unmounted() {
-    // 组件销毁时移除所有事件监听器，避免内存泄漏
-    const uploader = this.uploader
-    uploader.off('catchAll', this.allEvent)
-    uploader.off(FILE_ADDED_EVENT, this.fileAdded)
-    uploader.off(FILES_ADDED_EVENT, this.filesAdded)
-    uploader.off('fileRemoved', this.fileRemoved)
-    uploader.off('filesSubmitted', this.filesSubmitted)
-    this.uploader = null
-  },
-  components: {
-    UploaderBtn,
-    UploaderDrop,
-    UploaderUnsupport,
-    UploaderList
-    // UploaderFiles,
-    // UploaderFile
   }
 }
 </script>

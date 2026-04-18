@@ -3,7 +3,7 @@
 // 布局样式
 // ============================================
 
-@import './variables.scss';
+@use './variables.scss' as *;
 
 .app-container {
   position: relative;
