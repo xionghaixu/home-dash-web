@@ -12,9 +12,7 @@
     ></el-tree>
     <div v-if="conflictFiles.length > 0" class="conflict-warning">
       <el-alert type="warning" :closable="false" show-icon>
-        <template #title>
-          检测到目标目录存在以下同名文件：
-        </template>
+        <template #title>检测到目标目录存在以下同名文件：</template>
       </el-alert>
       <ul class="conflict-list">
         <li v-for="file in conflictFiles" :key="file.id" class="conflict-item">
@@ -40,12 +38,7 @@
  * FolderTreeDialog 组件 - 文件夹选择对话框组件
  * @description 提供文件夹树形选择功能，用于文件移动和复制操作时选择目标文件夹
  * @component
- * @example
- * <folder-tree-dialog
- *   title="移动到"
- *   :sourceFiles="selectedFiles"
- *   @return="handleReturn"
- * ></folder-tree-dialog>
+ * @example 使用方式见文件移动/复制弹窗
  */
 import { getFileList } from '@/apis/file'
 import { Warning } from '@element-plus/icons-vue'
@@ -112,7 +105,13 @@ export default {
      * @description 当选择目标文件夹时，检测是否有同名文件
      */
     handleNodeCheck(data, checked) {
-      this.selectedKeys = checked.checkedKeys.filter(id => id !== 0)
+      const selectedKey = checked.checkedKeys.includes(data.id) ? data.id : null
+      this.selectedKeys = selectedKey === null ? [] : [selectedKey]
+
+      if (this.$refs.tree) {
+        this.$refs.tree.setCheckedKeys(this.selectedKeys)
+      }
+
       if (this.selectedKeys.length === 1) {
         this.checkConflict(this.selectedKeys[0])
       } else {
