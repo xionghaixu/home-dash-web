@@ -44,8 +44,8 @@
           circle
           size="small"
           text
-          @click="pause"
           title="暂停"
+          @click="pause"
         />
         <el-button
           v-if="status === 'paused'"
@@ -53,8 +53,8 @@
           circle
           size="small"
           text
-          @click="resume"
           title="继续"
+          @click="resume"
         />
         <el-button
           v-if="status === 'error'"
@@ -62,10 +62,10 @@
           circle
           size="small"
           text
-          @click="retry"
           title="重试"
+          @click="retry"
         />
-        <el-button :icon="Close" circle size="small" text @click="remove" title="移除" />
+        <el-button :icon="Close" circle size="small" text title="移除" @click="remove" />
       </div>
     </div>
   </div>
@@ -83,7 +83,7 @@ import {
   VideoPlay,
   VideoPause,
   Document,
-  Picture,
+  PictureFilled,
   VideoCamera,
   Microphone,
   Folder,
@@ -94,6 +94,20 @@ const COMPONENT_NAME = 'UploaderFile'
 
 export default {
   name: COMPONENT_NAME,
+  components: {
+    Close,
+    Check,
+    WarningFilled,
+    Refresh,
+    VideoPlay,
+    VideoPause,
+    Document,
+    PictureFilled,
+    VideoCamera,
+    Microphone,
+    Folder,
+    Files
+  },
   props: {
     file: {
       type: Object,
@@ -129,7 +143,7 @@ export default {
     fileCategoryIcon() {
       const category = this.fileCategory
       const iconMap = {
-        image: Picture,
+        image: PictureFilled,
         video: VideoCamera,
         audio: Microphone,
         document: Document,
@@ -188,78 +202,6 @@ export default {
       }
     }
   },
-  methods: {
-    _actionCheck() {
-      this.paused = this.file.paused
-      this.error = this.file.error
-      this.isUploading = this.file.isUploading()
-    },
-    pause() {
-      this.file.pause()
-      this._actionCheck()
-      this._fileProgress()
-    },
-    resume() {
-      this.file.resume()
-      this._actionCheck()
-    },
-    remove() {
-      this.file.cancel()
-    },
-    retry() {
-      this.file.retry()
-      this._actionCheck()
-    },
-    processResponse(message) {
-      let res = message
-      try {
-        res = JSON.parse(message)
-      } catch (e) {}
-      this.response = res
-    },
-    fileEventsHandler(event, args) {
-      const rootFile = args[0]
-      const file = args[1]
-      const target = this.list ? rootFile : file
-      const isTarget = this.file.id === target?.id || this.file === target
-
-      if (isTarget) {
-        if (this.list && event === 'fileSuccess') {
-          this.processResponse(args[2])
-          this._fileSuccess(args[0], args[1], args[2])
-          return
-        }
-        this[`_${event}`].apply(this, args)
-      }
-    },
-    _fileProgress() {
-      this.progress = this.file.progress()
-      this.averageSpeed = this.file.averageSpeed
-      this.currentSpeed = this.file.currentSpeed
-      this.timeRemaining = this.file.timeRemaining()
-      this.uploadedSize = this.file.sizeUploaded()
-      this._actionCheck()
-    },
-    _fileSuccess(rootFile, file, message) {
-      if (rootFile) {
-        this.processResponse(message)
-      }
-      this._fileProgress()
-      this.error = false
-      this.isComplete = true
-      this.isUploading = false
-    },
-    _fileComplete() {
-      this._fileSuccess()
-    },
-    _fileError(rootFile, file, message) {
-      this._fileProgress()
-      this.processResponse(message)
-      this.error = true
-      this.isComplete = false
-      this.isUploading = false
-    }
-  },
   mounted() {
     const STATIC_PROPS = ['paused', 'error', 'averageSpeed', 'currentSpeed']
     const FN_PROPS = [
@@ -304,19 +246,79 @@ export default {
     })
     this._handlers = null
   },
-  components: {
-    Close,
-    Check,
-    WarningFilled,
-    Refresh,
-    VideoPlay,
-    VideoPause,
-    Document,
-    Picture,
-    VideoCamera,
-    Microphone,
-    Folder,
-    Files
+  methods: {
+    _actionCheck() {
+      this.paused = this.file.paused
+      this.error = this.file.error
+      this.isUploading = this.file.isUploading()
+    },
+    pause() {
+      this.file.pause()
+      this._actionCheck()
+      this._fileProgress()
+    },
+    resume() {
+      this.file.resume()
+      this._actionCheck()
+    },
+    remove() {
+      this.file.cancel()
+    },
+    retry() {
+      this.file.retry()
+      this._actionCheck()
+    },
+    processResponse(message) {
+      let res = message
+      try {
+        res = JSON.parse(message)
+      } catch {
+        // 忽略 JSON 解析错误，使用原始消息
+      }
+      this.response = res
+    },
+    fileEventsHandler(event, args) {
+      const rootFile = args[0]
+      const file = args[1]
+      const target = this.list ? rootFile : file
+      const isTarget = this.file.id === target?.id || this.file === target
+
+      if (isTarget) {
+        if (this.list && event === 'fileSuccess') {
+          this.processResponse(args[2])
+          this._fileSuccess(args[0], args[1], args[2])
+          return
+        }
+        this[`_${event}`].apply(this, args)
+      }
+    },
+    _fileProgress() {
+      this.progress = this.file.progress()
+      this.averageSpeed = this.file.averageSpeed
+      this.currentSpeed = this.file.currentSpeed
+      this.timeRemaining = this.file.timeRemaining()
+      this.uploadedSize = this.file.sizeUploaded()
+      this._actionCheck()
+    },
+    _fileSuccess(rootFile, file, message) {
+      if (rootFile) {
+        this.processResponse(message)
+      }
+      this._fileProgress()
+      this.error = false
+      this.isComplete = true
+      this.isUploading = false
+    },
+    _fileComplete() {
+      this._fileSuccess()
+    },
+    _fileError(rootFile, file, message) {
+      this._fileProgress()
+      this.processResponse(message)
+      this.error = true
+      this.isComplete = false
+      this.isUploading = false
+    }
   }
 }
 </script>

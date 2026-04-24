@@ -1,5 +1,5 @@
 <template>
-  <div class="uploader-drop" :class="dropClass" ref="drop" v-show="support">
+  <div v-show="support" ref="drop" class="uploader-drop" :class="dropClass">
     <slot></slot>
   </div>
 </template>
@@ -24,29 +24,6 @@ export default {
   data() {
     return {
       dropClass: ''
-    }
-  },
-  methods: {
-    /**
-     * 拖拽进入事件处理
-     * @description 当文件拖拽进入区域时添加高亮样式
-     */
-    onDragEnter() {
-      this.dropClass = 'uploader-dragover'
-    },
-    /**
-     * 拖拽离开事件处理
-     * @description 当文件拖拽离开区域时移除高亮样式
-     */
-    onDragLeave() {
-      this.dropClass = ''
-    },
-    /**
-     * 拖拽放下事件处理
-     * @description 当文件拖拽放下时添加放下样式
-     */
-    onDrop() {
-      this.dropClass = 'uploader-droped'
     }
   },
   mounted() {
@@ -75,6 +52,29 @@ export default {
 
     // 解绑拖拽区域
     uploader.unAssignDrop(dropEle)
+  },
+  methods: {
+    /**
+     * 拖拽进入事件处理
+     * @description 当文件拖拽进入区域时添加高亮样式
+     */
+    onDragEnter() {
+      this.dropClass = 'uploader-dragover'
+    },
+    /**
+     * 拖拽离开事件处理
+     * @description 当文件拖拽离开区域时移除高亮样式
+     */
+    onDragLeave() {
+      this.dropClass = ''
+    },
+    /**
+     * 拖拽放下事件处理
+     * @description 当文件拖拽放下时添加放下样式
+     */
+    onDrop() {
+      this.dropClass = 'uploader-droped'
+    }
   }
 }
 </script>

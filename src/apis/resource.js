@@ -62,3 +62,30 @@ export const clearTransferTasks = (status = 'completed') => {
     params: { status }
   })
 }
+
+export const clearTransferTask = identifier => {
+  return request({
+    url: `/v1/resource/transfer/${identifier}`,
+    method: 'delete'
+  })
+}
+
+export const getUploadedChunks = identifier => {
+  return request({
+    url: `/v1/resource/chunks/${identifier}`
+  })
+}
+
+export const verifyChunkIntegrity = (identifier, chunkNumber, md5) => {
+  return request({
+    url: '/v1/resource/chunk/verify',
+    params: { identifier, chunkNumber, md5 }
+  })
+}
+
+export const cleanupTimeoutUploads = () => {
+  return request({
+    url: '/v1/resource/cleanup',
+    method: 'post'
+  })
+}

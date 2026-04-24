@@ -3,7 +3,7 @@
     <el-header height="56px">
       <div class="header-container">
         <div class="header-left">
-          <el-button :icon="ArrowLeft" text @click="goBack" class="back-btn">返回</el-button>
+          <el-button :icon="ArrowLeft" text class="back-btn" @click="goBack">返回</el-button>
           <div class="video-title">
             <el-icon><VideoCamera /></el-icon>
             <span>{{ title }}</span>

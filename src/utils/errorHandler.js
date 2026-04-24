@@ -42,6 +42,7 @@ class ErrorHandler {
   constructor() {
     this.errorQueue = []
     this.isShowing = false
+    this.maxQueueSize = 10
   }
 
   /**
@@ -89,7 +90,9 @@ class ErrorHandler {
    */
   showError(message, type = 'error') {
     if (this.isShowing) {
-      this.errorQueue.push({ message, type })
+      if (this.errorQueue.length < this.maxQueueSize) {
+        this.errorQueue.push({ message, type })
+      }
       return
     }
     this.isShowing = true
@@ -148,6 +151,7 @@ class ErrorHandler {
   handleRedirect(status) {
     switch (status) {
       case 401:
+        this.showError('登录已过期，请重新登录', 'warning')
         break
       case 404:
         router.push({ name: 'NotFound' })
@@ -199,7 +203,6 @@ class ErrorHandler {
    * @param {String} info - 错误信息
    */
   globalHandler(error, vm, info) {
-    // eslint-disable-next-line no-console
     console.error('Global Error:', error, info)
     this.showError(error.message || '系统错误')
   }

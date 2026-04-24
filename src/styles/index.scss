@@ -3,11 +3,11 @@
 // 全局样式入口文件
 // ============================================
 
-@import './variables.scss';
-@import './common.scss';
-@import './components.scss';
-@import './layout.scss';
-@import './dark-theme.scss';
+@use './variables.scss' as *;
+@use './common.scss';
+@use './components.scss';
+@use './layout.scss';
+@use './dark-theme.scss';
 
 // ============================================
 // Element Plus Overrides

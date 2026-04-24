@@ -40,9 +40,11 @@ const iconComponentMap = {
   doc: Files,
   txt: ChatDotRound,
   pdf: Document,
+  ppt: Monitor,
   compress_file: Box,
   web: Monitor,
-  code: Tools
+  code: Tools,
+  torrent: Tools
 }
 
 /** 是否使用彩色图标 */

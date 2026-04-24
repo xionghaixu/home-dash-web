@@ -63,6 +63,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { getFileRoute, getVideoRoute } from '@/router'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { downloadFileUrl, getFile, verifyFileMd5 } from '@/apis/file'
@@ -156,7 +157,7 @@ const openFolder = () => {
   }
   const targetId = detail.value.type === 'folder' ? detail.value.id : detail.value.parentId
   emit('update:modelValue', false)
-  router.push(`/folder/${targetId}`)
+  router.push(getFileRoute(targetId))
 }
 
 const playVideo = () => {
@@ -164,7 +165,7 @@ const playVideo = () => {
     return
   }
   emit('update:modelValue', false)
-  router.push(`/video/${detail.value.id}`)
+  router.push(getVideoRoute(detail.value.id))
 }
 
 const downloadFile = () => {

@@ -17,6 +17,27 @@ export const getFileList = (parentId, options = {}) => {
 }
 
 /**
+ * 根据parentId分页获取文件列表
+ * @param {Number} parentId - 父文件夹ID
+ * @param {Object} [options] - 查询选项
+ * @param {String} [options.sortBy] - 排序字段：fileName/size/updateTime
+ * @param {String} [options.sortOrder] - 排序方式：ascending/descending
+ * @param {Number} [options.page] - 页码，默认1
+ * @param {Number} [options.pageSize] - 每页数量，默认20
+ * @returns {Promise} 文件列表Promise，包含分页信息
+ */
+export const getFileListPaginated = (parentId, options = {}) => {
+  return request({
+    url: `/v1/file/parent/${parentId}/page`,
+    params: {
+      page: 1,
+      pageSize: 20,
+      ...options
+    }
+  })
+}
+
+/**
  * 根据fileId获取文件
  * @param {Number} fileId - 文件id
  * @returns {Promise} 文件信息Promise
@@ -149,5 +170,64 @@ export const moveOrCopyFiles = (fileIds, targetIds, type) => {
 export const verifyFileMd5 = fileId => {
   return request({
     url: `/v1/file/${fileId}/verify-md5`
+  })
+}
+
+/**
+ * 搜索文件
+ * @param {String} keyword - 搜索关键字
+ * @param {Object} [options] - 查询选项
+ * @param {String} [options.sortBy] - 排序字段：fileName/size/updateTime
+ * @param {String} [options.sortOrder] - 排序方式：ascending/descending
+ * @returns {Promise} 搜索结果Promise
+ */
+export const searchFiles = (keyword, options = {}) => {
+  return request({
+    url: '/v1/file/search',
+    params: { keyword, ...options }
+  })
+}
+
+/**
+ * 获取文件夹大小
+ * @param {Number} folderId - 文件夹ID
+ * @returns {Promise} 文件夹大小Promise, data.size为总字节数
+ */
+export const getFolderSize = folderId => {
+  return request({
+    url: `/v1/file/folder/${folderId}/size`
+  })
+}
+
+export const checkFileByMd5 = md5 => {
+  return request({
+    url: '/v1/file/md5/check',
+    params: { md5 }
+  })
+}
+
+export const instantUpload = (md5, fileName, parentId) => {
+  return request({
+    url: '/v1/file/instant-upload',
+    method: 'post',
+    data: { md5, fileName, parentId }
+  })
+}
+
+export const uploadFile = (file, parentId) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('parentId', parentId)
+  return request({
+    url: '/v1/file/upload',
+    method: 'post',
+    data: formData
+  })
+}
+
+export const getRecentUploadSummary = (limit = 20) => {
+  return request({
+    url: '/v1/file/recent-summary',
+    params: { limit }
   })
 }

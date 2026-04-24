@@ -1,11 +1,11 @@
 <template>
-  <el-dialog :title="title" v-model="dialogVisible" width="40%">
+  <el-dialog v-model="dialogVisible" :title="title" width="40%">
     <el-tree
+      ref="tree"
       :props="props"
       :load="loadNode"
       node-key="id"
       lazy
-      ref="tree"
       check-strictly
       show-checkbox
       @check="handleNodeCheck"
@@ -59,6 +59,7 @@ export default {
       }
     }
   },
+  emits: ['return'],
   data() {
     return {
       dialogVisible: true,

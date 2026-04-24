@@ -1,5 +1,5 @@
 <template>
-  <div class="uploader-unsupport" v-show="!support">
+  <div v-show="!support" class="uploader-unsupport">
     <slot>
       <p>
         Your browser, unfortunately, is not supported by Uploader.js. The library requires support
