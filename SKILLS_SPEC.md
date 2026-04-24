@@ -1,307 +1,96 @@
-﻿# home-dash-web 前端项目 Skills 规范
+﻿# home-dash-web 前端开发规范
 
-## 1. 项目概述
+## 1. 文档定位
 
-`home-dash-web` 是当前前端项目目录名，对应原 PND（Personal Network Disk）前端工程，基于 Vue.js 构建，提供文件管理、大文件上传、文件下载、视频播放等功能的用户界面。
+本文件是 `home-dash-web` 的规范入口，负责：
 
-## 2. 技术栈
+- 工程结构与代码约定
+- 组件、路由、状态管理规范
+- API 调用与错误处理规范
+- 文档去重与维护规则
 
-### 当前技术栈（Vue 3） ✅
+说明：`README.md` 只放项目介绍和运行方式；`OPTIMIZATION_SUGGESTIONS.md` 只放阶段规划。
 
-- **框架**: Vue.js 3.5.13
-- **UI组件库**: Element Plus 2.9.0
-- **构建工具**: Vite 6.0.0
-- **HTTP客户端**: Axios 1.7.7
-- **文件上传**: simple-uploader.js 0.6.0
-- **状态管理**: Pinia 2.3.0
-- **路由**: Vue Router 4.5.0
-- **图标**: @element-plus/icons-vue 2.3.1
-- **MD5**: spark-md5 3.0.2
-- **Node.js**: >=20.0.0 (兼容 Node.js 24)
+## 2. 项目基线
 
-### 开发工具
+- Vue 3.5.13 + Vite 6.0.0 + Element Plus 2.9.0
+- Vue Router 4.5.0 + Pinia 2.3.0
+- Axios 1.7.7
+- Node.js >= 20
+- 当前阶段：阶段一已完全完成，阶段二至六为规划中
 
-- **代码质量**: ESLint 9.17.0 + Prettier 3.4.2
-- **CSS预处理器**: Sass 1.83.0
-- **代码压缩**: Terser 5.36.0
-- **自动导入**: unplugin-auto-import 0.18.0 + unplugin-vue-components 0.27.0
+## 3. 当前结构（按现状）
 
-## 3. 项目结构
-
-```
+```text
 home-dash-web/
-├── public/              # 静态资源
 ├── src/
-│   ├── apis/            # API调用
-│   ├── assets/          # 资源文件
-│   ├── components/      # 组件
-│   ├── router/          # 路由配置
-│   ├── stores/          # 状态管理（Pinia）
-│   ├── styles/          # 样式文件
-│   ├── utils/           # 工具函数
-│   ├── views/           # 页面视图
-│   ├── App.vue          # 应用入口组件
-│   └── main.js          # 应用入口文件
-├── .env.development     # 开发环境配置
-├── .env.production      # 生产环境配置
-├── vite.config.js       # Vite配置文件
-├── package.json         # 项目配置和依赖
-└── README.md            # 项目说明文档
+│   ├── apis/
+│   ├── components/
+│   ├── router/
+│   ├── stores/
+│   ├── styles/
+│   ├── utils/
+│   └── views/
+└── package.json
 ```
 
-## 4. 开发规范
+## 4. 代码规范
 
-### 4.1 代码规范
+- 缩进统一 2 空格（沿用当前 Vue 工程风格）
+- 组件名使用 PascalCase
+- 变量/方法使用 camelCase
+- 常量使用 UPPER_SNAKE_CASE
+- 统一使用 ESLint + Prettier
 
-- **代码风格检查**: 使用 ESLint 和 Prettier 确保代码风格一致
-- **命名规范**: 
-  - 组件名：使用 PascalCase 命名法，如 `FileUpload`
-  - 变量名：使用 camelCase 命名法，如 `fileList`
-  - 常量名：使用 UPPER_SNAKE_CASE 命名法，如 `MAX_UPLOAD_SIZE`
-  - 方法名：使用 camelCase 命名法，如 `handleFileUpload`
-- **注释规范**: 
-  - 组件注释：使用 JSDoc 格式，描述组件的功能和用途
-  - 方法注释：使用 JSDoc 格式，描述方法的功能、参数和返回值
-  - 代码注释：对复杂逻辑和关键代码添加注释，提高代码可读性
+## 5. 组件规范
 
-### 4.2 组件开发
+- 优先使用 `<script setup>`
+- 组件通信优先级：`props/emits` -> `provide/inject` -> `Pinia`
+- 复杂页面按“容器组件 + 展示组件”拆分
+- 可复用交互优先沉淀为 `components/` 下通用组件
 
-**Vue 3 组件开发规范：**
+## 6. 路由规范
 
-- **优先使用 `<script setup>` 语法**
-  ```vue
-  <script setup>
-  import { ref, computed } from 'vue'
-  
-  const count = ref(0)
-  const doubled = computed(() => count.value * 2)
-  </script>
-  ```
+- 路由统一在 `src/router/index.js` 维护
+- 阶段一主交付路由：`/files`、`/recent`、`/category`、`/transfers`、`/system`、`/video/:fileId`
+- 预埋路由（后续阶段交付）：`/search`、`/profile`、`/settings`
+- 必须保留 `404` 兜底路由
 
-- **组件通信**
-  - 使用 `defineProps` 定义 props
-  - 使用 `defineEmits` 定义事件
-  - 使用 `provide/inject` 进行跨组件通信
-  - 使用 Pinia 进行全局状态管理
+## 7. 状态管理规范
 
-- **生命周期钩子**
-  - `onMounted` 替代 `mounted`
-  - `onUnmounted` 替代 `beforeDestroy` 和 `destroyed`
-  - `onBeforeMount`、`onBeforeUpdate`、`onUpdated` 等
+- 全局状态统一使用 Pinia
+- 页面私有状态优先使用 `ref/reactive`
+- Store 必须按领域拆分，禁止巨型单 Store
 
-### 4.3 状态管理
+## 8. API 调用规范
 
-**Pinia 状态管理规范：**
+- API 统一封装在 `src/apis/`
+- 开发环境通过 Vite 代理转发 `/v1` 到后端
+- 响应结构按后端 `ResponseDto` 解析
+- 错误处理统一接入 `utils/errorHandler.js`
 
-- **Store 定义**
-  ```javascript
-  import { defineStore } from 'pinia'
-  
-  export const useAppStore = defineStore('app', {
-    state: () => ({
-      folderId: 0,
-    }),
-    getters: {
-      currentFolderId: (state) => state.folderId,
-    },
-    actions: {
-      setFolderId(id) {
-        this.folderId = id
-      },
-    },
-  })
-  ```
+### 8.1 后端接口前缀
 
-- **在组件中使用**
-  ```javascript
-  import { useAppStore } from '@/stores/app'
-  
-  const store = useAppStore()
-  const folderId = store.currentFolderId
-  store.setFolderId(1)
-  ```
+- API 前缀：`/v1`
+- 常用能力：文件管理、资源分块、系统信息
 
-### 4.4 路由管理
+## 9. 交互与样式规范
 
-**Vue Router 4 规范：**
+- 页面必须提供加载态、空态、错误态
+- 批量操作必须有禁用态与结果反馈
+- 样式变量统一使用 `styles/variables.scss` 中设计令牌
+- 主题能力由 `stores/theme.js` 统一管理
 
-- **路由配置**
-  ```javascript
-  import { createRouter, createWebHistory } from 'vue-router'
-  
-  const routes = [
-    {
-      path: '/',
-      name: 'Home',
-      component: () => import('@/views/Home.vue'),
-    },
-    {
-      path: '/:pathMatch(.*)*',
-      name: 'NotFound',
-      component: () => import('@/views/404.vue'),
-    },
-  ]
-  
-  const router = createRouter({
-    history: createWebHistory(),
-    routes,
-  })
-  ```
+## 10. 文档治理与去重规则
 
-- **路由守卫**
-  ```javascript
-  router.beforeEach((to, from, next) => {
-    // 权限控制
-    next()
-  })
-  ```
+- `README.md`：定位与运行说明
+- `SKILLS_SPEC.md`：工程规范，不写阶段路线
+- `OPTIMIZATION_SUGGESTIONS.md`：阶段路线，不写编码细则
+- 不在多个文档重复维护同一规则
 
-### 4.5 API 调用
+## 11. 强制约束
 
-- **API 封装**: 统一 API 调用方式，将 API 调用封装到 `apis` 目录下
-- **请求拦截器**: 使用 axios 拦截器处理请求，如添加认证信息
-- **响应拦截器**: 使用 axios 拦截器处理响应，如统一处理错误
-- **请求参数**: 优化请求参数，减少数据传输量
-- **请求缓存**: 对于频繁请求的数据，实现请求缓存，减少网络请求次数
-
-### 4.5.1 API 接口规范
-
-**接口基础信息：**
-- API版本：`/v1`
-- 后端端口：`8190`
-- 前端开发服务器端口：`8180`
-- 代理路径：`/v1` → `http://localhost:8190`
-
-**文件管理接口：**
-
-| 接口名称 | 请求方法 | 请求路径 | 说明 |
-|---------|---------|---------|------|
-| 获取文件列表 | GET | `/v1/file/parent/{parentId}` | 获取文件列表，参数：sortBy, sortOrder |
-| 获取文件详情 | GET | `/v1/file/{fileId}` | 获取单个文件详细信息 |
-| 创建文件/文件夹 | POST | `/v1/file` | 创建文件或文件夹，body: {parentId, fileName, type} |
-| 重命名文件 | PUT | `/v1/file/{fileId}/rename` | 重命名文件，body: {fileName} |
-| 删除文件 | DELETE | `/v1/file` | 删除文件，body: [fileId1, fileId2] |
-| 移动/复制文件 | PUT | `/v1/file` | 移动或复制，body: {fileIds, targetIds, type} |
-| 获取文件下载链接 | GET | `/v1/file/{fileId}/download` | 获取文件下载地址 |
-| 获取最近上传 | GET | `/v1/file/recent` | 获取最近上传文件列表 |
-| 获取分类摘要 | GET | `/v1/file/category-summary` | 获取分类统计摘要 |
-| 获取分类文件 | GET | `/v1/file/category/{category}` | 按分类获取文件列表 |
-| MD5预检 | GET | `/v1/file/md5/check` | 检查文件是否可秒传，参数: md5 |
-| 秒传 | POST | `/v1/file/instant-upload` | 秒传接口，body: {md5, fileName, parentId} |
-| 单文件上传 | POST | `/v1/file/upload` | 上传文件，form: file, parentId |
-| 文件完整性校验 | GET | `/v1/file/{fileId}/verify-md5` | 校验文件MD5 |
-
-**资源管理接口：**
-
-| 接口名称 | 请求方法 | 请求路径 | 说明 |
-|---------|---------|---------|------|
-| 获取传输任务列表 | GET | `/v1/resource/transfers` | 获取上传任务列表 |
-| 合并分块 | POST | `/v1/resource/merge` | 合并分块上传的文件 |
-| 取消上传 | DELETE | `/v1/resource/upload/{identifier}` | 取消指定上传任务 |
-| 清理传输记录 | DELETE | `/v1/resource/transfers` | 清理传输记录，参数: status |
-| 分块检查 | GET | `/v1/resource/chunk` | 检查分块是否已上传 |
-| 上传分块 | POST | `/v1/resource/chunk` | 上传文件分块 |
-| 获取已上传分块 | GET | `/v1/resource/chunks/{identifier}` | 获取已上传的分块列表 |
-| 验证分块完整性 | GET | `/v1/resource/chunk/verify` | 验证分块MD5 |
-| 手动清理超时上传 | POST | `/v1/resource/cleanup` | 清理超时上传任务 |
-
-**系统接口：**
-
-| 接口名称 | 请求方法 | 请求路径 | 说明 |
-|---------|---------|---------|------|
-| 获取系统信息 | GET | `/v1/system/info` 或 `/v1/system` | 获取系统统计信息 |
-
-**响应格式：**
-```javascript
-{
-  code: 0,      // 状态码，0表示成功
-  message: '',  // 消息
-  data: {}      // 数据
-}
-```
-
-### 4.6 样式管理
-
-- **样式组织**: 按组件和功能组织样式文件
-- **样式命名**: 使用 BEM 或其他命名规范，如 `.component__element--modifier`
-- **样式复用**: 提取公共样式到 `styles` 目录下，提高样式复用率
-- **响应式设计**: 实现响应式设计，适配不同设备的屏幕尺寸
-
-### 4.7 构建配置
-
-**Vite 配置规范：**
-
-- **路径别名**: 配置 `@` 指向 `src` 目录
-- **代理配置**: 配置开发服务器代理
-- **构建优化**: 配置代码分割、压缩等优化选项
-- **插件配置**: 配置 Vue、Element Plus 等插件
-
-### 4.8 主题配置系统
-
-**主题配置功能（头像下拉菜单 → 主题配置）：**
-
-- **显示模式**: 日间模式 / 夜间模式 / 自动（跟随系统）
-- **主题颜色**: 8种预设颜色（默认蓝、极客绿、活力橙、热情红、神秘紫、湖水蓝、玫瑰粉、午夜蓝）
-- **预设主题**: 6种预设主题方案（默认蓝、深夜静谧、薄荷清晨、暖阳午后、玫瑰浪漫、神秘紫晶）
-- **字体大小**: 小 / 默认 / 大
-- **圆角风格**: 小 / 中 / 大
-- **列表密度**: 紧凑 / 默认 / 舒适
-- **动画速度**: 关闭 / 快 / 正常 / 慢
-- **界面布局**: 紧凑模式、毛玻璃效果、透明背景、高对比度
-- **滚动条样式**: 细 / 正常 / 粗
-- **图标与颜色**: 彩色图标、文件类型着色
-
-**相关文件：**
-- `src/stores/theme.js` - 主题状态管理
-- `src/styles/dark-theme.scss` - 夜间模式及特殊效果样式
-- `src/views/layout/Header.vue` - 主题配置UI
-
-**实现特性：**
-- 实时主题切换，无需刷新页面
-- 主题配置持久化（localStorage）
-- 跟随系统自动切换（auto模式）
-- 6种预设主题一键切换
-
-## 6. Vue 3 迁移注意事项
-
-### 6.1 破坏性变更
-
-- **移除过滤器**: 使用计算属性或方法替代
-- **移除 `$on`、`$off`、`$once`**: 使用外部库或自定义实现
-- **移除 `$children`**: 使用 `ref` 或 `provide/inject`
-- **移除内联模板**: 使用常规模板
-- **v-model 变化**: 组件 v-model 默认 prop 名从 `value` 改为 `modelValue`
-- **自定义指令变化**: 钩子函数名称变化
-
-### 6.2 推荐实践
-
-- **渐进式迁移**: 先支持 Vue 3 语法，再逐步迁移到 Composition API
-- **保留 Options API**: 降低迁移风险，可以混用两种写法
-- **使用迁移构建**: Vue 3 提供了 `@vue/compat` 用于渐进式迁移
-- **测试覆盖**: 确保迁移后功能正常
-
-## 7. 注意事项
-
-1. **禁止增加新的 MD 文件**：为了保持项目文档的简洁性和一致性，禁止在项目中增加新的 Markdown 文件。
-
-2. **每次运行必须读取本 Skills 规范**：在进行任何开发或优化工作之前，必须先读取本 Skills 规范，确保所有工作都符合项目的规范和要求。
-
-3. **代码编辑自动化**：代码编辑应避免手动确认，全程自动完成，确保开发过程的高效性和一致性。
-
-4. **代码可维护性**：保持代码的可维护性和可读性，遵循代码规范和最佳实践。
-
-5. **功能稳定性**：确保功能的稳定性和可靠性，避免引入不稳定的功能和依赖。
-
-6. **用户体验**：优化用户体验，提高系统的响应速度和交互体验。
-
-7. **性能优化**：关注前端性能，优化资源加载、渲染性能和网络请求。
-
-8. **兼容性**：确保代码与指定的 Vue.js 版本和浏览器兼容。
-
-9. **安全性**：关注前端安全性，避免引入安全漏洞，如 XSS 攻击、CSRF 攻击等。
-
-10. **代码审查**：定期进行代码审查，确保代码质量和可维护性。
-
-11. **文档更新**：当项目结构或功能发生变化时，及时更新相关文档，确保文档与代码保持一致。
-
-12. **Node.js 版本**：确保所有依赖支持 Node.js 24，测试构建和运行时兼容性。
+- 禁止直接在组件里硬编码后端地址
+- 禁止在 UI 层吞掉异常而不反馈
+- 禁止引入重型依赖替代已有成熟能力
+- 功能或路由发生变化时，必须同步更新对应文档
