@@ -200,7 +200,8 @@ const escapeHtml = str => {
 const highlightKeyword = fileName => {
   if (!keyword.value || !fileName) return escapeHtml(fileName)
   const escaped = escapeHtml(fileName)
-  const regex = new RegExp(`(${keyword.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+  const escapedKeyword = escapeHtml(keyword.value)
+  const regex = new RegExp(`(${escapedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
   return escaped.replace(regex, '<span class="keyword-highlight">$1</span>')
 }
 </script>

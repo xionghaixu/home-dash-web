@@ -206,7 +206,7 @@ export default {
       fileMap: {},
       uploaderOptions: {
         target: resourceUploadUrl(),
-        chunkSize: '2048000',
+        chunkSize: 2048000,
         fileParameterName: 'file',
         maxChunkRetries: 3,
         testChunks: true,

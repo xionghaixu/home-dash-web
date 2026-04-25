@@ -245,6 +245,10 @@ export default {
       this.file.uploader.off(event, this._handlers[event])
     })
     this._handlers = null
+    if (this.tid) {
+      clearTimeout(this.tid)
+      this.tid = null
+    }
   },
   methods: {
     _actionCheck() {

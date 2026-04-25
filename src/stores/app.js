@@ -31,7 +31,9 @@ export const useAppStore = defineStore('app', {
    */
   actions: {
     setFolderId(id) {
-      this.folderId = id
+      if (typeof id === 'number' && Number.isInteger(id) && id >= 0) {
+        this.folderId = id
+      }
     },
     setTransferCount(count) {
       this.transferCount = count
