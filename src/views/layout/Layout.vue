@@ -43,7 +43,7 @@ import Aside from '@/views/layout/Aside.vue'
 import { useThemeStore } from '@/stores/theme'
 
 const themeStore = useThemeStore()
-const asideWidth = computed(() => themeStore.sidebarCollapsed ? '64px' : '220px')
+const asideWidth = computed(() => (themeStore.sidebarCollapsed ? '64px' : '220px'))
 
 const isDragOver = ref(false)
 

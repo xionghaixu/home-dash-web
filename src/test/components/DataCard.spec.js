@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import DataCard from '@/components/DataCard.vue'
 
@@ -41,15 +41,12 @@ describe('DataCard', () => {
   })
 
   describe('类型变体测试', () => {
-    it.each(['primary', 'success', 'warning', 'danger', 'info'])(
-      '应正确应用%s类型样式',
-      (type) => {
-        const wrapper = mount(DataCard, {
-          props: { label: '测试', value: 100, type }
-        })
-        expect(wrapper.find('.data-card').classes()).toContain(`data-card--${type}`)
-      }
-    )
+    it.each(['primary', 'success', 'warning', 'danger', 'info'])('应正确应用%s类型样式', type => {
+      const wrapper = mount(DataCard, {
+        props: { label: '测试', value: 100, type }
+      })
+      expect(wrapper.find('.data-card').classes()).toContain(`data-card--${type}`)
+    })
   })
 
   describe('可点击状态测试', () => {

@@ -1,7 +1,7 @@
 <template>
   <el-drawer
     :model-value="modelValue"
-    title="文件基础信息"
+    title="文件详情"
     size="420px"
     @close="emit('update:modelValue', false)"
   >
@@ -21,14 +21,22 @@
             <div class="file-name">{{ detail.fileName }}</div>
             <div class="file-meta">{{ fileTypeLabel }}</div>
           </div>
+          <div class="favorite-btn">
+            <FavoriteButton
+              v-model:favorite="detail.favorite"
+              :file-id="detail.id"
+              @change="handleFavoriteChange"
+            />
+          </div>
         </div>
 
         <div class="action-row">
           <el-button type="primary" plain @click="openFolder">打开所在目录</el-button>
           <el-button v-if="detail.downloadable" plain @click="downloadFile">下载</el-button>
-          <el-button v-if="detail.playable" plain @click="playVideo">播放视频</el-button>
+          <el-button v-if="detail.playable" plain @click="handlePlayVideo">播放视频</el-button>
+          <el-button v-if="detail.previewable" plain @click="handlePreview">预览</el-button>
           <el-button v-if="detail.downloadable" plain :loading="verifying" @click="verifyIntegrity">
-            校验完整性
+            校验
           </el-button>
         </div>
 
@@ -56,8 +64,42 @@
             {{ detail.resourceId || '-' }}
           </el-descriptions-item>
         </el-descriptions>
+
+        <div class="section">
+          <div class="section-header">
+            <span class="section-title">标签</span>
+            <el-button type="primary" link size="small" @click="showTagManager = true">
+              <el-icon><Plus /></el-icon>
+              管理
+            </el-button>
+          </div>
+          <div class="tags-container">
+            <el-tag
+              v-for="tag in tags"
+              :key="tag.id"
+              closable
+              size="default"
+              @close="handleRemoveTag(tag.id)"
+            >
+              {{ tag.name }}
+            </el-tag>
+            <span v-if="tags.length === 0" class="empty-text">暂无标签</span>
+          </div>
+        </div>
+
+        <RemarkEditor
+          v-model:remark="detail.remark"
+          :file-id="detail.id"
+          @change="handleRemarkChange"
+        />
       </div>
     </PageState>
+
+    <TagManager
+      v-model="showTagManager"
+      :file-id="detail?.id"
+      @change="handleTagsChange"
+    />
   </el-drawer>
 </template>
 
@@ -66,7 +108,20 @@ import { computed, ref, watch } from 'vue'
 import { getFileRoute, getVideoRoute } from '@/router'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { downloadFileUrl, getFile, verifyFileMd5 } from '@/apis/file'
+import { Star, StarFilled, Plus, Edit } from '@element-plus/icons-vue'
+import FavoriteButton from '@/components/common/FavoriteButton.vue'
+import TagManager from '@/components/detail/TagManager.vue'
+import RemarkEditor from '@/components/detail/RemarkEditor.vue'
+import {
+  downloadFileUrl,
+  getFile,
+  verifyFileMd5,
+  getFileTags,
+  addFileTags,
+  removeFileTag,
+  getFileFavorite,
+  toggleFavorite
+} from '@/apis/file'
 import PageState from '@/components/PageState.vue'
 import FileTypeIcon from '@/components/FileTypeIcon.vue'
 import { formatFileDate, getFileTypeLabel, resolveErrorMessage } from '@/utils/file'
@@ -83,7 +138,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'preview', 'playAudio'])
 
 const router = useRouter()
 
@@ -92,6 +147,8 @@ const detail = ref(null)
 const errorMessage = ref('')
 const verifying = ref(false)
 const verifyResult = ref(null)
+const tags = ref([])
+const showTagManager = ref(false)
 
 const fileTypeLabel = computed(() => getFileTypeLabel(detail.value?.type))
 const fileSize = computed(() => {
@@ -130,19 +187,37 @@ const verifyType = computed(() => {
   return 'warning'
 })
 
+watch(
+  [() => props.modelValue, () => props.fileId],
+  () => {
+    loadDetail()
+  },
+  { immediate: true }
+)
+
 const loadDetail = async () => {
   if (!props.modelValue || !props.fileId) {
     detail.value = null
     errorMessage.value = ''
     verifyResult.value = null
+    tags.value = []
     return
   }
+
   loading.value = true
   errorMessage.value = ''
   verifyResult.value = null
+
   try {
-    const response = await getFile(props.fileId)
-    detail.value = response.data
+    const [fileResponse, tagsResponse, favoriteResponse] = await Promise.all([
+      getFile(props.fileId),
+      getFileTags(props.fileId).catch(() => ({ data: [] })),
+      getFileFavorite(props.fileId).catch(() => ({ data: { favorite: false } }))
+    ])
+
+    detail.value = fileResponse.data || {}
+    detail.value.favorite = favoriteResponse.data?.favorite || false
+    tags.value = tagsResponse.data || []
   } catch (error) {
     detail.value = null
     errorMessage.value = resolveErrorMessage(error, '文件信息加载失败')
@@ -160,12 +235,24 @@ const openFolder = () => {
   router.push(getFileRoute(targetId))
 }
 
-const playVideo = () => {
+const handlePlayVideo = () => {
   if (!detail.value?.id) {
     return
   }
   emit('update:modelValue', false)
   router.push(getVideoRoute(detail.value.id))
+}
+
+const handlePreview = () => {
+  if (!detail.value) return
+
+  if (detail.value.type === 'picture') {
+    emit('preview', { type: 'image', file: detail.value })
+  } else if (detail.value.type === 'audio') {
+    emit('playAudio', { type: 'audio', file: detail.value })
+  } else if (detail.value.type === 'txt' || detail.value.type === 'text') {
+    emit('preview', { type: 'text', file: detail.value })
+  }
 }
 
 const downloadFile = () => {
@@ -199,7 +286,29 @@ const verifyIntegrity = async () => {
   }
 }
 
-watch([() => props.modelValue, () => props.fileId], loadDetail, { immediate: true })
+const handleFavoriteChange = val => {
+  detail.value.favorite = val
+}
+
+const handleTagsChange = newTags => {
+  tags.value = newTags || []
+}
+
+const handleRemarkChange = val => {
+  detail.value.remark = val
+}
+
+const handleRemoveTag = async tagId => {
+  if (!detail.value?.id) return
+
+  try {
+    await removeFileTag(detail.value.id, tagId)
+    tags.value = tags.value.filter(t => t.id !== tagId)
+    ElMessage.success('标签已移除')
+  } catch {
+    ElMessage.error('移除失败')
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -219,6 +328,7 @@ watch([() => props.modelValue, () => props.fileId], loadDetail, { immediate: tru
 }
 
 .title-info {
+  flex: 1;
   min-width: 0;
 }
 
@@ -235,6 +345,10 @@ watch([() => props.modelValue, () => props.fileId], loadDetail, { immediate: tru
   font-size: var(--font-size-sm);
 }
 
+.favorite-btn {
+  flex-shrink: 0;
+}
+
 .action-row {
   display: flex;
   flex-wrap: wrap;
@@ -245,5 +359,41 @@ watch([() => props.modelValue, () => props.fileId], loadDetail, { immediate: tru
   :deep(.el-descriptions__label) {
     width: 110px;
   }
+}
+
+.section {
+  border-top: 1px solid var(--color-border-lighter);
+  padding-top: var(--spacing-lg);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.section-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.empty-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-placeholder);
+}
+
+.remark-content {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-regular);
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 </style>
