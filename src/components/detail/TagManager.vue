@@ -1,10 +1,5 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    title="标签管理"
-    width="420px"
-    @close="handleClose"
-  >
+  <el-dialog v-model="visible" title="标签管理" width="420px" @close="handleClose">
     <div class="tag-manager">
       <div class="current-tags">
         <div class="section-label">当前标签</div>

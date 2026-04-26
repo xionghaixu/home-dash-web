@@ -156,12 +156,15 @@ const togglePlay = () => {
     playing.value = false
     emit('pause')
   } else {
-    audioRef.value.play().then(() => {
-      playing.value = true
-      emit('play')
-    }).catch(err => {
-      ElMessage.error('播放失败: ' + err.message)
-    })
+    audioRef.value
+      .play()
+      .then(() => {
+        playing.value = true
+        emit('play')
+      })
+      .catch(err => {
+        ElMessage.error('播放失败: ' + err.message)
+      })
   }
 }
 

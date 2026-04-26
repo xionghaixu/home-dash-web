@@ -15,9 +15,7 @@
       <el-button type="danger" :icon="Delete" size="small" @click="handleBatchDelete">
         批量删除
       </el-button>
-      <el-button :icon="FolderOpened" size="small" @click="handleBatchMove">
-        批量移动
-      </el-button>
+      <el-button :icon="FolderOpened" size="small" @click="handleBatchMove">批量移动</el-button>
       <el-divider direction="vertical" />
       <el-button link size="small" @click="handleClearSelection">取消选择</el-button>
     </div>
@@ -61,11 +59,11 @@ const handleBatchTag = () => {
 
 const handleBatchDelete = async () => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedCount.value} 个文件吗？`,
-      '批量删除',
-      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
-    )
+    await ElMessageBox.confirm(`确定要删除选中的 ${selectedCount.value} 个文件吗？`, '批量删除', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
     emit('batch-delete', props.selectedIds)
     ElMessage.success('删除成功')
   } catch {

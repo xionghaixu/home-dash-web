@@ -2,14 +2,7 @@
   <div class="remark-editor">
     <div class="remark-header">
       <span class="section-title">备注</span>
-      <el-button
-        v-if="!isEditing"
-        type="primary"
-        link
-        size="small"
-        :icon="Edit"
-        @click="startEdit"
-      >
+      <el-button v-if="!isEditing" type="primary" link size="small" :icon="Edit" @click="startEdit">
         编辑
       </el-button>
       <template v-else>

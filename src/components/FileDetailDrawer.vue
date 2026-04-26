@@ -95,11 +95,7 @@
       </div>
     </PageState>
 
-    <TagManager
-      v-model="showTagManager"
-      :file-id="detail?.id"
-      @change="handleTagsChange"
-    />
+    <TagManager v-model="showTagManager" :file-id="detail?.id" @change="handleTagsChange" />
   </el-drawer>
 </template>
 

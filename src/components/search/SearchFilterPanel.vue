@@ -28,7 +28,9 @@
           v-for="tag in availableTags"
           :key="tag.id"
           :checked="isTagSelected(tag.id)"
-          :style="{ backgroundColor: isTagSelected(tag.id) ? (tag.tagColor || 'var(--color-primary)') : '' }"
+          :style="{
+            backgroundColor: isTagSelected(tag.id) ? tag.tagColor || 'var(--color-primary)' : ''
+          }"
           @change="toggleTag(tag.id)"
         >
           {{ tag.tagName }}
@@ -77,12 +79,8 @@
     <div class="filter-section">
       <div class="section-title">其他</div>
       <div class="filter-options">
-        <el-check-tag :checked="filters.favorite" @change="toggleFavorite">
-          仅收藏
-        </el-check-tag>
-        <el-check-tag :checked="filters.recent" @change="toggleRecent">
-          最近使用
-        </el-check-tag>
+        <el-check-tag :checked="filters.favorite" @change="toggleFavorite">仅收藏</el-check-tag>
+        <el-check-tag :checked="filters.recent" @change="toggleRecent">最近使用</el-check-tag>
       </div>
     </div>
   </div>
@@ -167,17 +165,13 @@ const isTagSelected = tagId => {
 
 const toggleType = type => {
   const current = filters.value.types || []
-  const updated = current.includes(type)
-    ? current.filter(t => t !== type)
-    : [...current, type]
+  const updated = current.includes(type) ? current.filter(t => t !== type) : [...current, type]
   updateFilter('types', updated)
 }
 
 const toggleTag = tagId => {
   const current = filters.value.tags || []
-  const updated = current.includes(tagId)
-    ? current.filter(t => t !== tagId)
-    : [...current, tagId]
+  const updated = current.includes(tagId) ? current.filter(t => t !== tagId) : [...current, tagId]
   updateFilter('tags', updated)
 }
 
