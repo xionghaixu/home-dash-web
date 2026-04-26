@@ -1,66 +1,62 @@
 // ============================================
-// home-dash-web Design System Variables
-// 遵循 SKILLS_SPEC.md 规范，使用 CSS 变量统一管理设计 token
+// home-dash-web Design System
+// 支持 light/dark 双主题切换
 // ============================================
 
-// 字体缩放因子
 :root {
   --font-size-scale: 1;
-}
 
-// 主题色
-:root {
-  // Primary
+  // Primary - 默认蓝色，可通过主题切换
   --color-primary: #4182f3;
   --color-primary-rgb: 65, 130, 243;
-  --color-primary-light: #6ba3f6;
-  --color-primary-dark: #2860c7;
+  --color-primary-light: #5c9aff;
+  --color-primary-dark: #2d6ad8;
   --color-primary-bg: rgba(65, 130, 243, 0.08);
   --color-primary-hover: rgba(65, 130, 243, 0.12);
 
   // Functional
   --color-success: #67c23a;
-  --color-success-light: rgba(103, 194, 58, 0.1);
+  --color-success-light: rgba(103, 194, 58, 0.15);
   --color-warning: #e6a23c;
-  --color-warning-light: rgba(230, 162, 60, 0.1);
-  --color-warning-bg: rgba(230, 162, 60, 0.08);
-  --color-warning-dark: #b35607;
+  --color-warning-light: rgba(230, 162, 60, 0.15);
+  --color-warning-bg: rgba(230, 162, 60, 0.1);
+  --color-warning-dark: #c8821e;
   --color-danger: #f56c6c;
-  --color-danger-light: rgba(245, 108, 108, 0.1);
+  --color-danger-light: rgba(245, 108, 108, 0.15);
   --color-info: #909399;
-  --color-info-light: rgba(144, 147, 153, 0.1);
+  --color-info-light: rgba(144, 147, 153, 0.15);
 
   // Text
-  --color-text-primary: #303133;
-  --color-text-regular: #606266;
-  --color-text-secondary: #909399;
-  --color-text-placeholder: #c0c4cc;
+  --color-text-primary: #1d2129;
+  --color-text-regular: #4e5969;
+  --color-text-secondary: #86909c;
+  --color-text-placeholder: #c9cdd4;
 
   // Border
-  --color-border: #dcdfe6;
-  --color-border-light: #e4e7ed;
-  --color-border-lighter: #ebeef5;
+  --color-border: #e5e6eb;
+  --color-border-light: #f2f3f5;
+  --color-border-lighter: #f7f8fa;
 
   // Fill
-  --color-fill-base: #f5f7fa;
-  --color-fill-light: #fafafa;
+  --color-fill-base: #f2f3f5;
+  --color-fill-light: #f7f8fa;
   --color-bg-white: #ffffff;
-  --color-bg-page: #f0f2f5;
+  --color-bg-page: #f5f6f7;
 
-  // Sidebar (Dark theme)
-  --color-sidebar-bg: #1a1a2e;
-  --color-sidebar-hover: rgba(255, 255, 255, 0.06);
-  --color-sidebar-active: rgba(65, 130, 243, 0.15);
-  --color-sidebar-text: rgba(255, 255, 255, 0.65);
-  --color-sidebar-text-active: #ffffff;
-  --color-sidebar-border: rgba(255, 255, 255, 0.08);
+  // Sidebar
+  --color-sidebar-bg: #ffffff;
+  --color-sidebar-hover: #f2f3f5;
+  --color-sidebar-active: rgba(65, 130, 243, 0.08);
+  --color-sidebar-text: #4e5969;
+  --color-sidebar-text-active: #4182f3;
+  --color-sidebar-border: #f2f3f5;
 
   // Shadow levels
-  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.04);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.16);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.12);
 
   // Border radius
   --radius-sm: 4px;
@@ -69,7 +65,7 @@
   --radius-xl: 16px;
   --radius-full: 9999px;
 
-  // Font (使用 calc 实现字体缩放)
+  // Font
   --font-size-xs: calc(12px * var(--font-size-scale));
   --font-size-sm: calc(13px * var(--font-size-scale));
   --font-size-base: calc(14px * var(--font-size-scale));
@@ -77,7 +73,7 @@
   --font-size-lg: calc(18px * var(--font-size-scale));
   --font-size-xl: calc(20px * var(--font-size-scale));
   --font-size-2xl: calc(24px * var(--font-size-scale));
-  --font-size-3xl: calc(28px * var(--font-size-scale));
+  --font-size-3xl: calc(30px * var(--font-size-scale));
 
   --font-weight-normal: 400;
   --font-weight-medium: 500;
@@ -100,9 +96,9 @@
 
   // Transition
   --transition-fast: 0.15s ease;
-  --transition-base: 0.2s ease;
-  --transition-slow: 0.3s ease;
-  --transition-bounce: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-base: 0.25s ease;
+  --transition-slow: 0.35s ease;
+  --transition-bounce: 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 
   // Layout
   --header-height: 56px;
@@ -118,4 +114,36 @@
   --z-index-popover: 600;
   --z-index-tooltip: 700;
   --z-index-toast: 800;
+}
+
+// ============================================
+// Dark Theme - 深色主题
+// ============================================
+html.dark {
+  --color-text-primary: #ffffff;
+  --color-text-regular: #c8cdd6;
+  --color-text-secondary: #8b92a8;
+  --color-text-placeholder: #5a6070;
+
+  --color-border: #2a2e3a;
+  --color-border-light: #323745;
+  --color-border-lighter: #3a3f50;
+
+  --color-fill-base: #1e2128;
+  --color-fill-light: #252a33;
+  --color-bg-white: #1a1d24;
+  --color-bg-page: #12141a;
+
+  --color-sidebar-bg: #0d0f14;
+  --color-sidebar-hover: rgba(255, 255, 255, 0.06);
+  --color-sidebar-active: rgba(65, 130, 243, 0.15);
+  --color-sidebar-text: rgba(255, 255, 255, 0.55);
+  --color-sidebar-text-active: #ffffff;
+  --color-sidebar-border: rgba(255, 255, 255, 0.05);
+
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.7);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.8);
 }

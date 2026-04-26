@@ -183,7 +183,7 @@ export const verifyFileMd5 = fileId => {
  */
 export const searchFiles = (keyword, options = {}) => {
   return request({
-    url: '/v1/file/search',
+    url: '/v1/search',
     params: { keyword, ...options }
   })
 }
@@ -250,18 +250,20 @@ export const getRecentUploadSummary = (limit = 20) => {
  */
 export const searchFilesAdvanced = (keyword, options = {}) => {
   return request({
-    url: '/v1/file/search',
+    url: '/v1/search/with-count',
     params: { keyword, ...options }
   })
 }
 
 /**
  * 获取搜索历史
+ * @param {Number} [limit=10] - 返回数量限制
  * @returns {Promise} 搜索历史Promise
  */
-export const getSearchHistory = () => {
+export const getSearchHistory = (limit = 10) => {
   return request({
-    url: '/v1/search/history'
+    url: '/v1/search/history',
+    params: { limit }
   })
 }
 
@@ -277,13 +279,25 @@ export const clearSearchHistory = () => {
 }
 
 /**
+ * 删除单条搜索历史
+ * @param {Number} id - 历史记录ID
+ * @returns {Promise} 删除结果Promise
+ */
+export const deleteSearchHistory = id => {
+  return request({
+    url: `/v1/search/history/${id}`,
+    method: 'delete'
+  })
+}
+
+/**
  * 获取热门搜索词
  * @param {Number} [limit=10] - 返回数量
  * @returns {Promise} 热门搜索词Promise
  */
 export const getHotSearchTerms = (limit = 10) => {
   return request({
-    url: '/v1/search/hot',
+    url: '/v1/search/hot-filters',
     params: { limit }
   })
 }
@@ -294,7 +308,7 @@ export const getHotSearchTerms = (limit = 10) => {
  */
 export const getFilterViews = () => {
   return request({
-    url: '/v1/search/views'
+    url: '/v1/filter-view/list'
   })
 }
 
@@ -307,7 +321,7 @@ export const getFilterViews = () => {
  */
 export const saveFilterView = view => {
   return request({
-    url: '/v1/search/views',
+    url: '/v1/filter-view',
     method: 'post',
     data: view
   })
@@ -320,7 +334,7 @@ export const saveFilterView = view => {
  */
 export const deleteFilterView = viewId => {
   return request({
-    url: `/v1/search/views/${viewId}`,
+    url: `/v1/filter-view/${viewId}`,
     method: 'delete'
   })
 }
@@ -365,6 +379,74 @@ export const removeFileTag = (fileId, tagId) => {
 }
 
 /**
+ * 批量为文件添加标签
+ * @param {Array} fileIds - 文件ID数组
+ * @param {Array} tagIds - 标签ID数组
+ * @returns {Promise} 操作结果Promise
+ */
+export const batchAddTags = (fileIds, tagIds) => {
+  return request({
+    url: '/v1/tag/batch/add',
+    method: 'post',
+    data: { fileIds, tagIds }
+  })
+}
+
+/**
+ * 批量移除文件标签
+ * @param {Array} fileIds - 文件ID数组
+ * @param {Array} tagIds - 标签ID数组
+ * @returns {Promise} 操作结果Promise
+ */
+export const batchRemoveTags = (fileIds, tagIds) => {
+  return request({
+    url: '/v1/tag/batch/remove',
+    method: 'post',
+    data: { fileIds, tagIds }
+  })
+}
+
+/**
+ * 为文件分配标签
+ * @param {Number} fileId - 文件ID
+ * @param {Array} tagIds - 标签ID数组
+ * @returns {Promise} 操作结果Promise
+ */
+export const assignTags = (fileId, tagIds) => {
+  return request({
+    url: '/v1/tag/assign',
+    method: 'post',
+    data: { fileId, tagIds }
+  })
+}
+
+/**
+ * 批量操作文件标签
+ * @param {Number} fileId - 文件ID
+ * @param {Array} tagIds - 标签ID数组
+ * @param {String} action - 操作类型
+ * @returns {Promise} 操作结果Promise
+ */
+export const batchOperateTags = (fileId, tagIds, action) => {
+  return request({
+    url: '/v1/tag/batch/operate',
+    method: 'post',
+    data: { fileId, tagIds, action }
+  })
+}
+
+/**
+ * 获取标签详情
+ * @param {Number} tagId - 标签ID
+ * @returns {Promise} 标签详情Promise
+ */
+export const getTagDetail = tagId => {
+  return request({
+    url: `/v1/tag/${tagId}`
+  })
+}
+
+/**
  * 获取文件收藏状态
  * @param {Number} resourceId - 资源ID
  * @returns {Promise} 收藏状态Promise
@@ -384,6 +466,79 @@ export const toggleFavorite = resourceId => {
   return request({
     url: `/v1/favorite/${resourceId}`,
     method: 'post'
+  })
+}
+
+/**
+ * 添加收藏
+ * @param {Number} resourceId - 资源ID
+ * @returns {Promise} 操作结果Promise
+ */
+export const addFavorite = resourceId => {
+  return request({
+    url: `/v1/favorite/${resourceId}`,
+    method: 'post'
+  })
+}
+
+/**
+ * 取消收藏
+ * @param {Number} resourceId - 资源ID
+ * @returns {Promise} 操作结果Promise
+ */
+export const removeFavorite = resourceId => {
+  return request({
+    url: `/v1/favorite/${resourceId}`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 批量添加收藏
+ * @param {Array} resourceIds - 资源ID数组
+ * @returns {Promise} 操作结果Promise
+ */
+export const batchAddFavorite = resourceIds => {
+  return request({
+    url: '/v1/favorite/batch/add',
+    method: 'post',
+    data: resourceIds
+  })
+}
+
+/**
+ * 批量取消收藏
+ * @param {Array} resourceIds - 资源ID数组
+ * @returns {Promise} 操作结果Promise
+ */
+export const batchRemoveFavorite = resourceIds => {
+  return request({
+    url: '/v1/favorite/batch/remove',
+    method: 'post',
+    data: resourceIds
+  })
+}
+
+/**
+ * 获取收藏列表
+ * @param {Number} [page=1] - 页码
+ * @param {Number} [pageSize=20] - 每页数量
+ * @returns {Promise} 收藏列表Promise
+ */
+export const getFavoriteList = (page = 1, pageSize = 20) => {
+  return request({
+    url: '/v1/favorite/list',
+    params: { page, pageSize }
+  })
+}
+
+/**
+ * 获取收藏数量
+ * @returns {Promise} 收藏数量Promise
+ */
+export const getFavoriteCount = () => {
+  return request({
+    url: '/v1/favorite/count'
   })
 }
 
@@ -420,6 +575,17 @@ export const getTagList = () => {
 }
 
 /**
+ * 获取文件备注
+ * @param {Number} resourceId - 资源ID
+ * @returns {Promise} 备注内容Promise
+ */
+export const getFileRemark = resourceId => {
+  return request({
+    url: `/v1/remark/${resourceId}`
+  })
+}
+
+/**
  * 保存文件备注
  * @param {Number} resourceId - 资源ID
  * @param {String} remark - 备注内容
@@ -427,9 +593,21 @@ export const getTagList = () => {
  */
 export const saveFileRemark = (resourceId, remark) => {
   return request({
-    url: '/v1/remark',
+    url: `/v1/remark/${resourceId}`,
     method: 'post',
-    data: { resourceId, remarkContent: remark }
+    data: { content: remark }
+  })
+}
+
+/**
+ * 删除文件备注
+ * @param {Number} resourceId - 资源ID
+ * @returns {Promise} 删除结果Promise
+ */
+export const deleteFileRemark = resourceId => {
+  return request({
+    url: `/v1/remark/${resourceId}`,
+    method: 'delete'
   })
 }
 
@@ -456,6 +634,55 @@ export const getHotFilters = () => {
 }
 
 /**
+ * 获取文件详情（搜索模块）
+ * @param {Number} fileId - 文件ID
+ * @returns {Promise} 文件详情Promise
+ */
+export const getSearchFileDetail = fileId => {
+  return request({
+    url: `/v1/search/file/${fileId}`
+  })
+}
+
+/**
+ * 获取同目录文件
+ * @param {Number} fileId - 文件ID
+ * @param {Number} [limit=10] - 返回数量限制
+ * @returns {Promise} 同目录文件列表Promise
+ */
+export const getSameDirectoryFiles = (fileId, limit = 10) => {
+  return request({
+    url: `/v1/search/file/${fileId}/same-directory`,
+    params: { limit }
+  })
+}
+
+/**
+ * 获取同类型文件
+ * @param {Number} fileId - 文件ID
+ * @param {Number} [limit=10] - 返回数量限制
+ * @returns {Promise} 同类型文件列表Promise
+ */
+export const getSameTypeFiles = (fileId, limit = 10) => {
+  return request({
+    url: `/v1/search/file/${fileId}/same-type`,
+    params: { limit }
+  })
+}
+
+/**
+ * 获取最近上传文件（搜索模块）
+ * @param {Number} [limit=10] - 返回数量限制
+ * @returns {Promise} 最近上传文件列表Promise
+ */
+export const getSearchRecentUploads = (limit = 10) => {
+  return request({
+    url: '/v1/search/recent-uploads',
+    params: { limit }
+  })
+}
+
+/**
  * 获取预览状态
  * @param {Number} resourceId - 资源ID
  * @returns {Promise} 预览状态Promise
@@ -469,11 +696,26 @@ export const getPreviewStatus = resourceId => {
 /**
  * 获取文本预览内容
  * @param {Number} resourceId - 资源ID
+ * @param {Object} [options] - 查询选项
+ * @param {Number} [options.offset] - 起始位置，默认0
+ * @param {Number} [options.limit] - 读取长度，默认65536
  * @returns {Promise} 文本内容Promise
  */
-export const getTextPreview = resourceId => {
+export const getTextPreview = (resourceId, options = {}) => {
   return request({
-    url: `/v1/preview/${resourceId}/text`
+    url: `/v1/preview/text/${resourceId}`,
+    params: options
+  })
+}
+
+/**
+ * 获取文本摘要
+ * @param {Number} resourceId - 资源ID
+ * @returns {Promise} 文本摘要Promise
+ */
+export const getTextSummary = resourceId => {
+  return request({
+    url: `/v1/preview/text/${resourceId}/summary`
   })
 }
 
@@ -523,5 +765,55 @@ export const getAudioPlayUrl = resourceId => {
 export const getImageExif = resourceId => {
   return request({
     url: `/v1/preview/image/${resourceId}/exif`
+  })
+}
+
+/**
+ * 获取图片信息
+ * @param {Number} resourceId - 资源ID
+ * @returns {Promise} 图片信息Promise
+ */
+export const getImageInfo = resourceId => {
+  return request({
+    url: `/v1/preview/image/${resourceId}/info`
+  })
+}
+
+/**
+ * 获取预览降级信息
+ * @param {Number} resourceId - 资源ID
+ * @param {String} previewType - 预览类型，默认unknown
+ * @returns {Promise} 降级信息Promise
+ */
+export const getPreviewFallback = (resourceId, previewType = 'unknown') => {
+  return request({
+    url: `/v1/preview/${resourceId}/fallback`,
+    params: { previewType }
+  })
+}
+
+/**
+ * 记录音频播放
+ * @param {Number} resourceId - 资源ID
+ * @returns {Promise} 操作结果Promise
+ */
+export const recordAudioPlay = resourceId => {
+  return request({
+    url: `/v1/preview/audio/${resourceId}/play`,
+    method: 'post'
+  })
+}
+
+/**
+ * 记录预览
+ * @param {Number} resourceId - 资源ID
+ * @param {String} useType - 使用类型，默认PREVIEW
+ * @returns {Promise} 操作结果Promise
+ */
+export const recordPreview = (resourceId, useType = 'PREVIEW') => {
+  return request({
+    url: `/v1/preview/${resourceId}/view`,
+    method: 'post',
+    params: { useType }
   })
 }

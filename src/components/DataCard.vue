@@ -71,12 +71,12 @@ const handleClick = () => {
 .data-card {
   display: flex;
   align-items: flex-start;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-xl);
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
   background: var(--color-bg-white);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-lighter);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
   transition: all var(--transition-base);
 
   &--clickable {
@@ -85,16 +85,17 @@ const handleClick = () => {
     &:hover {
       box-shadow: var(--shadow-md);
       transform: translateY(-2px);
+      border-color: var(--color-primary-light);
     }
   }
 
   &__icon {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     flex-shrink: 0;
   }
 
@@ -129,20 +130,20 @@ const handleClick = () => {
   }
 
   &__label {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
     color: var(--color-text-secondary);
     margin-bottom: var(--spacing-xs);
   }
 
   &__value {
-    font-size: var(--font-size-2xl);
+    font-size: var(--font-size-xl);
     font-weight: var(--font-weight-bold);
     color: var(--color-text-primary);
     line-height: 1.2;
   }
 
   &__extra {
-    font-size: var(--font-size-xs);
+    font-size: 11px;
     color: var(--color-text-placeholder);
     margin-top: var(--spacing-xs);
   }

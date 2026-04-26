@@ -224,6 +224,8 @@ watch(
 <style lang="scss" scoped>
 .search-filter-panel {
   padding: var(--spacing-md);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .filter-header {
@@ -241,9 +243,50 @@ watch(
 
 .filter-section {
   margin-bottom: var(--spacing-lg);
+  width: 100%;
+  box-sizing: border-box;
 
   &:last-child {
     margin-bottom: 0;
+  }
+
+  :deep(.el-date-editor) {
+    width: 100% !important;
+  }
+
+  :deep(.el-date-editor .el-range-input) {
+    width: 38%;
+  }
+
+  :deep(.el-tree-select) {
+    width: 100%;
+  }
+
+  :deep(.el-slider) {
+    width: calc(100% - 16px) !important;
+    margin-left: 8px;
+    margin-right: 8px;
+  }
+
+  :deep(.el-slider__marks-text) {
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 11px;
+    max-width: 40px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  :deep(.el-slider__marks-text:first-child) {
+    transform: translateX(0);
+  }
+
+  :deep(.el-slider__marks-text:last-child) {
+    transform: translateX(-100%);
+  }
+
+  :deep(.el-slider__stop) {
+    display: none;
   }
 }
 

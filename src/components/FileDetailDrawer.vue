@@ -183,14 +183,6 @@ const verifyType = computed(() => {
   return 'warning'
 })
 
-watch(
-  [() => props.modelValue, () => props.fileId],
-  () => {
-    loadDetail()
-  },
-  { immediate: true }
-)
-
 const loadDetail = async () => {
   if (!props.modelValue || !props.fileId) {
     detail.value = null
@@ -221,6 +213,14 @@ const loadDetail = async () => {
     loading.value = false
   }
 }
+
+watch(
+  [() => props.modelValue, () => props.fileId],
+  () => {
+    loadDetail()
+  },
+  { immediate: true }
+)
 
 const openFolder = () => {
   if (!detail.value) {

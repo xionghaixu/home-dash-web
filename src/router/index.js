@@ -4,8 +4,13 @@ const routes = [
   {
     path: '/',
     component: () => import('@/views/layout/Layout.vue'),
-    redirect: '/files',
+    redirect: '/home',
     children: [
+      {
+        path: 'home',
+        component: () => import('@/views/home/index.vue'),
+        meta: { title: '首页', keepAlive: true }
+      },
       {
         path: 'files',
         component: () => import('@/views/file/index.vue'),
@@ -57,11 +62,32 @@ const routes = [
         path: 'search',
         component: () => import('@/views/search/index.vue'),
         meta: { title: '搜索结果' }
+      },
+      {
+        path: 'media/images',
+        component: () => import('@/views/media/images/index.vue'),
+        meta: { title: '图片', keepAlive: true }
+      },
+      {
+        path: 'media/videos',
+        component: () => import('@/views/media/videos/index.vue'),
+        meta: { title: '视频', keepAlive: true }
+      },
+      {
+        path: 'media/audio',
+        component: () => import('@/views/media/audio/index.vue'),
+        meta: { title: '音频', keepAlive: true }
       }
     ]
   },
   {
     path: '/video/:fileId',
+    component: () => import('@/views/video/index.vue'),
+    props: true,
+    meta: { title: '视频播放' }
+  },
+  {
+    path: '/media/videos/:id/play',
     component: () => import('@/views/video/index.vue'),
     props: true,
     meta: { title: '视频播放' }
@@ -96,7 +122,11 @@ export const ROUTE_NAMES = {
   VIDEO: 'video/:fileId',
   PROFILE: 'profile',
   SETTINGS: 'settings',
-  SEARCH: 'search'
+  SYSTEM: 'system',
+  SEARCH: 'search',
+  MEDIA_IMAGES: 'media/images',
+  MEDIA_VIDEOS: 'media/videos',
+  MEDIA_AUDIO: 'media/audio'
 }
 
 export const getFileRoute = (folderId = '0') => {

@@ -1,19 +1,18 @@
 // ============================================
 // home-dash-web Global Styles
-// 全局样式入口文件
+// 支持 light/dark 双主题
 // ============================================
 
 @use './variables.scss' as *;
 @use './common.scss';
 @use './components.scss';
 @use './layout.scss';
-@use './dark-theme.scss';
 
 // ============================================
-// Element Plus Overrides
+// Element Plus Theme Overrides
 // ============================================
 
-// Button overrides
+// Button
 .el-button {
   border-radius: var(--radius-md);
   font-weight: var(--font-weight-medium);
@@ -22,59 +21,235 @@
   &--primary {
     background: var(--color-primary);
     border-color: var(--color-primary);
+    color: #fff;
 
     &:hover,
     &:focus {
       background: var(--color-primary-light);
       border-color: var(--color-primary-light);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
+    }
+  }
+
+  &--default {
+    background: var(--color-bg-white);
+    border-color: var(--color-border);
+    color: var(--color-text-regular);
+
+    &:hover,
+    &:focus {
+      background: var(--color-fill-light);
+      color: var(--color-text-primary);
+      border-color: var(--color-border);
     }
   }
 }
 
-// Table overrides
+// Table
 .el-table {
   --el-table-border-color: var(--color-border-lighter);
-  --el-table-header-bg-color: var(--color-fill-base);
-
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+  --el-table-header-bg-color: var(--color-fill-light);
+  --el-table-row-hover-bg-color: var(--color-primary-bg);
+  --el-table-text-color: var(--color-text-primary);
+  --el-table-header-text-color: var(--color-text-secondary);
+  background: transparent;
+  color: var(--color-text-primary);
 
   th.el-table__cell {
     font-weight: var(--font-weight-medium);
     color: var(--color-text-secondary);
+    background: var(--color-fill-light);
   }
 
   tr:hover > td.el-table__cell {
     background: var(--color-primary-bg) !important;
   }
+
+  td.el-table__cell {
+    border-bottom-color: var(--color-border-light);
+  }
 }
 
-// Dialog overrides
+// Dialog
 .el-dialog {
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-white);
+  border: 1px solid var(--color-border-lighter);
+  box-shadow: var(--shadow-xl);
 
   &__header {
     padding: var(--spacing-xl) var(--spacing-2xl) var(--spacing-lg);
     border-bottom: 1px solid var(--color-border-lighter);
+
+    &-title {
+      color: var(--color-text-primary);
+      font-weight: var(--font-weight-semibold);
+    }
   }
 
   &__body {
     padding: var(--spacing-2xl);
+    color: var(--color-text-regular);
   }
 }
 
-// Message overrides
+// Message
 .el-message {
   border-radius: var(--radius-lg);
+  background: var(--color-bg-white);
+  border-color: var(--color-border-lighter);
+  color: var(--color-text-primary);
 }
 
-// Tag overrides
+// Tag
 .el-tag {
   border-radius: var(--radius-sm);
+  background: var(--color-fill-base);
+  border-color: var(--color-border);
+  color: var(--color-text-regular);
 }
 
 // Dropdown
 .el-dropdown-menu {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
+  background: var(--color-bg-white);
+  border: 1px solid var(--color-border-lighter);
+
+  &__item {
+    color: var(--color-text-regular);
+
+    &:hover {
+      background: var(--color-fill-base);
+      color: var(--color-text-primary);
+    }
+  }
+}
+
+// Input
+.el-input {
+  &__wrapper {
+    background: var(--color-fill-base);
+    box-shadow: 0 0 0 1px var(--color-border) inset;
+    border-radius: var(--radius-md);
+
+    &:hover {
+      box-shadow: 0 0 0 1px var(--color-border-light) inset;
+    }
+
+    &.is-focus {
+      box-shadow: 0 0 0 1px var(--color-primary) inset;
+    }
+  }
+
+  &__inner {
+    color: var(--color-text-primary);
+
+    &::placeholder {
+      color: var(--color-text-placeholder);
+    }
+  }
+}
+
+// Pagination
+.el-pagination {
+  --el-pagination-bg-color: transparent;
+  --el-pagination-text-color: var(--color-text-secondary);
+  --el-pagination-button-disabled-bg-color: transparent;
+  --el-pagination-hover-color: var(--color-primary);
+
+  .el-pager li {
+    background: transparent;
+    color: var(--color-text-secondary);
+
+    &:hover {
+      color: var(--color-primary);
+    }
+
+    &.is-active {
+      background: var(--color-primary);
+      color: #fff;
+      border-radius: var(--radius-sm);
+    }
+  }
+}
+
+// Breadcrumb
+.el-breadcrumb {
+  &__inner {
+    color: var(--color-text-secondary);
+
+    &:hover {
+      color: var(--color-primary);
+    }
+  }
+
+  &__separator {
+    color: var(--color-text-placeholder);
+  }
+}
+
+// Menu
+.el-menu {
+  background: transparent;
+  border-right: none;
+
+  .el-menu-item {
+    color: var(--color-sidebar-text);
+
+    &:hover {
+      background: var(--color-sidebar-hover);
+      color: var(--color-sidebar-text-active);
+    }
+
+    &.is-active {
+      background: var(--color-sidebar-active);
+      color: var(--color-primary);
+    }
+  }
+}
+
+// Card
+.el-card {
+  background: var(--color-fill-base);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-lg);
+}
+
+// Switch
+.el-switch {
+  &__core {
+    background: var(--color-border);
+    border-color: var(--color-border);
+  }
+
+  &.is-checked .el-switch__core {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+}
+
+// Drawer
+.el-drawer {
+  background: var(--color-bg-white);
+
+  &__header {
+    color: var(--color-text-primary);
+    border-bottom: 1px solid var(--color-border-lighter);
+  }
+}
+
+// Popover
+.el-popover {
+  background: var(--color-bg-white);
+  border-color: var(--color-border-lighter);
+  color: var(--color-text-primary);
+}
+
+// Tooltip
+.el-tooltip__popper {
+  background: var(--color-text-primary);
+  color: var(--color-bg-white);
 }

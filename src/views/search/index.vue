@@ -1,131 +1,212 @@
 <template>
   <div class="search-page">
-    <div class="search-header">
-      <div class="search-bar-wrapper">
+    <!-- 顶部搜索区域 -->
+    <div class="search-hero">
+      <div class="search-bar-container">
         <el-input
           v-model="inputKeyword"
-          placeholder="请输入搜索关键字..."
+          placeholder="搜索文件、图片、视频、音频..."
           clearable
           size="large"
+          class="search-input"
           @keyup.enter="handleSearch"
         >
+          <template #prefix>
+            <el-icon :size="20"><Search /></el-icon>
+          </template>
           <template #append>
             <el-button type="primary" @click="handleSearch">
-              <el-icon><Search /></el-icon>
               搜索
             </el-button>
           </template>
         </el-input>
-      </div>
 
-      <div class="search-layout-toggle">
-        <el-radio-group v-model="layoutMode" size="small">
-          <el-radio-button value="list">列表</el-radio-button>
-          <el-radio-button value="grid">网格</el-radio-button>
-        </el-radio-group>
+        <!-- 快捷筛选标签 -->
+        <div class="quick-filters">
+          <el-tag
+            v-for="type in quickFilterTypes"
+            :key="type.value"
+            :effect="filters.types.includes(type.value) ? 'dark' : 'plain'"
+            :type="filters.types.includes(type.value) ? 'primary' : 'info'"
+            class="quick-filter-tag"
+            @click="toggleQuickFilter(type.value)"
+          >
+            <el-icon :size="14"><component :is="type.icon" /></el-icon>
+            {{ type.label }}
+          </el-tag>
+          <el-tag
+            :effect="filters.favorite ? 'dark' : 'plain'"
+            :type="filters.favorite ? 'warning' : 'info'"
+            class="quick-filter-tag"
+            @click="toggleFavoriteFilter"
+          >
+            <el-icon :size="14"><Star /></el-icon>
+            收藏
+          </el-tag>
+        </div>
       </div>
     </div>
 
-    <div class="search-body">
-      <div class="search-sidebar">
-        <FilterViewSelector @select="handleFilterViewSelect" @save-custom="handleSaveCustomView" />
+    <!-- 主体内容区域 -->
+    <div class="search-content">
+      <!-- 左侧边栏：筛选与历史 -->
+      <aside class="search-sidebar">
+        <!-- 高级筛选面板 -->
+        <div class="sidebar-section">
+          <div class="section-title">
+            <el-icon><Filter /></el-icon>
+            高级筛选
+          </div>
+          <SearchFilterPanel
+            v-model="filters"
+            @change="handleFilterChange"
+          />
+        </div>
 
         <el-divider />
 
-        <SearchHistory
-          :history="searchState.history"
-          @select="handleHistorySelect"
-          @clear="handleClearHistory"
-        />
+        <!-- 搜索历史 -->
+        <div class="sidebar-section">
+          <div class="section-title">
+            <el-icon><Clock /></el-icon>
+            搜索历史
+            <el-button
+              v-if="searchState.history.length > 0"
+              type="primary"
+              link
+              size="small"
+              @click="handleClearHistory"
+            >
+              清空
+            </el-button>
+          </div>
+          <SearchHistory
+            :history="searchState.history"
+            @select="handleHistorySelect"
+          />
+        </div>
 
         <el-divider />
 
-        <HotSearchTags :tags="searchState.hotSearches" @select="handleHotTagSelect" />
-
-        <el-divider />
-
-        <div class="filter-view-section">
-          <div class="section-header">
-            <span class="section-title">已保存视图</span>
+        <!-- 已保存视图 -->
+        <div class="sidebar-section">
+          <div class="section-title">
+            <el-icon><View /></el-icon>
+            保存的视图
+            <el-button type="primary" link size="small" @click="showSaveFilterDialog = true">
+              保存当前
+            </el-button>
           </div>
           <div v-if="filterViews.length === 0" class="empty-views">
-            <span>暂无保存的视图</span>
+            <el-empty description="暂无保存的视图" :image-size="60" />
           </div>
           <div v-else class="filter-views-list">
             <div
               v-for="view in filterViews"
               :key="view.id"
               class="filter-view-item"
+              :class="{ active: isCurrentView(view) }"
               @click="handleLoadFilterView(view)"
             >
+              <el-icon><Collection /></el-icon>
               <span class="view-name">{{ view.name }}</span>
               <el-icon class="view-delete" @click.stop="handleDeleteFilterView(view.id)">
-                <Delete />
+                <Close />
               </el-icon>
             </div>
           </div>
         </div>
-      </div>
+      </aside>
 
-      <div class="search-main">
-        <div class="main-header">
+      <!-- 右侧结果区域 -->
+      <main class="search-main">
+        <!-- 结果头部工具栏 -->
+        <div class="results-toolbar">
           <div class="results-info">
-            <span v-if="keyword">搜索 "{{ keyword }}"</span>
-            <span v-if="searchState.total > 0">，找到 {{ searchState.total }} 个结果</span>
+            <template v-if="keyword">
+              <span class="results-keyword">"{{ keyword }}"</span>
+              <span class="results-count">找到 {{ searchState.total }} 个结果</span>
+            </template>
+            <template v-else>
+              <span class="results-hint">输入关键词开始搜索</span>
+            </template>
           </div>
 
-          <div v-if="hasActiveFilters" class="filter-tags">
-            <el-tag
-              v-for="type in filters.types"
-              :key="type"
-              closable
-              size="small"
-              @close="handleRemoveTypeFilter(type)"
-            >
-              {{ getTypeLabel(type) }}
-            </el-tag>
-            <el-tag
-              v-if="filters.favorite !== null"
-              closable
-              size="small"
-              @close="handleRemoveFavoriteFilter"
-            >
-              {{ filters.favorite ? '已收藏' : '未收藏' }}
-            </el-tag>
-            <el-button type="primary" link size="small" @click="handleClearAllFilters">
-              清除全部
-            </el-button>
-          </div>
+          <div class="toolbar-actions">
+            <!-- 布局切换 -->
+            <el-radio-group v-model="layoutMode" size="small">
+              <el-radio-button value="list">
+                <el-icon><List /></el-icon>
+              </el-radio-button>
+              <el-radio-button value="grid">
+                <el-icon><Grid /></el-icon>
+              </el-radio-button>
+            </el-radio-group>
 
-          <div class="sort-options">
-            <el-select v-model="sortBy" size="small" @change="handleSortChange">
-              <el-option value="name" label="名称" />
-              <el-option value="size" label="大小" />
-              <el-option value="updateTime" label="时间" />
-            </el-select>
+            <!-- 排序 -->
+            <el-dropdown @command="handleSortChange">
+              <el-button size="small">
+                {{ sortLabel }}
+                <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="relevance">相关度</el-dropdown-item>
+                  <el-dropdown-item command="name">名称</el-dropdown-item>
+                  <el-dropdown-item command="updateTime">修改时间</el-dropdown-item>
+                  <el-dropdown-item command="size">文件大小</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+
             <el-button size="small" @click="toggleSortOrder">
-              {{ sortOrder === 'asc' ? '升序' : '降序' }}
+              <el-icon>
+                <SortUp v-if="sortOrder === 'asc'" />
+                <SortDown v-else />
+              </el-icon>
             </el-button>
           </div>
         </div>
 
-        <div class="filter-panel-toggle">
-          <el-button @click="showFilterPanel = !showFilterPanel">
-            <el-icon><Filter /></el-icon>
-            筛选面板
-            <el-badge v-if="hasActiveFilters" is-dot />
+        <!-- 已激活的筛选标签 -->
+        <div v-if="hasActiveFilters" class="active-filters-bar">
+          <span class="filters-label">已筛选：</span>
+          <el-tag
+            v-for="type in filters.types"
+            :key="type"
+            closable
+            size="small"
+            @close="handleRemoveTypeFilter(type)"
+          >
+            {{ getTypeLabel(type) }}
+          </el-tag>
+          <el-tag
+            v-if="filters.favorite"
+            closable
+            size="small"
+            type="warning"
+            @close="handleRemoveFavoriteFilter"
+          >
+            已收藏
+          </el-tag>
+          <el-tag
+            v-for="tag in filters.tags"
+            :key="tag"
+            closable
+            size="small"
+            type="success"
+            @close="handleRemoveTagFilter(tag)"
+          >
+            {{ tag }}
+          </el-tag>
+          <el-button type="primary" link size="small" @click="handleClearAllFilters">
+            清除全部
           </el-button>
         </div>
 
-        <el-collapse-transition>
-          <SearchFilterPanel
-            v-if="showFilterPanel"
-            v-model="filters"
-            @change="handleFilterChange"
-          />
-        </el-collapse-transition>
-
+        <!-- 批量操作栏 -->
         <BatchOperationsBar
+          v-if="selectedFiles.length > 0"
           :selected-ids="selectedFiles"
           @clear-selection="selectedFiles = []"
           @batch-favorite="handleBatchFavorite"
@@ -134,108 +215,78 @@
           @batch-move="handleBatchMove"
         />
 
+        <!-- 搜索结果列表 -->
         <div v-if="searchState.loading" class="search-loading">
-          <el-icon class="is-loading" :size="40"><Loading /></el-icon>
-          <span>搜索中...</span>
+          <el-skeleton :rows="5" animated />
         </div>
 
-        <el-empty v-else-if="!keyword" description="请输入搜索关键字" />
+        <el-empty
+          v-else-if="!keyword"
+          description="请输入搜索关键字开始搜索"
+          :image-size="120"
+        >
+          <template #image>
+            <el-icon :size="60" class="empty-icon"><Search /></el-icon>
+          </template>
+        </el-empty>
 
         <el-empty
-          v-else-if="searchState.results.length === 0 && !searchState.loading"
+          v-else-if="searchState.results.length === 0"
           description="未找到匹配的文件"
-        />
+          :image-size="120"
+        >
+          <template #image>
+            <el-icon :size="60" class="empty-icon"><DocumentDelete /></el-icon>
+          </template>
+        </el-empty>
 
         <div
           v-else
           :class="['search-results', layoutMode === 'grid' ? 'results-grid' : 'results-list']"
         >
-          <div
-            v-for="file in searchState.results"
-            :key="file.id"
-            :class="['result-item', { 'result-item--selected': selectedFiles.includes(file.id) }]"
-            @click="handleFileClick(file)"
-          >
-            <div class="result-checkbox" @click.stop>
-              <el-checkbox
-                :model-value="selectedFiles.includes(file.id)"
-                @change="handleFileSelect(file, $event)"
-              />
-            </div>
+          <!-- 媒体类型分组展示 -->
+          <template v-for="(group, type) in groupedResults" :key="type">
+            <div v-if="group.length > 0" class="result-group">
+              <div class="group-header">
+                <el-icon><component :is="getTypeIcon(type)" /></el-icon>
+                <span>{{ getTypeLabel(type) }}</span>
+                <span class="group-count">({{ group.length }})</span>
+              </div>
 
-            <div class="result-icon">
-              <FileTypeIcon :type="file.type" />
-            </div>
-
-            <div class="result-info">
-              <div class="result-name" v-html="highlightKeyword(file.fileName)"></div>
-              <div class="result-meta">
-                <span>{{ formatSize(file.size) }}</span>
-                <span>{{ formatFileDate(file.updateTime) }}</span>
-                <span v-if="file.favorite" class="favorite-indicator">
-                  <el-icon><Star /></el-icon>
-                </span>
+              <div class="group-items">
+                <SearchResultItem
+                  v-for="file in group"
+                  :key="file.id"
+                  :file="file"
+                  :layout="layoutMode"
+                  :selected="selectedFiles.includes(file.id)"
+                  :keyword="keyword"
+                  @click="handleFileClick(file)"
+                  @select="handleFileSelect(file, $event)"
+                  @preview="handlePreview(file)"
+                  @play="handlePlay(file)"
+                  @download="handleDownload(file)"
+                  @detail="showDetail(file)"
+                />
               </div>
             </div>
-
-            <div class="result-actions">
-              <el-button
-                v-if="file.type === 'video'"
-                type="primary"
-                link
-                @click.stop="playVideo(file)"
-              >
-                播放
-              </el-button>
-              <el-button
-                v-else-if="file.type === 'picture'"
-                type="primary"
-                link
-                @click.stop="previewImage(file)"
-              >
-                预览
-              </el-button>
-              <el-button
-                v-else-if="file.type === 'txt' || file.type === 'text'"
-                type="primary"
-                link
-                @click.stop="previewText(file)"
-              >
-                预览
-              </el-button>
-              <el-button
-                v-else-if="file.type === 'audio'"
-                type="primary"
-                link
-                @click.stop="previewAudio(file)"
-              >
-                播放
-              </el-button>
-              <el-button
-                v-else-if="file.type !== 'folder'"
-                type="primary"
-                link
-                @click.stop="handleDownload(file)"
-              >
-                下载
-              </el-button>
-              <el-button link @click.stop="showDetail(file)">详情</el-button>
-            </div>
-          </div>
+          </template>
         </div>
 
+        <!-- 分页 -->
         <div v-if="searchState.total > searchState.pageSize" class="search-pagination">
           <el-pagination
             v-model:current-page="currentPage"
             :page-size="searchState.pageSize"
             :total="searchState.total"
-            layout="prev, pager, next, jumper"
+            layout="total, prev, pager, next, jumper"
             @current-change="handlePageChange"
           />
         </div>
-      </div>
+      </main>
     </div>
 
+    <!-- 详情抽屉 -->
     <FileDetailDrawer
       v-model="detailVisible"
       :file-id="detailFileId"
@@ -243,20 +294,29 @@
       @play-audio="handlePlayAudio"
     />
 
+    <!-- 图片预览 -->
     <ImagePreview
       v-model="imagePreviewVisible"
       :file-list="previewImages"
       :initial-index="previewImageIndex"
     />
 
+    <!-- 文本预览 -->
     <TextPreview
       v-model="textPreviewVisible"
       :file-id="previewFileId"
       :file-name="previewFileName"
     />
 
-    <AudioPlayer v-model="audioPlayerVisible" :file-id="audioFileId" :file-name="audioFileName" />
+    <!-- 音频播放器（底部固定） -->
+    <AudioPlayerBar
+      v-if="audioPlayerVisible"
+      :file-id="audioFileId"
+      :file-name="audioFileName"
+      @close="audioPlayerVisible = false"
+    />
 
+    <!-- 保存视图对话框 -->
     <el-dialog v-model="showSaveFilterDialog" title="保存筛选视图" width="400px">
       <el-form>
         <el-form-item label="视图名称">
@@ -275,9 +335,19 @@
 import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Search, Loading, Filter, Delete, Star } from '@element-plus/icons-vue'
-import FilterViewSelector from '@/components/search/FilterViewSelector.vue'
+import {
+  Search, Star, Filter, Clock, View, Collection, Close,
+  List, Grid, ArrowDown, SortUp, SortDown, DocumentDelete,
+  Picture, VideoPlay, Headset, Document, Folder, More
+} from '@element-plus/icons-vue'
+import SearchFilterPanel from '@/components/search/SearchFilterPanel.vue'
+import SearchHistory from '@/components/search/SearchHistory.vue'
+import SearchResultItem from '@/components/search/SearchResultItem.vue'
 import BatchOperationsBar from '@/components/common/BatchOperationsBar.vue'
+import FileDetailDrawer from '@/components/FileDetailDrawer.vue'
+import ImagePreview from '@/components/ImagePreview.vue'
+import TextPreview from '@/components/preview/TextPreview.vue'
+import AudioPlayerBar from '@/components/preview/AudioPlayerBar.vue'
 import {
   searchFiles,
   downloadFileUrl,
@@ -289,25 +359,15 @@ import {
   deleteFilterView
 } from '@/apis/file'
 import { getFileRoute, getVideoRoute } from '@/router'
-import { formatSize } from '@/utils/index'
-import { formatFileDate } from '@/utils/file'
-import FileTypeIcon from '@/components/FileTypeIcon.vue'
-import FileDetailDrawer from '@/components/FileDetailDrawer.vue'
-import ImagePreview from '@/components/ImagePreview.vue'
-import TextPreview from '@/components/preview/TextPreview.vue'
-import AudioPlayer from '@/components/preview/AudioPlayer.vue'
-import SearchFilterPanel from '@/components/search/SearchFilterPanel.vue'
-import SearchHistory from '@/components/search/SearchHistory.vue'
-import HotSearchTags from '@/components/search/HotSearchTags.vue'
 
 const route = useRoute()
 const router = useRouter()
 
 const keyword = ref('')
 const inputKeyword = ref('')
-const layoutMode = ref('list')
-const sortBy = ref('name')
-const sortOrder = ref('asc')
+const layoutMode = ref('grid')
+const sortBy = ref('relevance')
+const sortOrder = ref('desc')
 const showFilterPanel = ref(false)
 const detailVisible = ref(false)
 const detailFileId = ref(null)
@@ -345,6 +405,14 @@ const searchState = reactive({
   hotSearches: []
 })
 
+const quickFilterTypes = [
+  { value: 'picture', label: '图片', icon: 'Picture' },
+  { value: 'video', label: '视频', icon: 'VideoPlay' },
+  { value: 'audio', label: '音频', icon: 'Headset' },
+  { value: 'document', label: '文档', icon: 'Document' },
+  { value: 'folder', label: '文件夹', icon: 'Folder' }
+]
+
 const hasActiveFilters = computed(() => {
   return (
     filters.types.length > 0 ||
@@ -358,9 +426,27 @@ const hasActiveFilters = computed(() => {
 
 const currentPage = computed({
   get: () => searchState.page,
-  set: val => {
-    searchState.page = val
+  set: val => { searchState.page = val }
+})
+
+const sortLabel = computed(() => {
+  const labels = {
+    relevance: '相关度',
+    name: '名称',
+    updateTime: '修改时间',
+    size: '文件大小'
   }
+  return labels[sortBy.value] || '相关度'
+})
+
+const groupedResults = computed(() => {
+  const groups = {}
+  searchState.results.forEach(file => {
+    const type = file.type || 'other'
+    if (!groups[type]) groups[type] = []
+    groups[type].push(file)
+  })
+  return groups
 })
 
 onMounted(() => {
@@ -374,20 +460,17 @@ onMounted(() => {
   }
 })
 
-watch(
-  () => route.query.q,
-  newQ => {
-    keyword.value = newQ || ''
-    inputKeyword.value = keyword.value
-    selectedFiles.value = []
-    if (keyword.value) {
-      doSearch()
-    } else {
-      searchState.results = []
-      searchState.total = 0
-    }
+watch(() => route.query.q, newQ => {
+  keyword.value = newQ || ''
+  inputKeyword.value = keyword.value
+  selectedFiles.value = []
+  if (keyword.value) {
+    doSearch()
+  } else {
+    searchState.results = []
+    searchState.total = 0
   }
-)
+})
 
 const loadHistory = async () => {
   try {
@@ -444,27 +527,15 @@ const doSearch = async () => {
 
 const buildFilterParams = () => {
   const params = {}
-
-  if (filters.types && filters.types.length > 0) {
-    params.types = filters.types.join(',')
-  }
-  if (filters.dateRange && filters.dateRange.length === 2) {
+  if (filters.types?.length > 0) params.types = filters.types.join(',')
+  if (filters.dateRange?.length === 2) {
     params.startDate = filters.dateRange[0]
     params.endDate = filters.dateRange[1]
   }
-  if (filters.sizeRange) {
-    params.sizeRange = filters.sizeRange
-  }
-  if (filters.folderId) {
-    params.folderId = filters.folderId
-  }
-  if (filters.favorite !== null) {
-    params.favorite = filters.favorite
-  }
-  if (filters.tags && filters.tags.length > 0) {
-    params.tags = filters.tags.join(',')
-  }
-
+  if (filters.sizeRange) params.sizeRange = filters.sizeRange
+  if (filters.folderId) params.folderId = filters.folderId
+  if (filters.favorite !== null) params.favorite = filters.favorite
+  if (filters.tags?.length > 0) params.tags = filters.tags.join(',')
   return params
 }
 
@@ -474,7 +545,6 @@ const handleSearch = () => {
     ElMessage.warning('请输入搜索关键字')
     return
   }
-
   keyword.value = trimmed
   searchState.page = 1
   router.push({ path: '/search', query: { q: trimmed } })
@@ -482,11 +552,6 @@ const handleSearch = () => {
 
 const handleHistorySelect = histKeyword => {
   inputKeyword.value = histKeyword
-  handleSearch()
-}
-
-const handleHotTagSelect = tagKeyword => {
-  inputKeyword.value = tagKeyword
   handleSearch()
 }
 
@@ -500,19 +565,35 @@ const handleClearHistory = async () => {
   }
 }
 
+const toggleQuickFilter = type => {
+  const index = filters.types.indexOf(type)
+  if (index > -1) {
+    filters.types.splice(index, 1)
+  } else {
+    filters.types.push(type)
+  }
+  handleFilterChange()
+}
+
+const toggleFavoriteFilter = () => {
+  filters.favorite = filters.favorite ? null : true
+  handleFilterChange()
+}
+
 const handleFilterChange = () => {
   searchState.page = 1
   doSearch()
 }
 
-const handleSortChange = () => {
+const handleSortChange = command => {
+  sortBy.value = command
   searchState.page = 1
   doSearch()
 }
 
 const toggleSortOrder = () => {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
-  handleSortChange()
+  handleSortChange(sortBy.value)
 }
 
 const handlePageChange = page => {
@@ -547,6 +628,11 @@ const handleRemoveFavoriteFilter = () => {
   handleFilterChange()
 }
 
+const handleRemoveTagFilter = tag => {
+  filters.tags = filters.tags.filter(t => t !== tag)
+  handleFilterChange()
+}
+
 const handleClearAllFilters = () => {
   filters.types = []
   filters.dateRange = null
@@ -572,42 +658,8 @@ const handleSaveCustomView = async view => {
   }
 }
 
-const handleBatchFavorite = ids => {
-  ElMessage.success(`已批量收藏 ${ids.length} 个文件`)
-  selectedFiles.value = []
-}
-
-const handleBatchTag = ids => {
-  ElMessage.info(`批量标签功能: ${ids.length} 个文件`)
-}
-
-const handleBatchDelete = ids => {
-  searchState.results = searchState.results.filter(f => !ids.includes(f.id))
-  selectedFiles.value = []
-}
-
-const handleBatchMove = ids => {
-  ElMessage.info(`批量移动功能: ${ids.length} 个文件`)
-}
-
-const handleSaveFilterView = async () => {
-  if (!newFilterViewName.value.trim()) {
-    ElMessage.warning('请输入视图名称')
-    return
-  }
-
-  try {
-    await saveFilterView({
-      name: newFilterViewName.value,
-      filters: { ...filters }
-    })
-    ElMessage.success('视图保存成功')
-    showSaveFilterDialog.value = false
-    newFilterViewName.value = ''
-    loadFilterViews()
-  } catch {
-    ElMessage.error('保存失败')
-  }
+const isCurrentView = view => {
+  return JSON.stringify(view.filters) === JSON.stringify({ ...filters })
 }
 
 const handleLoadFilterView = view => {
@@ -627,59 +679,65 @@ const handleDeleteFilterView = async viewId => {
   }
 }
 
-const getTypeLabel = type => {
-  const labels = {
-    picture: '图片',
-    video: '视频',
-    audio: '音频',
-    document: '文档',
-    compress: '压缩包',
-    folder: '文件夹'
+const handleSaveFilterView = async () => {
+  if (!newFilterViewName.value.trim()) {
+    ElMessage.warning('请输入视图名称')
+    return
   }
-  return labels[type] || type
-}
-
-const playVideo = file => {
-  const routeLocation = router.resolve(getVideoRoute(file.id))
-  window.open(routeLocation.href, '_blank')
-}
-
-const previewImage = file => {
-  const images = searchState.results.filter(f => f.type === 'picture')
-  const index = images.findIndex(f => f.id === file.id)
-  previewImages.value = images
-  previewImageIndex.value = index >= 0 ? index : 0
-  imagePreviewVisible.value = true
-}
-
-const previewText = file => {
-  previewFileId.value = file.id
-  previewFileName.value = file.fileName
-  textPreviewVisible.value = true
-}
-
-const previewAudio = file => {
-  audioFileId.value = file.id
-  audioFileName.value = file.fileName
-  audioPlayerVisible.value = true
-}
-
-const showDetail = file => {
-  detailFileId.value = file.id
-  detailVisible.value = true
-}
-
-const handleDrawerPreview = payload => {
-  if (payload.type === 'image') {
-    previewImage(payload.file)
-  } else if (payload.type === 'text') {
-    previewText(payload.file)
+  try {
+    await saveFilterView({
+      name: newFilterViewName.value,
+      filters: { ...filters }
+    })
+    ElMessage.success('视图保存成功')
+    showSaveFilterDialog.value = false
+    newFilterViewName.value = ''
+    loadFilterViews()
+  } catch {
+    ElMessage.error('保存失败')
   }
 }
 
-const handlePlayAudio = payload => {
-  if (payload.type === 'audio') {
-    previewAudio(payload.file)
+const handleBatchFavorite = ids => {
+  ElMessage.success(`已批量收藏 ${ids.length} 个文件`)
+  selectedFiles.value = []
+}
+
+const handleBatchTag = ids => {
+  ElMessage.info(`批量标签功能: ${ids.length} 个文件`)
+}
+
+const handleBatchDelete = ids => {
+  searchState.results = searchState.results.filter(f => !ids.includes(f.id))
+  selectedFiles.value = []
+}
+
+const handleBatchMove = ids => {
+  ElMessage.info(`批量移动功能: ${ids.length} 个文件`)
+}
+
+const handlePreview = file => {
+  if (file.type === 'picture') {
+    const images = searchState.results.filter(f => f.type === 'picture')
+    const index = images.findIndex(f => f.id === file.id)
+    previewImages.value = images
+    previewImageIndex.value = index >= 0 ? index : 0
+    imagePreviewVisible.value = true
+  } else if (file.type === 'txt' || file.type === 'text') {
+    previewFileId.value = file.id
+    previewFileName.value = file.fileName
+    textPreviewVisible.value = true
+  }
+}
+
+const handlePlay = file => {
+  if (file.type === 'video') {
+    const routeLocation = router.resolve(getVideoRoute(file.id))
+    window.open(routeLocation.href, '_blank')
+  } else if (file.type === 'audio') {
+    audioFileId.value = file.id
+    audioFileName.value = file.fileName
+    audioPlayerVisible.value = true
   }
 }
 
@@ -694,114 +752,155 @@ const handleDownload = file => {
   }
 }
 
-const escapeHtml = str => {
-  if (!str) return ''
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
+const showDetail = file => {
+  detailFileId.value = file.id
+  detailVisible.value = true
 }
 
-const highlightKeyword = fileName => {
-  if (!keyword.value || !fileName) return escapeHtml(fileName)
-  const escaped = escapeHtml(fileName)
-  const escapedKeyword = escapeHtml(keyword.value)
-  const regex = new RegExp(`(${escapedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
-  return escaped.replace(regex, '<span class="keyword-highlight">$1</span>')
+const handleDrawerPreview = payload => {
+  if (payload.type === 'image') {
+    handlePreview(payload.file)
+  } else if (payload.type === 'text') {
+    handlePreview(payload.file)
+  }
+}
+
+const handlePlayAudio = payload => {
+  if (payload.type === 'audio') {
+    handlePlay(payload.file)
+  }
+}
+
+const getTypeLabel = type => {
+  const labels = {
+    picture: '图片',
+    video: '视频',
+    audio: '音频',
+    document: '文档',
+    compress: '压缩包',
+    folder: '文件夹',
+    other: '其他'
+  }
+  return labels[type] || type
+}
+
+const getTypeIcon = type => {
+  const icons = {
+    picture: 'Picture',
+    video: 'VideoPlay',
+    audio: 'Headset',
+    document: 'Document',
+    folder: 'Folder',
+    other: 'More'
+  }
+  return icons[type] || 'Document'
 }
 </script>
 
 <style lang="scss" scoped>
 .search-page {
-  padding: var(--spacing-xl);
   min-height: 100vh;
+  background: var(--color-bg-base);
 }
 
-.search-header {
+// 顶部搜索区域
+.search-hero {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  padding: var(--spacing-3xl) var(--spacing-xl);
   display: flex;
-  gap: var(--spacing-lg);
-  margin-bottom: var(--spacing-xl);
+  justify-content: center;
 }
 
-.search-bar-wrapper {
-  flex: 1;
-  max-width: 600px;
+.search-bar-container {
+  width: 100%;
+  max-width: 800px;
 }
 
-.search-layout-toggle {
-  flex-shrink: 0;
+.search-input {
+  :deep(.el-input__wrapper) {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border-radius: var(--radius-xl);
+    padding: 4px 8px;
+  }
+
+  :deep(.el-input__inner) {
+    font-size: var(--font-size-lg);
+    height: 48px;
+  }
+
+  :deep(.el-input-group__append) {
+    background: var(--color-primary-dark);
+    border-color: var(--color-primary-dark);
+    color: white;
+    border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+    padding: 0 24px;
+  }
 }
 
-.search-body {
+.quick-filters {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.quick-filter-tag {
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+// 主体内容区域
+.search-content {
   display: flex;
   gap: var(--spacing-xl);
+  padding: var(--spacing-xl);
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
+// 左侧边栏
 .search-sidebar {
-  width: 240px;
+  width: 280px;
   flex-shrink: 0;
   background: var(--color-bg-white);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-md);
+  padding: var(--spacing-lg);
+  height: fit-content;
+  position: sticky;
+  top: var(--spacing-xl);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.search-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.main-header {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-lg);
+.sidebar-section {
   margin-bottom: var(--spacing-lg);
-  flex-wrap: wrap;
-}
 
-.results-info {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-}
-
-.filter-tags {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  flex-wrap: wrap;
-  flex: 1;
-}
-
-.sort-options {
-  display: flex;
-  gap: var(--spacing-sm);
-}
-
-.filter-panel-toggle {
-  margin-bottom: var(--spacing-md);
-}
-
-.filter-view-section {
-  padding: var(--spacing-md) 0;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-md);
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
 .section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
+
+  .el-button {
+    margin-left: auto;
+  }
 }
 
 .empty-views {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-placeholder);
-  text-align: center;
   padding: var(--spacing-md) 0;
 }
 
@@ -814,165 +913,173 @@ const highlightKeyword = fileName => {
 .filter-view-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: all var(--transition-fast);
+  color: var(--color-text-regular);
 
-  &:hover {
-    background: var(--color-fill-base);
+  &:hover,
+  &.active {
+    background: var(--color-primary-bg);
+    color: var(--color-primary);
+  }
 
-    .view-delete {
-      opacity: 1;
+  .view-name {
+    flex: 1;
+    font-size: var(--font-size-sm);
+  }
+
+  .view-delete {
+    opacity: 0;
+    color: var(--color-text-placeholder);
+    transition: opacity var(--transition-fast);
+
+    &:hover {
+      color: var(--color-danger);
     }
   }
-}
 
-.view-name {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-regular);
-}
-
-.view-delete {
-  opacity: 0;
-  color: var(--color-text-placeholder);
-  transition: opacity var(--transition-fast);
-
-  &:hover {
-    color: var(--color-danger);
+  &:hover .view-delete {
+    opacity: 1;
   }
 }
 
-.search-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 0;
-  gap: var(--spacing-md);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-base);
-}
-
-.search-results {
-  &.results-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-
-  &.results-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: var(--spacing-md);
-  }
-}
-
-.result-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  background: var(--color-bg-white);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-
-  &:hover {
-    border-color: var(--color-primary);
-    box-shadow: var(--shadow-sm);
-  }
-
-  &--selected {
-    border-color: var(--color-primary);
-    background: var(--color-primary-bg);
-  }
-
-  .results-grid & {
-    flex-direction: column;
-    text-align: center;
-    padding: var(--spacing-lg);
-  }
-}
-
-.result-checkbox {
-  flex-shrink: 0;
-}
-
-.result-icon {
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-  border-radius: var(--radius-md);
-  flex-shrink: 0;
-
-  .results-grid & {
-    width: 64px;
-    height: 64px;
-  }
-}
-
-.result-info {
+// 右侧结果区域
+.search-main {
   flex: 1;
   min-width: 0;
 }
 
-.result-name {
-  font-size: var(--font-size-base);
-  color: var(--color-text-regular);
-  font-weight: var(--font-weight-medium);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  .results-grid & {
-    text-align: center;
-  }
+.results-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
 }
 
-.result-meta {
+.results-info {
   display: flex;
-  gap: var(--spacing-lg);
-  font-size: var(--font-size-xs);
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.results-keyword {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.results-count {
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  margin-top: var(--spacing-xs);
-
-  .results-grid & {
-    justify-content: center;
-  }
 }
 
-.favorite-indicator {
-  color: var(--color-warning);
+.results-hint {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
 }
 
-.result-actions {
-  flex-shrink: 0;
+.toolbar-actions {
   display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+// 已激活筛选标签
+.active-filters-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-white);
+  border-radius: var(--radius-md);
+}
+
+.filters-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+// 搜索结果
+.search-loading {
+  padding: var(--spacing-xl) 0;
+}
+
+.empty-icon {
+  color: var(--color-text-placeholder);
+}
+
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.result-group {
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border-light);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.group-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: normal;
+}
+
+.group-items {
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-sm);
 
   .results-grid & {
-    margin-top: var(--spacing-sm);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--spacing-md);
   }
 }
 
+// 分页
 .search-pagination {
   display: flex;
   justify-content: center;
   margin-top: var(--spacing-xl);
+  padding: var(--spacing-lg) 0;
 }
 
-.keyword-highlight {
-  color: var(--color-primary);
-  font-weight: var(--font-weight-semibold);
-  background: var(--color-primary-bg);
-  padding: 0 2px;
-  border-radius: 2px;
+// 响应式
+@media (max-width: 768px) {
+  .search-content {
+    flex-direction: column;
+  }
+
+  .search-sidebar {
+    width: 100%;
+    position: static;
+  }
+
+  .results-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>

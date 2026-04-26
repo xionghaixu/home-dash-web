@@ -10,7 +10,7 @@
       <Header></Header>
     </el-header>
     <el-container class="main-wrapper">
-      <el-aside :width="asideWidth">
+      <el-aside :width="sidebarWidth">
         <Aside></Aside>
       </el-aside>
       <el-main class="main-area">
@@ -40,10 +40,8 @@ import { ref, computed } from 'vue'
 import { UploadFilled } from '@element-plus/icons-vue'
 import Header from '@/views/layout/Header.vue'
 import Aside from '@/views/layout/Aside.vue'
-import { useThemeStore } from '@/stores/theme'
 
-const themeStore = useThemeStore()
-const asideWidth = computed(() => (themeStore.sidebarCollapsed ? '64px' : '220px'))
+const sidebarWidth = computed(() => '220px')
 
 const isDragOver = ref(false)
 
@@ -84,6 +82,16 @@ const handleDrop = e => {
   width: 100%;
   height: 100vh;
   overflow: hidden;
+  background: var(--color-bg-page);
+}
+
+.el-header {
+  padding: 0;
+  background: var(--color-bg-white);
+  border-bottom: 1px solid var(--color-border-light);
+  line-height: 56px;
+  z-index: var(--z-index-sticky);
+  position: relative;
 }
 
 .main-wrapper {
@@ -91,19 +99,12 @@ const handleDrop = e => {
   overflow: hidden;
 }
 
-.el-header {
-  padding: 0;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
-  box-shadow: var(--shadow-md);
-  line-height: 56px;
-  z-index: var(--z-index-sticky);
-}
-
 .el-aside {
   background: var(--color-sidebar-bg);
   border-right: 1px solid var(--color-sidebar-border);
   transition: width var(--transition-slow);
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .main-area {
@@ -117,13 +118,14 @@ const handleDrop = e => {
   padding: var(--spacing-lg);
   overflow-y: auto;
   box-sizing: border-box;
+  background: var(--color-bg-page);
 }
 
 // Page transition animations
 .page-fade-slide-enter-active {
   transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 
 .page-fade-slide-leave-active {
@@ -134,44 +136,15 @@ const handleDrop = e => {
 
 .page-fade-slide-enter-from {
   opacity: 0;
-  transform: translateY(12px);
+  transform: translateY(20px);
 }
 
 .page-fade-slide-leave-to {
   opacity: 0;
-  transform: translateY(-8px);
+  transform: translateY(-10px);
 }
 
-// Responsive adaptations
-@media (max-width: 768px) {
-  .el-aside {
-    position: fixed;
-    left: -220px;
-    top: 56px;
-    height: calc(100vh - 56px);
-    z-index: var(--z-index-fixed);
-    box-shadow: var(--shadow-xl);
-
-    &.is-mobile-open {
-      left: 0;
-    }
-  }
-
-  .main-area {
-    width: 100%;
-  }
-
-  .main-container {
-    padding: var(--spacing-md);
-  }
-}
-
-@media (max-width: 480px) {
-  .main-container {
-    padding: var(--spacing-sm);
-  }
-}
-
+// Drag overlay
 .drag-overlay {
   position: fixed;
   top: 0;
@@ -180,7 +153,7 @@ const handleDrop = e => {
   bottom: 0;
   z-index: 5000;
   background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -220,5 +193,22 @@ const handleDrop = e => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+// Responsive adaptations
+@media (max-width: 960px) {
+  .el-aside {
+    display: none;
+  }
+
+  .main-area {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .main-container {
+    padding: var(--spacing-md);
+  }
 }
 </style>
