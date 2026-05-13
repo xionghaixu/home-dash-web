@@ -71,7 +71,10 @@ const loading = ref(false)
 const error = ref(false)
 
 const imageList = computed(() => {
-  return props.fileList.map(file => downloadFileUrl(file.id))
+  return props.fileList
+    .map(file => file?.id ?? file?.fileId)
+    .filter(Boolean)
+    .map(fileId => downloadFileUrl(fileId))
 })
 
 const title = computed(() => {
@@ -129,7 +132,8 @@ const download = () => {
   if (props.fileList.length > 0 && props.fileList[currentIndex.value]) {
     try {
       const link = document.createElement('a')
-      link.href = downloadFileUrl(props.fileList[currentIndex.value].id)
+      const currentFile = props.fileList[currentIndex.value]
+      link.href = downloadFileUrl(currentFile?.id ?? currentFile?.fileId)
       link.click()
       ElMessage.success('下载任务已开始')
     } catch {

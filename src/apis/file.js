@@ -102,15 +102,15 @@ export const downloadFileUrl = fileId => {
  * @param {String} type - 文件类型：folder/txt/pdf...
  * @returns {Promise} 创建结果Promise
  */
-export const createFile = (parentId, fileName, type) => {
+export const createFile = (payloadOrParentId, fileName, type) => {
+  const payload =
+    typeof payloadOrParentId === 'object' && payloadOrParentId !== null
+      ? payloadOrParentId
+      : { parentId: payloadOrParentId, fileName, type }
   return request({
     url: `/v1/file`,
     method: 'post',
-    data: {
-      parentId,
-      fileName,
-      type
-    }
+    data: payload
   })
 }
 
@@ -150,15 +150,23 @@ export const deleteFiles = fileIds => {
  * @param {String} type - 操作类型：move/copy
  * @returns {Promise} 操作结果Promise
  */
-export const moveOrCopyFiles = (fileIds, targetIds, type) => {
+export const moveOrCopyFiles = (payloadOrFileIds, targetIds, type) => {
+  const payload =
+    typeof payloadOrFileIds === 'object' && payloadOrFileIds !== null
+      ? {
+          fileIds: payloadOrFileIds.fileIds || payloadOrFileIds.sourceIds || [],
+          targetIds: payloadOrFileIds.targetIds || (payloadOrFileIds.targetId ? [payloadOrFileIds.targetId] : []),
+          type: payloadOrFileIds.type || payloadOrFileIds.operation
+        }
+      : {
+          fileIds: payloadOrFileIds,
+          targetIds,
+          type
+        }
   return request({
     url: '/v1/file',
     method: 'put',
-    data: {
-      fileIds,
-      targetIds,
-      type
-    }
+    data: payload
   })
 }
 
@@ -725,7 +733,7 @@ export const getTextSummary = resourceId => {
  * @returns {String} 缩略图URL
  */
 export const getImageThumbnailUrl = resourceId => {
-  return `/api/v1/preview/image/${resourceId}/thumbnail`
+  return `/v1/preview/image/${resourceId}/thumbnail`
 }
 
 /**
@@ -734,7 +742,7 @@ export const getImageThumbnailUrl = resourceId => {
  * @returns {String} 原图URL
  */
 export const getImageOriginalUrl = resourceId => {
-  return `/api/v1/preview/image/${resourceId}/original`
+  return `/v1/preview/image/${resourceId}/original`
 }
 
 /**
@@ -754,7 +762,7 @@ export const getAudioMetadata = resourceId => {
  * @returns {String} 音频播放URL
  */
 export const getAudioPlayUrl = resourceId => {
-  return `/api/v1/preview/audio/${resourceId}/play`
+  return `/v1/preview/audio/${resourceId}/stream`
 }
 
 /**

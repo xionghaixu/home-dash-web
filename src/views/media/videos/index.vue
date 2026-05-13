@@ -24,12 +24,12 @@
       <div v-if="videoList.length > 0" class="media-grid">
         <div
           v-for="item in videoList"
-          :key="item.id"
+          :key="item.fileId"
           class="media-card video-card"
           @click="playVideo(item)"
         >
           <div class="media-cover video-cover">
-            <img v-if="item.coverUrl" :src="item.coverUrl" :alt="item.name" />
+            <img v-if="item.coverUrl" :src="item.coverUrl" :alt="item.fileName" />
             <div v-else class="media-placeholder">
               <el-icon><VideoCamera /></el-icon>
             </div>
@@ -39,7 +39,7 @@
             </div>
           </div>
           <div class="media-info">
-            <div class="media-name" :title="item.name">{{ item.name }}</div>
+            <div class="media-name" :title="item.fileName">{{ item.fileName }}</div>
             <div class="media-meta">
               <span>{{ item.resolution }}</span>
               <span v-if="item.seriesName">{{ item.seriesName }}</span>
@@ -120,7 +120,7 @@ const formatDuration = (seconds) => {
 }
 
 const playVideo = (item) => {
-  router.push(`/video/${item.id}`)
+  router.push(`/video/${item.fileId}`)
 }
 
 onMounted(() => {

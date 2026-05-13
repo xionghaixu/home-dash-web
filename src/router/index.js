@@ -14,7 +14,7 @@ const routes = [
       {
         path: 'files',
         component: () => import('@/views/file/index.vue'),
-        meta: { title: '文件列表', keepAlive: true }
+        meta: { title: '全部文件', keepAlive: true }
       },
       {
         path: 'files/:folderId',
@@ -24,8 +24,8 @@ const routes = [
       },
       {
         path: 'recent',
-        component: () => import('@/views/recent/index.vue'),
-        meta: { title: '最近上传', keepAlive: true }
+        redirect: '/files',
+        meta: { title: '全部文件', keepAlive: true }
       },
       {
         path: 'category',
@@ -42,16 +42,6 @@ const routes = [
         path: 'transfers',
         component: () => import('@/views/transfers/index.vue'),
         meta: { title: '传输列表', keepAlive: true }
-      },
-      {
-        path: 'profile',
-        component: () => import('@/views/profile/index.vue'),
-        meta: { title: '个人中心' }
-      },
-      {
-        path: 'settings',
-        component: () => import('@/views/settings/index.vue'),
-        meta: { title: '设置' }
       },
       {
         path: 'system',
@@ -115,13 +105,10 @@ export const ROUTE_NAMES = {
   FILE_ROOT: '/',
   FILE_LIST: 'files',
   FILE_FOLDER: 'files/:folderId',
-  RECENT: 'recent',
   CATEGORY: 'category',
   CATEGORY_TYPE: 'category/:categoryType',
   TRANSFERS: 'transfers',
   VIDEO: 'video/:fileId',
-  PROFILE: 'profile',
-  SETTINGS: 'settings',
   SYSTEM: 'system',
   SEARCH: 'search',
   MEDIA_IMAGES: 'media/images',

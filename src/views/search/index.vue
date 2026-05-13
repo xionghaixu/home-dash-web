@@ -59,6 +59,8 @@
           </div>
           <SearchFilterPanel
             v-model="filters"
+            :available-tags="availableTags"
+            :folder-tree="folderTree"
             @change="handleFilterChange"
           />
         </div>
@@ -83,6 +85,7 @@
           <SearchHistory
             :history="searchState.history"
             @select="handleHistorySelect"
+            @clear="handleClearHistory"
           />
         </div>
 
@@ -302,11 +305,24 @@
     />
 
     <!-- 文本预览 -->
-    <TextPreview
-      v-model="textPreviewVisible"
-      :file-id="previewFileId"
-      :file-name="previewFileName"
-    />
+    <el-dialog v-model="textPreviewVisible" :title="previewFileName || '文本预览'" width="min(960px, 92vw)">
+      <PageState
+        :loading="textPreviewLoading"
+        :error="Boolean(textPreviewError)"
+        :error-description="textPreviewError"
+        :empty="!textPreviewLoading && !textPreviewError && !textPreviewContent"
+        empty-description="暂无可预览内容"
+        min-height="360px"
+        @retry="loadTextPreview"
+      >
+        <TextPreview
+          v-if="textPreviewContent"
+          :content="textPreviewContent"
+          :file-name="previewFileName"
+          :highlight-keyword="keyword"
+        />
+      </PageState>
+    </el-dialog>
 
     <!-- 音频播放器（底部固定） -->
     <AudioPlayerBar
@@ -344,19 +360,22 @@ import SearchFilterPanel from '@/components/search/SearchFilterPanel.vue'
 import SearchHistory from '@/components/search/SearchHistory.vue'
 import SearchResultItem from '@/components/search/SearchResultItem.vue'
 import BatchOperationsBar from '@/components/common/BatchOperationsBar.vue'
+import PageState from '@/components/PageState.vue'
 import FileDetailDrawer from '@/components/FileDetailDrawer.vue'
 import ImagePreview from '@/components/ImagePreview.vue'
 import TextPreview from '@/components/preview/TextPreview.vue'
 import AudioPlayerBar from '@/components/preview/AudioPlayerBar.vue'
 import {
-  searchFiles,
+  searchFilesAdvanced,
   downloadFileUrl,
   getSearchHistory,
   clearSearchHistory,
   getHotSearchTerms,
   getFilterViews,
   saveFilterView,
-  deleteFilterView
+  deleteFilterView,
+  getTagList,
+  getTextPreview as fetchTextPreview
 } from '@/apis/file'
 import { getFileRoute, getVideoRoute } from '@/router'
 
@@ -377,6 +396,9 @@ const previewImageIndex = ref(0)
 const textPreviewVisible = ref(false)
 const previewFileId = ref(null)
 const previewFileName = ref('')
+const textPreviewLoading = ref(false)
+const textPreviewError = ref('')
+const textPreviewContent = ref('')
 const audioPlayerVisible = ref(false)
 const audioFileId = ref(null)
 const audioFileName = ref('')
@@ -384,13 +406,16 @@ const selectedFiles = ref([])
 const filterViews = ref([])
 const showSaveFilterDialog = ref(false)
 const newFilterViewName = ref('')
+const availableTags = ref([])
+const folderTree = ref([])
 
 const filters = reactive({
   types: [],
   dateRange: null,
   sizeRange: null,
-  folderId: null,
-  favorite: null,
+  directoryPath: null,
+  favorite: false,
+  recent: false,
   tags: []
 })
 
@@ -406,11 +431,11 @@ const searchState = reactive({
 })
 
 const quickFilterTypes = [
-  { value: 'picture', label: '图片', icon: 'Picture' },
-  { value: 'video', label: '视频', icon: 'VideoPlay' },
-  { value: 'audio', label: '音频', icon: 'Headset' },
-  { value: 'document', label: '文档', icon: 'Document' },
-  { value: 'folder', label: '文件夹', icon: 'Folder' }
+  { value: 'picture', label: '图片', icon: Picture },
+  { value: 'video', label: '视频', icon: VideoPlay },
+  { value: 'audio', label: '音频', icon: Headset },
+  { value: 'document', label: '文档', icon: Document },
+  { value: 'folder', label: '文件夹', icon: Folder }
 ]
 
 const hasActiveFilters = computed(() => {
@@ -418,8 +443,8 @@ const hasActiveFilters = computed(() => {
     filters.types.length > 0 ||
     filters.dateRange !== null ||
     filters.sizeRange !== null ||
-    filters.folderId !== null ||
-    filters.favorite !== null ||
+     filters.directoryPath !== null ||
+     filters.favorite === true ||
     filters.tags.length > 0
   )
 })
@@ -455,6 +480,7 @@ onMounted(() => {
   loadHistory()
   loadHotSearches()
   loadFilterViews()
+  loadTags()
   if (keyword.value) {
     doSearch()
   }
@@ -475,7 +501,9 @@ watch(() => route.query.q, newQ => {
 const loadHistory = async () => {
   try {
     const response = await getSearchHistory()
-    searchState.history = response.data || []
+    searchState.history = (response.data || [])
+      .map(item => (typeof item === 'string' ? item : item?.keyword))
+      .filter(Boolean)
   } catch {
     searchState.history = []
   }
@@ -493,9 +521,30 @@ const loadHotSearches = async () => {
 const loadFilterViews = async () => {
   try {
     const response = await getFilterViews()
-    filterViews.value = response.data || []
+    filterViews.value = (response.data || []).map(view => {
+      let parsedParams = {}
+      try {
+        parsedParams = view.viewParams ? JSON.parse(view.viewParams) : {}
+      } catch {
+        parsedParams = {}
+      }
+      return {
+        id: view.id,
+        name: view.viewName,
+        filters: normalizeFilterState(parsedParams)
+      }
+    })
   } catch {
     filterViews.value = []
+  }
+}
+
+const loadTags = async () => {
+  try {
+    const response = await getTagList()
+    availableTags.value = response.data || []
+  } catch {
+    availableTags.value = []
   }
 }
 
@@ -514,9 +563,11 @@ const doSearch = async () => {
       ...buildFilterParams()
     }
 
-    const response = await searchFiles(keyword.value, params)
-    searchState.results = response.data || []
-    searchState.total = response.extra?.total || searchState.results.length
+    const response = await searchFilesAdvanced(keyword.value, params)
+    const resultData = response.data || {}
+    const files = Array.isArray(resultData.files) ? resultData.files : []
+    searchState.results = files.map(normalizeSearchFile)
+    searchState.total = resultData.total || searchState.results.length
   } catch {
     ElMessage.error('搜索失败，请稍后重试')
     searchState.results = []
@@ -527,15 +578,18 @@ const doSearch = async () => {
 
 const buildFilterParams = () => {
   const params = {}
-  if (filters.types?.length > 0) params.types = filters.types.join(',')
+  if (filters.types?.length > 0) params.fileTypes = filters.types
   if (filters.dateRange?.length === 2) {
     params.startDate = filters.dateRange[0]
     params.endDate = filters.dateRange[1]
   }
-  if (filters.sizeRange) params.sizeRange = filters.sizeRange
-  if (filters.folderId) params.folderId = filters.folderId
-  if (filters.favorite !== null) params.favorite = filters.favorite
-  if (filters.tags?.length > 0) params.tags = filters.tags.join(',')
+  if (filters.sizeRange) {
+    params.minSize = filters.sizeRange.min
+    params.maxSize = filters.sizeRange.max
+  }
+  if (filters.directoryPath) params.directoryPath = filters.directoryPath
+  if (filters.favorite) params.favoritesOnly = true
+  if (filters.tags?.length > 0) params.tags = filters.tags
   return params
 }
 
@@ -576,7 +630,7 @@ const toggleQuickFilter = type => {
 }
 
 const toggleFavoriteFilter = () => {
-  filters.favorite = filters.favorite ? null : true
+  filters.favorite = !filters.favorite
   handleFilterChange()
 }
 
@@ -624,7 +678,7 @@ const handleRemoveTypeFilter = type => {
 }
 
 const handleRemoveFavoriteFilter = () => {
-  filters.favorite = null
+  filters.favorite = false
   handleFilterChange()
 }
 
@@ -637,8 +691,9 @@ const handleClearAllFilters = () => {
   filters.types = []
   filters.dateRange = null
   filters.sizeRange = null
-  filters.folderId = null
-  filters.favorite = null
+  filters.directoryPath = null
+  filters.favorite = false
+  filters.recent = false
   filters.tags = []
   handleFilterChange()
 }
@@ -686,8 +741,9 @@ const handleSaveFilterView = async () => {
   }
   try {
     await saveFilterView({
-      name: newFilterViewName.value,
-      filters: { ...filters }
+      viewName: newFilterViewName.value.trim(),
+      viewParams: JSON.stringify({ ...filters }),
+      isDefault: false
     })
     ElMessage.success('视图保存成功')
     showSaveFilterDialog.value = false
@@ -724,8 +780,9 @@ const handlePreview = file => {
     previewImageIndex.value = index >= 0 ? index : 0
     imagePreviewVisible.value = true
   } else if (file.type === 'txt' || file.type === 'text') {
-    previewFileId.value = file.id
+    previewFileId.value = file.resourceId || file.id
     previewFileName.value = file.fileName
+    loadTextPreview()
     textPreviewVisible.value = true
   }
 }
@@ -735,7 +792,7 @@ const handlePlay = file => {
     const routeLocation = router.resolve(getVideoRoute(file.id))
     window.open(routeLocation.href, '_blank')
   } else if (file.type === 'audio') {
-    audioFileId.value = file.id
+    audioFileId.value = file.resourceId || file.id
     audioFileName.value = file.fileName
     audioPlayerVisible.value = true
   }
@@ -777,6 +834,9 @@ const getTypeLabel = type => {
     video: '视频',
     audio: '音频',
     document: '文档',
+    text: '文本',
+    txt: '文本',
+    code: '代码',
     compress: '压缩包',
     folder: '文件夹',
     other: '其他'
@@ -786,14 +846,51 @@ const getTypeLabel = type => {
 
 const getTypeIcon = type => {
   const icons = {
-    picture: 'Picture',
-    video: 'VideoPlay',
-    audio: 'Headset',
-    document: 'Document',
-    folder: 'Folder',
-    other: 'More'
+    picture: Picture,
+    video: VideoPlay,
+    audio: Headset,
+    document: Document,
+    folder: Folder,
+    other: More
   }
-  return icons[type] || 'Document'
+  return icons[type] || Document
+}
+
+const normalizeSearchFile = file => ({
+  ...file,
+  id: file.fileId ?? file.id,
+  favorite: file.isFavorite ?? file.favorite ?? false,
+  folderPath: file.folderPath ?? file.parentPath,
+  tags: Array.isArray(file.tags) ? file.tags : []
+})
+
+const normalizeFilterState = value => ({
+  types: value.types || value.fileTypes || [],
+  dateRange: value.dateRange || null,
+  sizeRange: value.sizeRange || null,
+  directoryPath: value.directoryPath || null,
+  favorite: Boolean(value.favorite || value.favoritesOnly),
+  recent: Boolean(value.recent),
+  tags: value.tags || []
+})
+
+const loadTextPreview = async () => {
+  if (!previewFileId.value) {
+    return
+  }
+
+  textPreviewLoading.value = true
+  textPreviewError.value = ''
+  textPreviewContent.value = ''
+
+  try {
+    const response = await fetchTextPreview(previewFileId.value)
+    textPreviewContent.value = response.data?.content || ''
+  } catch {
+    textPreviewError.value = '文本预览加载失败'
+  } finally {
+    textPreviewLoading.value = false
+  }
 }
 </script>
 
@@ -866,7 +963,7 @@ const getTypeIcon = type => {
 
 // 左侧边栏
 .search-sidebar {
-  width: 280px;
+  width: 300px;
   flex-shrink: 0;
   background: var(--color-bg-white);
   border-radius: var(--radius-lg);
@@ -876,6 +973,7 @@ const getTypeIcon = type => {
   top: var(--spacing-xl);
   overflow: hidden;
   box-sizing: border-box;
+  max-width: 100%;
 }
 
 .sidebar-section {
@@ -894,6 +992,7 @@ const getTypeIcon = type => {
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   margin-bottom: var(--spacing-md);
+  flex-wrap: wrap;
 
   .el-button {
     margin-left: auto;
@@ -965,6 +1064,7 @@ const getTypeIcon = type => {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  flex-wrap: wrap;
 }
 
 .results-keyword {
@@ -1070,6 +1170,7 @@ const getTypeIcon = type => {
 @media (max-width: 768px) {
   .search-content {
     flex-direction: column;
+    padding: var(--spacing-md);
   }
 
   .search-sidebar {

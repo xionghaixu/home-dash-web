@@ -64,15 +64,12 @@ import { useRoute } from 'vue-router'
 import {
   HomeFilled,
   FolderOpened,
-  Clock,
   Star,
   VideoCamera,
   Picture,
   Headset,
-  Document,
   Grid,
-  TrendCharts,
-  Setting
+  TrendCharts
 } from '@element-plus/icons-vue'
 import { formatFileSize } from '@/utils/file'
 import { useAppStore } from '@/stores/app'
@@ -81,7 +78,7 @@ const route = useRoute()
 const store = useAppStore()
 
 const myMenuItems = [
-  { path: '/', label: '首页', icon: HomeFilled },
+  { path: '/home', label: '首页', icon: HomeFilled },
   { path: '/files', label: '全部文件', icon: FolderOpened },
   { path: '/transfers', label: '传输列表', icon: Star }
 ]
@@ -89,19 +86,17 @@ const myMenuItems = [
 const mediaMenuItems = [
   { path: '/media/videos', label: '视频', icon: VideoCamera },
   { path: '/media/images', label: '图片', icon: Picture },
-  { path: '/media/audio', label: '音频', icon: Headset },
-  { path: '/media/documents', label: '文档', icon: Document }
+  { path: '/media/audio', label: '音频', icon: Headset }
 ]
 
 const systemMenuItems = [
   { path: '/category', label: '分类浏览', icon: Grid },
-  { path: '/system', label: '系统信息', icon: TrendCharts },
-  { path: '/settings', label: '设置', icon: Setting }
+  { path: '/system', label: '系统信息', icon: TrendCharts }
 ]
 
-const isActive = (path) => {
-  if (path === '/') {
-    return route.path === '/' || route.path === '/files'
+const isActive = path => {
+  if (path === '/home') {
+    return route.path === '/' || route.path === '/home'
   }
   return route.path.startsWith(path)
 }

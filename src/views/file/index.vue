@@ -4,16 +4,95 @@
     <div class="page-header">
       <div class="page-header__left">
         <h1 class="page-header__title">
-          {{ isSearching ? '搜索结果' : (currentFolderName || '全部文件') }}
+          {{ isSearching ? '搜索结果' : currentFolderName || '全部文件' }}
         </h1>
         <p class="page-header__subtitle">
-          {{ isSearching ? `找到 ${fileList.length} 个结果` : '管理和浏览您的文件' }}
+          {{
+            isSearching
+              ? `找到 ${fileList.length} 个结果`
+              : showRecentSummary
+                ? '管理全部文件，并查看今日、本周、本月与最近上传概览'
+                : '管理和浏览您的文件'
+          }}
         </p>
       </div>
       <div class="page-header__actions">
         <el-button type="primary" :icon="Upload" @click="uploadFileTrigger">上传文件</el-button>
         <el-button plain :icon="FolderAdd" @click="createFolder">新建文件夹</el-button>
       </div>
+    </div>
+
+    <div v-if="showRecentSummary" v-loading="summaryLoading" class="upload-overview-card">
+      <div class="upload-overview__header">
+        <div>
+          <div class="upload-overview__title">上传概览</div>
+          <div class="upload-overview__subtitle">
+            全部文件页集中查看今日、本周、本月以及最近上传记录。
+          </div>
+        </div>
+      </div>
+
+      <el-alert
+        v-if="summaryErrorMessage"
+        type="warning"
+        :closable="false"
+        show-icon
+        :title="summaryErrorMessage"
+        class="upload-overview__alert"
+      />
+
+      <template v-else>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <div class="summary-label">今日上传</div>
+            <div class="summary-value">{{ recentSummary.todayCount || 0 }}</div>
+            <div class="summary-meta">{{ formatSize(recentSummary.todaySize || 0) }}</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">本周上传</div>
+            <div class="summary-value">{{ recentSummary.weekCount || 0 }}</div>
+            <div class="summary-meta">{{ formatSize(recentSummary.weekSize || 0) }}</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">本月上传</div>
+            <div class="summary-value">{{ recentSummary.monthCount || 0 }}</div>
+            <div class="summary-meta">{{ formatSize(recentSummary.monthSize || 0) }}</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">最近上传</div>
+            <div class="summary-value">{{ recentSummary.totalCount || 0 }}</div>
+            <div class="summary-meta">按最新创建时间排序</div>
+          </div>
+        </div>
+
+        <div class="recent-list-panel">
+          <div class="panel-title">最近上传文件</div>
+          <div v-if="recentFiles.length > 0" class="recent-list">
+            <div
+              v-for="file in recentFiles"
+              :key="file.id"
+              class="recent-item"
+              @click="openRecentFile(file)"
+            >
+              <div class="item-icon">
+                <FileTypeIcon :type="file.type" :size="26" />
+              </div>
+              <div class="item-info">
+                <div class="item-name" :title="file.fileName">{{ file.fileName }}</div>
+                <div class="item-meta">
+                  <span>{{ getFileTypeLabel(file.type) }}</span>
+                  <span>{{ formatFileSize(file) }}</span>
+                  <span>{{ formatFileDate(file.createTime) }}</span>
+                </div>
+              </div>
+              <el-button text type="primary" @click.stop="openRecentFolder(file)">
+                打开目录
+              </el-button>
+            </div>
+          </div>
+          <div v-else class="recent-empty">暂无最近上传记录。</div>
+        </div>
+      </template>
     </div>
 
     <!-- Toolbar -->
@@ -23,30 +102,27 @@
           <el-breadcrumb-item>
             <el-button link @click="goHome">首页</el-button>
           </el-breadcrumb-item>
-          <el-breadcrumb-item
-            v-for="(item, index) in breadcrumbList"
-            :key="item.id"
-          >
-            <el-button
-              v-if="index < breadcrumbList.length - 1"
-              link
-              @click="goToFolder(item.id)"
-            >
+          <el-breadcrumb-item v-for="(item, index) in breadcrumbList" :key="item.id">
+            <el-button v-if="index < breadcrumbList.length - 1" link @click="goToFolder(item.id)">
               {{ item.fileName }}
             </el-button>
             <span v-else class="current-folder">{{ item.fileName }}</span>
           </el-breadcrumb-item>
         </el-breadcrumb>
-        <el-button v-if="breadcrumbList.length > 0" link :icon="Back" class="back-btn" @click="goBack">
+        <el-button
+          v-if="breadcrumbList.length > 0"
+          link
+          :icon="Back"
+          class="back-btn"
+          @click="goBack"
+        >
           返回上级
         </el-button>
       </div>
 
       <div class="toolbar-divider"></div>
 
-      <div class="item-count">
-        共 {{ pagination.total }} 项
-      </div>
+      <div class="item-count">共 {{ pagination.total }} 项</div>
 
       <div class="toolbar-search">
         <el-input
@@ -87,7 +163,7 @@
         @retry="renderFileList"
       >
         <el-table
-          :data="fileList"
+          :data="displayedFileList"
           style="width: 100%"
           @selection-change="handleSelectionChange"
           @row-contextmenu="handleRowContextMenu"
@@ -129,7 +205,12 @@
           <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
               <div class="row-actions">
-                <el-button v-if="row.type !== 'folder'" link :icon="Download" @click.stop="downloadFile(row)">
+                <el-button
+                  v-if="row.type !== 'folder'"
+                  link
+                  :icon="Download"
+                  @click.stop="downloadFile(row)"
+                >
                   下载
                 </el-button>
                 <el-button link :icon="Edit" @click.stop="renameFile(row)">重命名</el-button>
@@ -140,16 +221,20 @@
                   <template #dropdown>
                     <el-dropdown-menu>
                       <el-dropdown-item command="detail">
-                        <el-icon><InfoFilled /></el-icon>详情
+                        <el-icon><InfoFilled /></el-icon>
+                        详情
                       </el-dropdown-item>
                       <el-dropdown-item command="move">
-                        <el-icon><Rank /></el-icon>移动
+                        <el-icon><Rank /></el-icon>
+                        移动
                       </el-dropdown-item>
                       <el-dropdown-item command="copy">
-                        <el-icon><CopyDocument /></el-icon>复制
+                        <el-icon><CopyDocument /></el-icon>
+                        复制
                       </el-dropdown-item>
                       <el-dropdown-item divided command="delete" class="danger">
-                        <el-icon><Delete /></el-icon>删除
+                        <el-icon><Delete /></el-icon>
+                        删除
                       </el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
@@ -234,6 +319,7 @@ import {
   deleteFiles as deleteFilesApi,
   downloadFileUrl,
   getFileList,
+  getRecentUploadSummary,
   moveOrCopyFiles,
   renameFile as renameFileApi,
   searchFiles
@@ -242,7 +328,8 @@ import FileTypeIcon from '@/components/FileTypeIcon.vue'
 import FolderTreeDialog from '@/components/FolderTreeDialog.vue'
 import PageState from '@/components/PageState.vue'
 import FileDetailDrawer from '@/components/FileDetailDrawer.vue'
-import { formatFileDate, formatFileSize, resolveErrorMessage } from '@/utils/file'
+import { formatSize } from '@/utils'
+import { formatFileDate, formatFileSize, getFileTypeLabel, resolveErrorMessage } from '@/utils/file'
 import { useAppStore } from '@/stores/app'
 
 const route = useRoute()
@@ -251,7 +338,7 @@ const store = useAppStore()
 
 const currentFolderId = computed(() => {
   const id = route.params.folderId
-  return id !== undefined ? Number(id) : '0'
+  return id !== undefined ? Number(id) : 0
 })
 
 const currentFolderName = computed(() => {
@@ -280,6 +367,68 @@ const pagination = ref({
 })
 const searchKeyword = ref('')
 const isSearching = ref(false)
+const recentSummary = ref({})
+const summaryLoading = ref(false)
+const summaryErrorMessage = ref('')
+
+const showRecentSummary = computed(() => !isSearching.value && Number(currentFolderId.value) === 0)
+const recentFiles = computed(() => recentSummary.value.recentFiles || [])
+
+const normalizeFileItem = item => {
+  if (!item || typeof item !== 'object') {
+    return item
+  }
+
+  const normalizedId = item.id ?? item.fileId
+  const normalizedType = typeof item.type === 'string' ? item.type.toLowerCase() : item.type
+
+  return {
+    ...item,
+    id: normalizedId,
+    fileId: item.fileId ?? normalizedId,
+    type: normalizedType,
+    favorite: item.favorite ?? item.isFavorite ?? false,
+    updateTime: item.updateTime ?? item.createTime ?? null,
+    folderPath: item.folderPath ?? item.parentPath ?? null
+  }
+}
+
+const normalizeBreadcrumbs = paths => {
+  if (!Array.isArray(paths)) {
+    return []
+  }
+  return paths.map(item => ({
+    ...item,
+    id: item.id ?? item.fileId
+  }))
+}
+
+const loadRecentSummary = async () => {
+  if (!showRecentSummary.value) {
+    recentSummary.value = {}
+    summaryErrorMessage.value = ''
+    return
+  }
+
+  summaryLoading.value = true
+  summaryErrorMessage.value = ''
+
+  try {
+    const response = await getRecentUploadSummary(30)
+    recentSummary.value = response.data || {}
+  } catch (error) {
+    recentSummary.value = {}
+    summaryErrorMessage.value = resolveErrorMessage(error, '上传概览加载失败')
+  } finally {
+    summaryLoading.value = false
+  }
+}
+
+const displayedFileList = computed(() => {
+  const start = (pagination.value.page - 1) * pagination.value.pageSize
+  const end = start + pagination.value.pageSize
+  return fileList.value.slice(start, end)
+})
 
 // Context menu
 const contextMenuVisible = ref(false)
@@ -298,7 +447,7 @@ const closeContextMenu = () => {
   contextMenuRow.value = null
 }
 
-const handleContextAction = (action) => {
+const handleContextAction = action => {
   const row = contextMenuRow.value
   if (!row) return
 
@@ -322,7 +471,7 @@ const handleContextAction = (action) => {
   closeContextMenu()
 }
 
-const handleRowClick = (row) => {
+const handleRowClick = row => {
   if (row.type === 'folder') {
     router.push(getFileRoute(row.id))
   }
@@ -337,7 +486,7 @@ const createFolder = async () => {
     const { value } = await ElMessageBox.prompt('请输入文件夹名称', '新建文件夹', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
-      inputValidator: (value) => {
+      inputValidator: value => {
         if (!value || !value.trim()) {
           return '文件夹名称不能为空'
         }
@@ -360,26 +509,39 @@ const renderFileList = async () => {
   try {
     if (isSearching.value && searchKeyword.value.trim()) {
       const response = await searchFiles(searchKeyword.value.trim())
-      fileList.value = response.data || []
+      fileList.value = Array.isArray(response.data) ? response.data.map(normalizeFileItem) : []
       breadcrumbList.value = []
-      pagination.value.total = fileList.value.length
-      pagination.value.totalPages = 1
     } else {
       const response = await getFileList(currentFolderId.value)
-      fileList.value = response.data || []
-      breadcrumbList.value = response.breadcrumb || []
-      pagination.value.total = response.total || fileList.value.length
-      pagination.value.totalPages = response.totalPages || 1
-      pagination.value.hasNext = response.hasNext || false
-      pagination.value.hasPrev = response.hasPrev || false
+      fileList.value = Array.isArray(response.data) ? response.data.map(normalizeFileItem) : []
+      breadcrumbList.value = normalizeBreadcrumbs(response.extra)
     }
+
+    await loadRecentSummary()
+    selection.value = []
+    syncPaginationState()
   } catch (error) {
     fileList.value = []
     breadcrumbList.value = []
+    selection.value = []
+    syncPaginationState()
     errorMessage.value = resolveErrorMessage(error, '加载失败')
   } finally {
     loading.value = false
   }
+}
+
+const syncPaginationState = () => {
+  pagination.value.total = fileList.value.length
+  pagination.value.totalPages = Math.max(
+    1,
+    Math.ceil(fileList.value.length / pagination.value.pageSize)
+  )
+  if (pagination.value.page > pagination.value.totalPages) {
+    pagination.value.page = 1
+  }
+  pagination.value.hasNext = pagination.value.page < pagination.value.totalPages
+  pagination.value.hasPrev = pagination.value.page > 1
 }
 
 const handleSearch = () => {
@@ -399,16 +561,15 @@ const clearSearch = () => {
 
 const handlePageChange = page => {
   pagination.value.page = page
-  renderFileList()
 }
 
 const handlePageSizeChange = pageSize => {
   pagination.value.pageSize = pageSize
   pagination.value.page = 1
-  renderFileList()
+  syncPaginationState()
 }
 
-const handleSelectionChange = (val) => {
+const handleSelectionChange = val => {
   selection.value = val
 }
 
@@ -420,7 +581,7 @@ const goHome = () => {
   router.push('/')
 }
 
-const goToFolder = (folderId) => {
+const goToFolder = folderId => {
   router.push(getFileRoute(folderId))
 }
 
@@ -472,7 +633,7 @@ const renameFile = async row => {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       inputValue: row.fileName,
-      inputValidator: (value) => {
+      inputValidator: value => {
         if (!value || !value.trim()) {
           return '名称不能为空'
         }
@@ -507,11 +668,15 @@ const deleteFile = async row => {
 const batchDelete = async () => {
   if (selection.value.length === 0) return
   try {
-    await ElMessageBox.confirm(`确定要删除选中的 ${selection.value.length} 个文件吗？`, '确认删除', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selection.value.length} 个文件吗？`,
+      '确认删除',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
     const ids = selection.value.map(file => file.id)
     await deleteFilesApi(ids)
     ElMessage.success('批量删除成功')
@@ -551,13 +716,8 @@ const handleMoreAction = (command, row) => {
 }
 
 const copyFile = async row => {
-  try {
-    await moveOrCopyFiles({ sourceIds: [row.id], targetId: currentFolderId.value, operation: 'copy' })
-    ElMessage.success('复制成功')
-    renderFileList()
-  } catch (error) {
-    ElMessage.error(resolveErrorMessage(error, '复制失败'))
-  }
+  folderTreeProps.value = { type: 'copy', title: '复制文件', sourceFiles: [row] }
+  folderTreeVisible.value = true
 }
 
 const showDetail = row => {
@@ -565,11 +725,37 @@ const showDetail = row => {
   detailVisible.value = true
 }
 
-const dealReturn = async (result) => {
+const openRecentFile = file => {
+  router.push(getFileRoute(file.parentId ?? 0))
+}
+
+const openRecentFolder = file => {
+  router.push(getFileRoute(file.parentId ?? 0))
+}
+
+const dealReturn = async result => {
   folderTreeVisible.value = false
-  if (result && result.success) {
-    ElMessage.success(result.message || '操作成功')
-    renderFileList()
+  if (!result || result.type !== 'submit') {
+    return
+  }
+
+  const fileIds = (folderTreeProps.value.sourceFiles || []).map(file => file.id).filter(Boolean)
+  const targetIds = Array.isArray(result.value)
+    ? result.value.filter(id => id !== undefined && id !== null)
+    : []
+  const operationType = folderTreeProps.value.type || 'move'
+
+  if (fileIds.length === 0 || targetIds.length === 0) {
+    return
+  }
+
+  try {
+    await moveOrCopyFiles(fileIds, targetIds, operationType)
+    ElMessage.success(operationType === 'copy' ? '复制成功' : '移动成功')
+    selection.value = []
+    await renderFileList()
+  } catch (error) {
+    ElMessage.error(resolveErrorMessage(error, operationType === 'copy' ? '复制失败' : '移动失败'))
   }
 }
 
@@ -634,6 +820,145 @@ onUnmounted(() => {
     gap: var(--spacing-md);
     flex-shrink: 0;
   }
+}
+
+.upload-overview-card {
+  padding: var(--spacing-xl);
+  background: var(--color-fill-base);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.upload-overview__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.upload-overview__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.upload-overview__subtitle {
+  margin-top: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.upload-overview__alert {
+  margin-bottom: var(--spacing-md);
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.summary-card,
+.recent-list-panel {
+  background: var(--color-bg-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-lighter);
+}
+
+.summary-card {
+  padding: var(--spacing-xl);
+}
+
+.summary-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.summary-value {
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.summary-meta {
+  margin-top: var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-placeholder);
+}
+
+.recent-list-panel {
+  padding: var(--spacing-lg);
+}
+
+.panel-title {
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.recent-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-fill-base);
+  }
+}
+
+.item-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--color-fill-base);
+  flex-shrink: 0;
+}
+
+.item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.recent-empty {
+  padding: var(--spacing-xl) 0;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
 }
 
 .toolbar-card {
@@ -884,6 +1209,10 @@ onUnmounted(() => {
     gap: var(--spacing-sm);
   }
 
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .toolbar-divider {
     display: none;
   }
@@ -913,6 +1242,15 @@ onUnmounted(() => {
 
   .search-input {
     width: 100%;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .recent-item {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

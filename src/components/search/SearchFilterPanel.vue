@@ -147,7 +147,7 @@ const hasActiveFilters = computed(() => {
   return (
     (f.types && f.types.length > 0) ||
     (f.tags && f.tags.length > 0) ||
-    f.folder ||
+    f.directoryPath ||
     f.dateRange ||
     f.sizeRange ||
     f.favorite ||
@@ -184,7 +184,7 @@ const toggleRecent = () => {
 }
 
 const handleFolderChange = val => {
-  updateFilter('folder', val)
+  updateFilter('directoryPath', val)
 }
 
 const handleDateChange = val => {
@@ -207,14 +207,22 @@ const clearAll = () => {
   selectedFolder.value = null
   dateRange.value = null
   sizeRange.value = [0, sizeOptions.length - 1]
-  filters.value = {}
+  filters.value = {
+    types: [],
+    tags: [],
+    dateRange: null,
+    sizeRange: null,
+    directoryPath: null,
+    favorite: false,
+    recent: false
+  }
   emit('change', filters.value)
 }
 
 watch(
   () => props.modelValue,
   val => {
-    if (!val.folder) selectedFolder.value = null
+    if (!val.directoryPath) selectedFolder.value = null
     if (!val.dateRange) dateRange.value = null
   },
   { deep: true }
@@ -223,9 +231,10 @@ watch(
 
 <style lang="scss" scoped>
 .search-filter-panel {
-  padding: var(--spacing-md);
+  padding: 0;
   width: 100%;
   box-sizing: border-box;
+  min-width: 0;
 }
 
 .filter-header {
@@ -245,6 +254,7 @@ watch(
   margin-bottom: var(--spacing-lg);
   width: 100%;
   box-sizing: border-box;
+  min-width: 0;
 
   &:last-child {
     margin-bottom: 0;
@@ -262,6 +272,14 @@ watch(
     width: 100%;
   }
 
+  :deep(.el-select),
+  :deep(.el-input),
+  :deep(.el-input-number),
+  :deep(.el-tree-select__wrapper) {
+    width: 100%;
+    max-width: 100%;
+  }
+
   :deep(.el-slider) {
     width: calc(100% - 16px) !important;
     margin-left: 8px;
@@ -272,7 +290,7 @@ watch(
     transform: translateX(-50%);
     white-space: nowrap;
     font-size: 11px;
-    max-width: 40px;
+    max-width: 56px;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -301,6 +319,22 @@ watch(
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-sm);
+
+  :deep(.el-check-tag) {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .filter-section {
+    :deep(.el-date-editor--daterange) {
+      width: 100% !important;
+    }
+
+    :deep(.el-slider__marks-text) {
+      display: none;
+    }
+  }
 }
 
 .empty-text {

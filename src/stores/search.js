@@ -17,8 +17,8 @@ export const useSearchStore = defineStore('search', {
       types: [],
       dateRange: null,
       sizeRange: null,
-      folderId: null,
-      favorite: null,
+      directoryPath: null,
+      favorite: false,
       tags: []
     },
     results: [],
@@ -42,8 +42,8 @@ export const useSearchStore = defineStore('search', {
         f.types.length > 0 ||
         f.dateRange !== null ||
         f.sizeRange !== null ||
-        f.folderId !== null ||
-        f.favorite !== null ||
+          Boolean(f.directoryPath) ||
+          f.favorite ||
         f.tags.length > 0
       )
     },
@@ -69,8 +69,8 @@ export const useSearchStore = defineStore('search', {
         types: [],
         dateRange: null,
         sizeRange: null,
-        folderId: null,
-        favorite: null,
+          directoryPath: null,
+          favorite: false,
         tags: []
       }
     },
@@ -185,8 +185,9 @@ export const useSearchStore = defineStore('search', {
         }
 
         const response = await searchFilesAdvanced(this.keyword, params)
-        this.results = response.data || []
-        this.total = response.extra?.total || this.results.length
+        const resultData = response.data || {}
+        this.results = Array.isArray(resultData.files) ? resultData.files : []
+        this.total = resultData.total || this.results.length
       } catch {
         this.results = []
         this.total = 0
@@ -200,7 +201,7 @@ export const useSearchStore = defineStore('search', {
       const f = this.filters
 
       if (f.types && f.types.length > 0) {
-        params.types = f.types.join(',')
+        params.fileTypes = f.types
       }
       if (f.dateRange && f.dateRange.length === 2) {
         params.startDate = f.dateRange[0]
@@ -210,14 +211,14 @@ export const useSearchStore = defineStore('search', {
         params.minSize = f.sizeRange.min
         params.maxSize = f.sizeRange.max
       }
-      if (f.folderId) {
-        params.folderId = f.folderId
+      if (f.directoryPath) {
+        params.directoryPath = f.directoryPath
       }
-      if (f.favorite !== null) {
-        params.favorite = f.favorite
+      if (f.favorite) {
+        params.favoritesOnly = true
       }
       if (f.tags && f.tags.length > 0) {
-        params.tags = f.tags.join(',')
+        params.tags = f.tags
       }
 
       return params

@@ -24,18 +24,18 @@
       <div v-if="pictureList.length > 0" class="media-grid">
         <div
           v-for="item in pictureList"
-          :key="item.id"
+          :key="item.fileId"
           class="media-card"
           @click="openDetail(item)"
         >
           <div class="media-cover">
-            <img v-if="item.thumbnailUrl" :src="item.thumbnailUrl" :alt="item.name" />
+            <img v-if="getPictureCover(item)" :src="getPictureCover(item)" :alt="item.fileName" />
             <div v-else class="media-placeholder">
               <el-icon><Picture /></el-icon>
             </div>
           </div>
           <div class="media-info">
-            <div class="media-name" :title="item.name">{{ item.name }}</div>
+            <div class="media-name" :title="item.fileName">{{ item.fileName }}</div>
             <div class="media-meta">
               <span>{{ formatFileSize(item.size) }}</span>
               <span>{{ item.width }}x{{ item.height }}</span>
@@ -47,6 +47,12 @@
       <div v-if="hasMore" class="load-more">
         <el-button :loading="loadingMore" @click="loadMore">加载更多</el-button>
       </div>
+
+      <ImagePreview
+        v-model="previewVisible"
+        :file-list="previewFiles"
+        :initial-index="previewIndex"
+      />
     </PageState>
   </div>
 </template>
@@ -55,7 +61,9 @@
 import { ref, onMounted } from 'vue'
 import { RefreshRight, Picture } from '@element-plus/icons-vue'
 import { getPictureList } from '@/apis/media'
+import { downloadFileUrl, getImageThumbnailUrl } from '@/apis/file'
 import PageState from '@/components/PageState.vue'
+import ImagePreview from '@/components/ImagePreview.vue'
 import { formatFileSize } from '@/utils/file'
 import { resolveErrorMessage } from '@/utils/file'
 
@@ -65,6 +73,9 @@ const loadingMore = ref(false)
 const errorMessage = ref('')
 const currentPage = ref(1)
 const hasMore = ref(false)
+const previewVisible = ref(false)
+const previewIndex = ref(0)
+const previewFiles = ref([])
 
 const loadPictures = async () => {
   loading.value = true
@@ -108,7 +119,22 @@ const loadMore = async () => {
 }
 
 const openDetail = (item) => {
-  console.log('打开图片详情', item)
+  previewFiles.value = pictureList.value.map(file => ({
+    fileId: file.fileId,
+    fileName: file.fileName
+  }))
+  previewIndex.value = pictureList.value.findIndex(file => file.fileId === item.fileId)
+  previewVisible.value = true
+}
+
+const getPictureCover = (item) => {
+  return (
+    item.thumbnailUrls?.medium ||
+    item.thumbnailUrls?.small ||
+    item.thumbnailUrls?.large ||
+    (item.resourceId ? getImageThumbnailUrl(item.resourceId) : '') ||
+    (item.fileId ? downloadFileUrl(item.fileId) : '')
+  )
 }
 
 onMounted(() => {

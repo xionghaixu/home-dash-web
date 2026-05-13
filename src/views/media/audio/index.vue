@@ -6,9 +6,7 @@
         <p class="page-header__subtitle">浏览和管理您的音频收藏。</p>
       </div>
       <div class="page-header__actions">
-        <el-button plain :icon="RefreshRight" :loading="loading" @click="loadAudio">
-          刷新
-        </el-button>
+        <el-button plain :icon="RefreshRight" :loading="loading" @click="loadAudio">刷新</el-button>
       </div>
     </div>
 
@@ -24,19 +22,21 @@
       <div v-if="audioList.length > 0" class="audio-list">
         <div
           v-for="(item, index) in audioList"
-          :key="item.id"
+          :key="item.fileId"
           class="audio-item"
           @click="playAudio(item)"
         >
           <div class="audio-number">{{ index + 1 }}</div>
           <div class="audio-cover">
-            <img v-if="item.albumCoverUrl" :src="item.albumCoverUrl" :alt="item.name" />
+            <img v-if="item.coverUrl" :src="item.coverUrl" :alt="item.title || item.fileName" />
             <div v-else class="audio-placeholder">
               <el-icon><Headset /></el-icon>
             </div>
           </div>
           <div class="audio-info">
-            <div class="audio-name" :title="item.name">{{ item.name }}</div>
+            <div class="audio-name" :title="item.title || item.fileName">
+              {{ item.title || item.fileName }}
+            </div>
             <div class="audio-meta">
               <span v-if="item.artist">{{ item.artist }}</span>
               <span v-if="item.album">{{ item.album }}</span>
@@ -54,6 +54,15 @@
       <div v-if="hasMore" class="load-more">
         <el-button :loading="loadingMore" @click="loadMore">加载更多</el-button>
       </div>
+
+      <AudioPlayerBar
+        v-if="audioPlayerVisible"
+        :file-id="currentAudioId"
+        :resource-id="currentAudioResourceId"
+        :file-name="currentAudioName"
+        :audio-url="currentAudioUrl"
+        @close="audioPlayerVisible = false"
+      />
     </PageState>
   </div>
 </template>
@@ -63,6 +72,7 @@ import { ref, onMounted } from 'vue'
 import { RefreshRight, Headset, VideoPlay } from '@element-plus/icons-vue'
 import { getAudioList } from '@/apis/media'
 import PageState from '@/components/PageState.vue'
+import AudioPlayerBar from '@/components/preview/AudioPlayerBar.vue'
 import { resolveErrorMessage } from '@/utils/file'
 
 const audioList = ref([])
@@ -71,6 +81,11 @@ const loadingMore = ref(false)
 const errorMessage = ref('')
 const currentPage = ref(1)
 const hasMore = ref(false)
+const audioPlayerVisible = ref(false)
+const currentAudioId = ref(null)
+const currentAudioResourceId = ref(null)
+const currentAudioName = ref('')
+const currentAudioUrl = ref('')
 
 const loadAudio = async () => {
   loading.value = true
@@ -113,15 +128,19 @@ const loadMore = async () => {
   }
 }
 
-const formatDuration = (seconds) => {
+const formatDuration = seconds => {
   if (!seconds) return '00:00'
   const mins = Math.floor(seconds / 60)
   const secs = Math.floor(seconds % 60)
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
-const playAudio = (item) => {
-  console.log('播放音频', item)
+const playAudio = item => {
+  currentAudioId.value = item.fileId
+  currentAudioResourceId.value = item.resourceId || null
+  currentAudioName.value = item.title || item.fileName
+  currentAudioUrl.value = item.audioUrl || ''
+  audioPlayerVisible.value = true
 }
 
 onMounted(() => {

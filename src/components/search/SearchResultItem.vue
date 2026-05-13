@@ -5,10 +5,7 @@
   >
     <!-- 选择框 -->
     <div class="item-checkbox" @click.stop>
-      <el-checkbox
-        :model-value="selected"
-        @change="$emit('select', $event)"
-      />
+      <el-checkbox :model-value="selected" @change="$emit('select', $event)" />
     </div>
 
     <!-- 缩略图/图标 -->
@@ -43,12 +40,12 @@
         </span>
         <span v-if="file.tags?.length" class="meta-tags">
           <el-tag
-            v-for="tag in file.tags.slice(0, 2)"
-            :key="tag"
+            v-for="tag in normalizedTags"
+            :key="tag.id || tag.name || tag"
             size="small"
             effect="plain"
           >
-            {{ tag }}
+            {{ tag.name || tag.tagName || tag }}
           </el-tag>
         </span>
       </div>
@@ -125,6 +122,13 @@ const highlightedName = computed(() => {
   const escapedKeyword = escapeHtml(props.keyword)
   const regex = new RegExp(`(${escapedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
   return escaped.replace(regex, '<span class="keyword-highlight">$1</span>')
+})
+
+const normalizedTags = computed(() => {
+  if (!Array.isArray(props.file.tags)) {
+    return []
+  }
+  return props.file.tags.slice(0, 2)
 })
 </script>
 

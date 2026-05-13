@@ -77,15 +77,22 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import {
-  Headset, ArrowLeft, ArrowRight, VideoPlay, VideoPause,
-  Mute, Close
+  Headset,
+  ArrowLeft,
+  ArrowRight,
+  VideoPlay,
+  VideoPause,
+  Mute,
+  Close
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { getAudioPlayUrl } from '@/apis/file'
+import { getAudioPlayUrl, recordAudioPlay } from '@/apis/file'
 
 const props = defineProps({
   fileId: { type: Number, required: true },
-  fileName: { type: String, default: '' }
+  resourceId: { type: Number, default: null },
+  fileName: { type: String, default: '' },
+  audioUrl: { type: String, default: '' }
 })
 
 defineEmits(['close'])
@@ -99,7 +106,10 @@ const isMuted = ref(false)
 const progress = ref(0)
 
 const audioUrl = computed(() => {
-  return props.fileId ? getAudioPlayUrl(props.fileId) : ''
+  if (props.audioUrl) {
+    return props.audioUrl
+  }
+  return props.resourceId ? getAudioPlayUrl(props.resourceId) : ''
 })
 
 onMounted(() => {
@@ -116,17 +126,22 @@ onUnmounted(() => {
   }
 })
 
-watch(() => props.fileId, () => {
-  // Reset state when file changes
-  currentTime.value = 0
-  duration.value = 0
-  progress.value = 0
-  isPlaying.value = false
-  // Auto-play new file
-  setTimeout(() => play(), 100)
-})
+watch(
+  () => props.fileId,
+  () => {
+    // Reset state when file changes
+    currentTime.value = 0
+    duration.value = 0
+    progress.value = 0
+    isPlaying.value = false
+    if (audioRef.value) {
+      audioRef.value.load()
+    }
+    setTimeout(() => play(), 100)
+  }
+)
 
-watch(volume, (val) => {
+watch(volume, val => {
   if (audioRef.value) {
     audioRef.value.volume = val / 100
     isMuted.value = val === 0
@@ -135,12 +150,18 @@ watch(volume, (val) => {
 
 const play = () => {
   if (audioRef.value) {
-    audioRef.value.play().then(() => {
-      isPlaying.value = true
-    }).catch(() => {
-      ElMessage.error('音频播放失败')
-      isPlaying.value = false
-    })
+    audioRef.value
+      .play()
+      .then(() => {
+        isPlaying.value = true
+        if (props.resourceId) {
+          recordAudioPlay(props.resourceId).catch(() => {})
+        }
+      })
+      .catch(() => {
+        ElMessage.error('音频播放失败')
+        isPlaying.value = false
+      })
   }
 }
 
@@ -197,7 +218,7 @@ const handleLoadedMetadata = () => {
   }
 }
 
-const handleProgressChange = (val) => {
+const handleProgressChange = val => {
   if (audioRef.value && duration.value > 0) {
     const newTime = (val / 100) * duration.value
     audioRef.value.currentTime = newTime
@@ -216,7 +237,7 @@ const handleError = () => {
   isPlaying.value = false
 }
 
-const formatTime = (seconds) => {
+const formatTime = seconds => {
   if (!seconds || isNaN(seconds)) return '00:00'
   const mins = Math.floor(seconds / 60)
   const secs = Math.floor(seconds % 60)

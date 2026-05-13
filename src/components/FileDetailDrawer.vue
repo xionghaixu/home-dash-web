@@ -24,7 +24,7 @@
           <div class="favorite-btn">
             <FavoriteButton
               v-model:favorite="detail.favorite"
-              :file-id="detail.id"
+              :file-id="detail.resourceId || detail.id"
               @change="handleFavoriteChange"
             />
           </div>
@@ -89,13 +89,13 @@
 
         <RemarkEditor
           v-model:remark="detail.remark"
-          :file-id="detail.id"
+          :file-id="detail.resourceId || detail.id"
           @change="handleRemarkChange"
         />
       </div>
     </PageState>
 
-    <TagManager v-model="showTagManager" :file-id="detail?.id" @change="handleTagsChange" />
+    <TagManager v-model="showTagManager" :file-id="detail?.resourceId || detail?.id" @change="handleTagsChange" />
   </el-drawer>
 </template>
 
@@ -111,12 +111,11 @@ import RemarkEditor from '@/components/detail/RemarkEditor.vue'
 import {
   downloadFileUrl,
   getFile,
+  getSearchFileDetail,
   verifyFileMd5,
   getFileTags,
-  addFileTags,
   removeFileTag,
-  getFileFavorite,
-  toggleFavorite
+  getFileFavorite
 } from '@/apis/file'
 import PageState from '@/components/PageState.vue'
 import FileTypeIcon from '@/components/FileTypeIcon.vue'
@@ -197,14 +196,25 @@ const loadDetail = async () => {
   verifyResult.value = null
 
   try {
-    const [fileResponse, tagsResponse, favoriteResponse] = await Promise.all([
-      getFile(props.fileId),
+    const [fileResponse, tagsResponse] = await Promise.all([
+      getSearchFileDetail(props.fileId).catch(() => getFile(props.fileId)),
       getFileTags(props.fileId).catch(() => ({ data: [] })),
-      getFileFavorite(props.fileId).catch(() => ({ data: { favorite: false } }))
     ])
 
-    detail.value = fileResponse.data || {}
-    detail.value.favorite = favoriteResponse.data?.favorite || false
+    const rawDetail = fileResponse.data || {}
+    detail.value = {
+      ...rawDetail,
+      id: rawDetail.fileId ?? rawDetail.id,
+      favorite: rawDetail.isFavorite ?? rawDetail.favorite ?? false,
+      folderPath: rawDetail.folderPath ?? rawDetail.parentPath,
+      createTime: rawDetail.createTime ?? rawDetail.updateTime
+    }
+
+    if (detail.value.resourceId) {
+      const favoriteResponse = await getFileFavorite(detail.value.resourceId).catch(() => ({ data: false }))
+      detail.value.favorite = Boolean(favoriteResponse.data)
+    }
+
     tags.value = tagsResponse.data || []
   } catch (error) {
     detail.value = null
@@ -298,7 +308,7 @@ const handleRemoveTag = async tagId => {
   if (!detail.value?.id) return
 
   try {
-    await removeFileTag(detail.value.id, tagId)
+    await removeFileTag(detail.value.resourceId || detail.value.id, tagId)
     tags.value = tags.value.filter(t => t.id !== tagId)
     ElMessage.success('标签已移除')
   } catch {

@@ -145,7 +145,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useThemeStore, ThemeMode, PresetColors } from '@/stores/theme'
 import {
   FolderOpened,

@@ -15,7 +15,7 @@
 import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Star, StarFilled } from '@element-plus/icons-vue'
-import { toggleFavorite } from '@/apis/file'
+import { addFavorite, removeFavorite } from '@/apis/file'
 
 const props = defineProps({
   fileId: {
@@ -57,7 +57,11 @@ const handleToggle = async () => {
 
   loading.value = true
   try {
-    await toggleFavorite(props.fileId)
+    if (isFavorite.value) {
+      await removeFavorite(props.fileId)
+    } else {
+      await addFavorite(props.fileId)
+    }
     isFavorite.value = !isFavorite.value
     emit('update:favorite', isFavorite.value)
     emit('change', isFavorite.value)

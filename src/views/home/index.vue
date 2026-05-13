@@ -197,7 +197,7 @@
                 class="image-item"
                 @click="previewImage(img)"
               >
-                <img v-if="img.thumbnailUrl || img.coverUrl" :src="img.thumbnailUrl || img.coverUrl" :alt="img.fileName" />
+                <img v-if="resolveImageUrl(img)" :src="resolveImageUrl(img)" :alt="img.fileName" />
                 <div v-else class="image-placeholder">
                   <el-icon><Picture /></el-icon>
                 </div>
@@ -325,9 +325,9 @@
           <div class="quick-icon system"><el-icon><Monitor /></el-icon></div>
           <span>系统监控</span>
         </div>
-        <div class="quick-item" @click="goTo('/settings')">
-          <div class="quick-icon settings"><el-icon><Setting /></el-icon></div>
-          <span>设置</span>
+        <div class="quick-item" @click="goTo('/files')">
+          <div class="quick-icon recent"><el-icon><UploadFilled /></el-icon></div>
+          <span>全部文件</span>
         </div>
       </div>
     </div>
@@ -346,9 +346,10 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getHomeMediaSummary } from '@/apis/media'
+import { downloadFileUrl, getImageThumbnailUrl } from '@/apis/file'
 import {
   Picture, VideoCamera, Headset, FolderOpened, ArrowRight, ArrowUp,
-  VideoPlay, UploadFilled, List, CircleCheck, Document, Grid, Monitor, Setting
+  VideoPlay, UploadFilled, List, CircleCheck, Document, Grid, Monitor
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
@@ -392,8 +393,8 @@ const currentUploadItems = computed(() => {
 
 const previewImages = computed(() => {
   return imageReview.value
-    .filter(img => img.thumbnailUrl || img.coverUrl)
-    .map(img => img.thumbnailUrl || img.coverUrl)
+    .map(resolveImageUrl)
+    .filter(Boolean)
 })
 
 const progressColors = [
@@ -491,9 +492,15 @@ const goToFile = (fileId) => {
 }
 
 const previewImage = (img) => {
-  const idx = previewImages.value.findIndex(url => url === (img.thumbnailUrl || img.coverUrl))
+  const currentUrl = resolveImageUrl(img)
+  const idx = previewImages.value.findIndex(url => url === currentUrl)
   previewIndex.value = idx >= 0 ? idx : 0
   previewVisible.value = true
+}
+
+const resolveImageUrl = img => {
+  if (!img) return ''
+  return img.thumbnailUrl || img.coverUrl || (img.resourceId ? getImageThumbnailUrl(img.resourceId) : '') || (img.fileId ? downloadFileUrl(img.fileId) : '')
 }
 
 // 生命周期
@@ -1158,7 +1165,7 @@ onUnmounted(() => {
   &.transfer { background: rgba(131, 85, 218, 0.1); color: #8355da; }
   &.category { background: rgba(245, 108, 108, 0.1); color: #f56c6c; }
   &.system { background: rgba(32, 160, 255, 0.1); color: #20a0ff; }
-  &.settings { background: rgba(144, 147, 153, 0.1); color: #606266; }
+  &.recent { background: rgba(131, 85, 218, 0.1); color: #8355da; }
 }
 
 // 响应式
