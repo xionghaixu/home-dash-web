@@ -23,11 +23,6 @@ const routes = [
         meta: { title: '文件夹', keepAlive: true }
       },
       {
-        path: 'recent',
-        redirect: '/files',
-        meta: { title: '全部文件', keepAlive: true }
-      },
-      {
         path: 'category',
         component: () => import('@/views/category/index.vue'),
         meta: { title: '分类浏览', keepAlive: true }

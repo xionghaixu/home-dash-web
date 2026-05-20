@@ -42,8 +42,8 @@ export const useSearchStore = defineStore('search', {
         f.types.length > 0 ||
         f.dateRange !== null ||
         f.sizeRange !== null ||
-          Boolean(f.directoryPath) ||
-          f.favorite ||
+        Boolean(f.directoryPath) ||
+        f.favorite ||
         f.tags.length > 0
       )
     },
@@ -69,8 +69,8 @@ export const useSearchStore = defineStore('search', {
         types: [],
         dateRange: null,
         sizeRange: null,
-          directoryPath: null,
-          favorite: false,
+        directoryPath: null,
+        favorite: false,
         tags: []
       }
     },

@@ -6,15 +6,7 @@
         <h1 class="page-header__title">
           {{ isSearching ? '搜索结果' : currentFolderName || '全部文件' }}
         </h1>
-        <p class="page-header__subtitle">
-          {{
-            isSearching
-              ? `找到 ${fileList.length} 个结果`
-              : showRecentSummary
-                ? '管理全部文件，并查看今日、本周、本月与最近上传概览'
-                : '管理和浏览您的文件'
-          }}
-        </p>
+        <p class="page-header__subtitle">{{ pageSubtitle }}</p>
       </div>
       <div class="page-header__actions">
         <el-button type="primary" :icon="Upload" @click="uploadFileTrigger">上传文件</el-button>
@@ -22,14 +14,23 @@
       </div>
     </div>
 
-    <div v-if="showRecentSummary" v-loading="summaryLoading" class="upload-overview-card">
-      <div class="upload-overview__header">
+    <div v-if="isRootWorkspace" v-loading="summaryLoading" class="workspace-overview-card">
+      <div class="workspace-overview__header compact">
         <div>
-          <div class="upload-overview__title">上传概览</div>
-          <div class="upload-overview__subtitle">
-            全部文件页集中查看今日、本周、本月以及最近上传记录。
+          <div class="workspace-overview__title">全部文件工作台</div>
+          <div class="workspace-overview__subtitle">
+            根目录用于统一浏览；最近上传是跨目录时间视图，点击卡片即可切换。
           </div>
         </div>
+        <el-button
+          v-if="isRecentView"
+          type="primary"
+          plain
+          size="small"
+          @click="setRootView('all')"
+        >
+          返回根目录视图
+        </el-button>
       </div>
 
       <el-alert
@@ -38,59 +39,39 @@
         :closable="false"
         show-icon
         :title="summaryErrorMessage"
-        class="upload-overview__alert"
+        class="workspace-overview__alert"
       />
 
       <template v-else>
-        <div class="summary-grid">
-          <div class="summary-card">
-            <div class="summary-label">今日上传</div>
-            <div class="summary-value">{{ recentSummary.todayCount || 0 }}</div>
-            <div class="summary-meta">{{ formatSize(recentSummary.todaySize || 0) }}</div>
-          </div>
-          <div class="summary-card">
-            <div class="summary-label">本周上传</div>
-            <div class="summary-value">{{ recentSummary.weekCount || 0 }}</div>
-            <div class="summary-meta">{{ formatSize(recentSummary.weekSize || 0) }}</div>
-          </div>
-          <div class="summary-card">
-            <div class="summary-label">本月上传</div>
-            <div class="summary-value">{{ recentSummary.monthCount || 0 }}</div>
-            <div class="summary-meta">{{ formatSize(recentSummary.monthSize || 0) }}</div>
-          </div>
-          <div class="summary-card">
-            <div class="summary-label">最近上传</div>
-            <div class="summary-value">{{ recentSummary.totalCount || 0 }}</div>
-            <div class="summary-meta">按最新创建时间排序</div>
-          </div>
+        <div class="summary-grid compact">
+          <button
+            v-for="card in summaryCards"
+            :key="card.key"
+            type="button"
+            class="summary-card summary-card--action"
+            :class="{ active: isRecentView && activeRecentFilter === card.key }"
+            @click="openRecentRange(card.key)"
+          >
+            <div class="summary-label">{{ card.label }}</div>
+            <div class="summary-value">{{ card.count }}</div>
+            <div class="summary-meta">{{ card.meta }}</div>
+          </button>
         </div>
 
-        <div class="recent-list-panel">
-          <div class="panel-title">最近上传文件</div>
-          <div v-if="recentFiles.length > 0" class="recent-list">
-            <div
-              v-for="file in recentFiles"
-              :key="file.id"
-              class="recent-item"
-              @click="openRecentFile(file)"
+        <div class="workspace-overview__footer compact">
+          <div class="workspace-overview__hint">{{ workspaceHint }}</div>
+          <div class="recent-filter-group">
+            <el-tag
+              v-for="filter in recentFilterOptions"
+              :key="filter.key"
+              :type="activeRecentFilter === filter.key ? 'primary' : 'info'"
+              effect="light"
+              class="recent-filter-tag"
+              @click="setRecentFilter(filter.key)"
             >
-              <div class="item-icon">
-                <FileTypeIcon :type="file.type" :size="26" />
-              </div>
-              <div class="item-info">
-                <div class="item-name" :title="file.fileName">{{ file.fileName }}</div>
-                <div class="item-meta">
-                  <span>{{ getFileTypeLabel(file.type) }}</span>
-                  <span>{{ formatFileSize(file) }}</span>
-                  <span>{{ formatFileDate(file.createTime) }}</span>
-                </div>
-              </div>
-              <el-button text type="primary" @click.stop="openRecentFolder(file)">
-                打开目录
-              </el-button>
-            </div>
+              {{ filter.label }}
+            </el-tag>
           </div>
-          <div v-else class="recent-empty">暂无最近上传记录。</div>
         </div>
       </template>
     </div>
@@ -98,9 +79,9 @@
     <!-- Toolbar -->
     <div class="toolbar-card">
       <div class="toolbar-info">
-        <el-breadcrumb class="toolbar-breadcrumb" separator=">">
+        <el-breadcrumb v-if="!isRecentView" class="toolbar-breadcrumb" separator=">">
           <el-breadcrumb-item>
-            <el-button link @click="goHome">首页</el-button>
+            <el-button link @click="goFileRoot">全部文件</el-button>
           </el-breadcrumb-item>
           <el-breadcrumb-item v-for="(item, index) in breadcrumbList" :key="item.id">
             <el-button v-if="index < breadcrumbList.length - 1" link @click="goToFolder(item.id)">
@@ -109,8 +90,13 @@
             <span v-else class="current-folder">{{ item.fileName }}</span>
           </el-breadcrumb-item>
         </el-breadcrumb>
+        <div v-else class="recent-view-indicator">
+          <span class="recent-view-indicator__title">最近上传</span>
+          <span class="recent-view-indicator__meta">{{ recentViewLabel }}</span>
+          <el-button link size="small" @click="setRootView('all')">切换到根目录文件</el-button>
+        </div>
         <el-button
-          v-if="breadcrumbList.length > 0"
+          v-if="breadcrumbList.length > 1 && !isRecentView"
           link
           :icon="Back"
           class="back-btn"
@@ -157,8 +143,8 @@
         :loading="loading"
         :error="Boolean(errorMessage)"
         :error-description="errorMessage"
-        :empty="!loading && !errorMessage && fileList.length === 0"
-        empty-description="暂无文件，上传您的第一个文件吧"
+        :empty="!loading && !errorMessage && currentTableData.length === 0"
+        :empty-description="currentEmptyDescription"
         min-height="400px"
         @retry="renderFileList"
       >
@@ -196,9 +182,19 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="修改时间" width="160">
+          <el-table-column v-if="isRecentView" label="所在目录" width="120">
             <template #default="{ row }">
-              <span class="size-display">{{ formatFileDate(row.updateTime) }}</span>
+              <el-button link type="primary" @click.stop="openRecentFolder(row)">
+                打开目录
+              </el-button>
+            </template>
+          </el-table-column>
+
+          <el-table-column :label="isRecentView ? '上传时间' : '修改时间'" width="160">
+            <template #default="{ row }">
+              <span class="size-display">
+                {{ formatFileDate(isRecentView ? row.createTime : row.updateTime) }}
+              </span>
             </template>
           </el-table-column>
 
@@ -214,8 +210,8 @@
                   下载
                 </el-button>
                 <el-button link :icon="Edit" @click.stop="renameFile(row)">重命名</el-button>
-                <el-dropdown trigger="click" @command="cmd => handleMoreAction(cmd, row)">
-                  <el-button link class="more-btn">
+                <el-dropdown trigger="click" @command="cmd => handleMoreAction(cmd, row)" @click.stop>
+                  <el-button link class="more-btn" @click.stop>
                     <el-icon><ArrowDown /></el-icon>
                   </el-button>
                   <template #dropdown>
@@ -329,7 +325,7 @@ import FolderTreeDialog from '@/components/FolderTreeDialog.vue'
 import PageState from '@/components/PageState.vue'
 import FileDetailDrawer from '@/components/FileDetailDrawer.vue'
 import { formatSize } from '@/utils'
-import { formatFileDate, formatFileSize, getFileTypeLabel, resolveErrorMessage } from '@/utils/file'
+import { formatFileDate, formatFileSize, resolveErrorMessage } from '@/utils/file'
 import { useAppStore } from '@/stores/app'
 
 const route = useRoute()
@@ -338,8 +334,12 @@ const store = useAppStore()
 
 const currentFolderId = computed(() => {
   const id = route.params.folderId
-  return id !== undefined ? Number(id) : 0
+  return id !== undefined ? String(id) : '0'
 })
+
+const isRootFolderId = folderId => String(folderId ?? '0') === '0'
+
+const toApiFolderId = folderId => (isRootFolderId(folderId) ? 0 : String(folderId))
 
 const currentFolderName = computed(() => {
   if (breadcrumbList.value.length > 0) {
@@ -371,8 +371,115 @@ const recentSummary = ref({})
 const summaryLoading = ref(false)
 const summaryErrorMessage = ref('')
 
-const showRecentSummary = computed(() => !isSearching.value && Number(currentFolderId.value) === 0)
-const recentFiles = computed(() => recentSummary.value.recentFiles || [])
+const isRootWorkspace = computed(() => !isSearching.value && isRootFolderId(currentFolderId.value))
+const isRecentView = computed(() => isRootWorkspace.value && route.query.view === 'recent')
+const activeRecentFilter = computed(() => {
+  const range = route.query.range
+  return ['today', 'week', 'month'].includes(range) ? range : 'recent'
+})
+
+const recentFilterOptions = [
+  { key: 'recent', label: '最近上传' },
+  { key: 'today', label: '今日上传' },
+  { key: 'week', label: '本周上传' },
+  { key: 'month', label: '本月上传' }
+]
+
+const recentFiles = computed(() => {
+  const files = Array.isArray(recentSummary.value.recentFiles)
+    ? recentSummary.value.recentFiles
+    : []
+  return files.map(normalizeFileItem)
+})
+
+const filteredRecentFiles = computed(() => {
+  if (!isRecentView.value) {
+    return recentFiles.value
+  }
+
+  const now = new Date()
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const weekStart = new Date(todayStart)
+  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7))
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime()
+
+  return recentFiles.value.filter(file => {
+    const createTime = file.createTime ? new Date(file.createTime).getTime() : 0
+    switch (activeRecentFilter.value) {
+      case 'today':
+        return createTime >= todayStart
+      case 'week':
+        return createTime >= weekStart.getTime()
+      case 'month':
+        return createTime >= monthStart
+      default:
+        return true
+    }
+  })
+})
+
+const currentTableData = computed(() =>
+  isRecentView.value ? filteredRecentFiles.value : fileList.value
+)
+
+const pageSubtitle = computed(() => {
+  if (isSearching.value) {
+    return `找到 ${currentTableData.value.length} 个结果`
+  }
+  if (isRecentView.value) {
+    return '查看跨目录的最近上传记录，并可直接定位到实际目录。'
+  }
+  if (isRootWorkspace.value) {
+    return '全部文件页作为工作台入口，集中查看总览、最近上传和根目录内容。'
+  }
+  return '管理和浏览您的文件'
+})
+
+const summaryCards = computed(() => [
+  {
+    key: 'today',
+    label: '今日上传',
+    count: recentSummary.value.todayCount || 0,
+    meta: formatSize(recentSummary.value.todaySize || 0)
+  },
+  {
+    key: 'week',
+    label: '本周上传',
+    count: recentSummary.value.weekCount || 0,
+    meta: formatSize(recentSummary.value.weekSize || 0)
+  },
+  {
+    key: 'month',
+    label: '本月上传',
+    count: recentSummary.value.monthCount || 0,
+    meta: formatSize(recentSummary.value.monthSize || 0)
+  },
+  {
+    key: 'recent',
+    label: '最近上传',
+    count: recentSummary.value.totalCount || 0,
+    meta: isRecentView.value ? '当前正在浏览最近上传' : '点击查看跨目录上传记录'
+  }
+])
+
+const recentViewLabel = computed(() => {
+  const currentFilter = recentFilterOptions.find(item => item.key === activeRecentFilter.value)
+  return currentFilter ? currentFilter.label : '全部最近上传'
+})
+
+const workspaceHint = computed(() => {
+  if (isRecentView.value) {
+    return `当前表格展示 ${recentViewLabel.value} 的跨目录上传记录。`
+  }
+  return '默认显示根目录文件；点击上方卡片进入对应上传时间视图。'
+})
+
+const currentEmptyDescription = computed(() => {
+  if (isRecentView.value) {
+    return '当前筛选范围内暂无最近上传记录。'
+  }
+  return '暂无文件，上传您的第一个文件吧'
+})
 
 const normalizeFileItem = item => {
   if (!item || typeof item !== 'object') {
@@ -384,12 +491,23 @@ const normalizeFileItem = item => {
 
   return {
     ...item,
-    id: normalizedId,
-    fileId: item.fileId ?? normalizedId,
+    id: normalizedId !== undefined && normalizedId !== null ? String(normalizedId) : normalizedId,
+    fileId:
+      item.fileId !== undefined && item.fileId !== null
+        ? String(item.fileId)
+        : normalizedId !== undefined && normalizedId !== null
+          ? String(normalizedId)
+          : normalizedId,
     type: normalizedType,
     favorite: item.favorite ?? item.isFavorite ?? false,
     updateTime: item.updateTime ?? item.createTime ?? null,
-    folderPath: item.folderPath ?? item.parentPath ?? null
+    folderPath: item.folderPath ?? item.parentPath ?? null,
+    parentId:
+      item.parentId !== undefined && item.parentId !== null ? String(item.parentId) : item.parentId,
+    resourceId:
+      item.resourceId !== undefined && item.resourceId !== null
+        ? String(item.resourceId)
+        : item.resourceId
   }
 }
 
@@ -399,12 +517,17 @@ const normalizeBreadcrumbs = paths => {
   }
   return paths.map(item => ({
     ...item,
-    id: item.id ?? item.fileId
+    id:
+      item.id !== undefined && item.id !== null
+        ? String(item.id)
+        : item.fileId !== undefined && item.fileId !== null
+          ? String(item.fileId)
+          : item.id ?? item.fileId
   }))
 }
 
 const loadRecentSummary = async () => {
-  if (!showRecentSummary.value) {
+  if (!isRootWorkspace.value) {
     recentSummary.value = {}
     summaryErrorMessage.value = ''
     return
@@ -415,7 +538,10 @@ const loadRecentSummary = async () => {
 
   try {
     const response = await getRecentUploadSummary(30)
-    recentSummary.value = response.data || {}
+    recentSummary.value = {
+      ...(response.data || {}),
+      recentFiles: Array.isArray(response.data?.recentFiles) ? response.data.recentFiles : []
+    }
   } catch (error) {
     recentSummary.value = {}
     summaryErrorMessage.value = resolveErrorMessage(error, '上传概览加载失败')
@@ -427,7 +553,7 @@ const loadRecentSummary = async () => {
 const displayedFileList = computed(() => {
   const start = (pagination.value.page - 1) * pagination.value.pageSize
   const end = start + pagination.value.pageSize
-  return fileList.value.slice(start, end)
+  return currentTableData.value.slice(start, end)
 })
 
 // Context menu
@@ -494,7 +620,11 @@ const createFolder = async () => {
       }
     })
     if (value) {
-      await createFile({ fileName: value.trim(), type: 'folder', parentId: currentFolderId.value })
+      await createFile({
+        fileName: value.trim(),
+        type: 'folder',
+        parentId: toApiFolderId(currentFolderId.value)
+      })
       ElMessage.success('文件夹创建成功')
       renderFileList()
     }
@@ -512,7 +642,7 @@ const renderFileList = async () => {
       fileList.value = Array.isArray(response.data) ? response.data.map(normalizeFileItem) : []
       breadcrumbList.value = []
     } else {
-      const response = await getFileList(currentFolderId.value)
+      const response = await getFileList(toApiFolderId(currentFolderId.value))
       fileList.value = Array.isArray(response.data) ? response.data.map(normalizeFileItem) : []
       breadcrumbList.value = normalizeBreadcrumbs(response.extra)
     }
@@ -532,10 +662,10 @@ const renderFileList = async () => {
 }
 
 const syncPaginationState = () => {
-  pagination.value.total = fileList.value.length
+  pagination.value.total = currentTableData.value.length
   pagination.value.totalPages = Math.max(
     1,
-    Math.ceil(fileList.value.length / pagination.value.pageSize)
+    Math.ceil(currentTableData.value.length / pagination.value.pageSize)
   )
   if (pagination.value.page > pagination.value.totalPages) {
     pagination.value.page = 1
@@ -577,8 +707,8 @@ const clearSelection = () => {
   selection.value = []
 }
 
-const goHome = () => {
-  router.push('/')
+const goFileRoot = () => {
+  router.push('/files')
 }
 
 const goToFolder = folderId => {
@@ -590,7 +720,7 @@ const goBack = () => {
     const parentFolder = breadcrumbList.value[breadcrumbList.value.length - 2]
     router.push(getFileRoute(parentFolder.id))
   } else {
-    goHome()
+    goFileRoot()
   }
 }
 
@@ -725,12 +855,50 @@ const showDetail = row => {
   detailVisible.value = true
 }
 
-const openRecentFile = file => {
+const openRecentFolder = file => {
   router.push(getFileRoute(file.parentId ?? 0))
 }
 
-const openRecentFolder = file => {
-  router.push(getFileRoute(file.parentId ?? 0))
+const setRootView = mode => {
+  const query = { ...route.query }
+  if (mode === 'recent') {
+    query.view = 'recent'
+    if (!query.range) {
+      query.range = 'recent'
+    }
+  } else {
+    delete query.view
+    delete query.range
+  }
+  pagination.value.page = 1
+  router.replace({ path: '/files', query })
+}
+
+const setRecentFilter = filter => {
+  pagination.value.page = 1
+  if (filter === 'recent') {
+    router.replace({
+      path: '/files',
+      query: {
+        ...route.query,
+        view: 'recent',
+        range: 'recent'
+      }
+    })
+    return
+  }
+  router.replace({
+    path: '/files',
+    query: {
+      ...route.query,
+      view: 'recent',
+      range: filter
+    }
+  })
+}
+
+const openRecentRange = range => {
+  setRecentFilter(range)
 }
 
 const dealReturn = async result => {
@@ -762,13 +930,21 @@ const dealReturn = async result => {
 watch(
   () => currentFolderId.value,
   () => {
-    store.setFolderId(Number(currentFolderId.value))
+    store.setFolderId(currentFolderId.value)
     pagination.value.page = 1
     searchKeyword.value = ''
     isSearching.value = false
     renderFileList()
   },
   { immediate: true }
+)
+
+watch(
+  () => [route.query.view, route.query.range],
+  () => {
+    pagination.value.page = 1
+    syncPaginationState()
+  }
 )
 
 onMounted(() => {
@@ -785,7 +961,10 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
-  height: 100%;
+  min-height: 100%;
+  height: auto;
+  padding-bottom: 96px;
+  box-sizing: border-box;
   animation: fadeInUp 0.3s ease;
 }
 
@@ -822,53 +1001,83 @@ onUnmounted(() => {
   }
 }
 
-.upload-overview-card {
+.workspace-overview-card {
   padding: var(--spacing-xl);
   background: var(--color-fill-base);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
 }
 
-.upload-overview__header {
+.workspace-overview__header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
 }
 
-.upload-overview__title {
+.workspace-overview__header.compact {
+  margin-bottom: var(--spacing-sm);
+}
+
+.workspace-overview__title {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 }
 
-.upload-overview__subtitle {
+.workspace-overview__subtitle {
   margin-top: var(--spacing-xs);
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
 }
 
-.upload-overview__alert {
+.workspace-overview__alert {
   margin-bottom: var(--spacing-md);
+}
+
+.workspace-mode-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
 }
 
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--spacing-lg);
-  margin-bottom: var(--spacing-lg);
 }
 
-.summary-card,
-.recent-list-panel {
+.summary-grid.compact {
+  gap: var(--spacing-md);
+}
+
+.summary-card {
   background: var(--color-bg-white);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-lighter);
 }
 
 .summary-card {
-  padding: var(--spacing-xl);
+  padding: var(--spacing-lg);
+}
+
+.summary-card--action {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    border-color: var(--color-primary-light);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+  }
+
+  &.active {
+    border-color: var(--color-primary);
+    background: var(--color-primary-bg);
+  }
 }
 
 .summary-label {
@@ -889,75 +1098,49 @@ onUnmounted(() => {
   color: var(--color-text-placeholder);
 }
 
-.recent-list-panel {
-  padding: var(--spacing-lg);
+.workspace-overview__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  flex-wrap: wrap;
 }
 
-.panel-title {
-  margin-bottom: var(--spacing-md);
-  font-size: var(--font-size-base);
+.workspace-overview__footer.compact {
+  margin-top: var(--spacing-sm);
+}
+
+.recent-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.recent-filter-tag {
+  cursor: pointer;
+}
+
+.workspace-overview__hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.recent-view-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.recent-view-indicator__title {
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 }
 
-.recent-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.recent-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  border-radius: var(--radius-md);
-  transition: background var(--transition-fast);
-  cursor: pointer;
-
-  &:hover {
-    background: var(--color-fill-base);
-  }
-}
-
-.item-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  background: var(--color-fill-base);
-  flex-shrink: 0;
-}
-
-.item-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.item-name {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.item-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
-  margin-top: var(--spacing-xs);
+.recent-view-indicator__meta {
   font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-}
-
-.recent-empty {
-  padding: var(--spacing-xl) 0;
-  text-align: center;
-  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
 }
 
@@ -1066,7 +1249,6 @@ onUnmounted(() => {
 }
 
 .table-card {
-  flex: 1;
   display: flex;
   flex-direction: column;
   background: var(--color-fill-base);
@@ -1074,16 +1256,18 @@ onUnmounted(() => {
   border: 1px solid var(--color-border);
   overflow: hidden;
   min-height: 400px;
+  flex-shrink: 0;
 
   :deep(.el-table) {
-    flex: 1;
+    width: 100%;
   }
 }
 
 .pagination-card {
   display: flex;
   justify-content: center;
-  padding: var(--spacing-md) 0;
+  padding: var(--spacing-md) 0 calc(var(--spacing-xl) + 12px);
+  flex-shrink: 0;
 }
 
 .name-cell {
@@ -1213,6 +1397,11 @@ onUnmounted(() => {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .workspace-overview__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .toolbar-divider {
     display: none;
   }
@@ -1230,6 +1419,10 @@ onUnmounted(() => {
 }
 
 @media (max-width: 640px) {
+  .workspace-page {
+    padding-bottom: 120px;
+  }
+
   .page-header__actions {
     flex-direction: column;
     width: 100%;
@@ -1246,11 +1439,6 @@ onUnmounted(() => {
 
   .summary-grid {
     grid-template-columns: 1fr;
-  }
-
-  .recent-item {
-    align-items: flex-start;
-    flex-direction: column;
   }
 }
 </style>

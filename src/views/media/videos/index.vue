@@ -112,14 +112,14 @@ const loadMore = async () => {
   }
 }
 
-const formatDuration = (seconds) => {
+const formatDuration = seconds => {
   if (!seconds) return '00:00'
   const mins = Math.floor(seconds / 60)
   const secs = Math.floor(seconds % 60)
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
-const playVideo = (item) => {
+const playVideo = item => {
   router.push(`/video/${item.fileId}`)
 }
 
@@ -184,7 +184,9 @@ onMounted(() => {
   border: 1px solid var(--color-border-lighter);
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 
   &:hover {
     transform: translateY(-2px);

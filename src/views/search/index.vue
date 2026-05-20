@@ -15,9 +15,7 @@
             <el-icon :size="20"><Search /></el-icon>
           </template>
           <template #append>
-            <el-button type="primary" @click="handleSearch">
-              搜索
-            </el-button>
+            <el-button type="primary" @click="handleSearch">搜索</el-button>
           </template>
         </el-input>
 
@@ -223,11 +221,7 @@
           <el-skeleton :rows="5" animated />
         </div>
 
-        <el-empty
-          v-else-if="!keyword"
-          description="请输入搜索关键字开始搜索"
-          :image-size="120"
-        >
+        <el-empty v-else-if="!keyword" description="请输入搜索关键字开始搜索" :image-size="120">
           <template #image>
             <el-icon :size="60" class="empty-icon"><Search /></el-icon>
           </template>
@@ -305,7 +299,11 @@
     />
 
     <!-- 文本预览 -->
-    <el-dialog v-model="textPreviewVisible" :title="previewFileName || '文本预览'" width="min(960px, 92vw)">
+    <el-dialog
+      v-model="textPreviewVisible"
+      :title="previewFileName || '文本预览'"
+      width="min(960px, 92vw)"
+    >
       <PageState
         :loading="textPreviewLoading"
         :error="Boolean(textPreviewError)"
@@ -352,9 +350,25 @@ import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
-  Search, Star, Filter, Clock, View, Collection, Close,
-  List, Grid, ArrowDown, SortUp, SortDown, DocumentDelete,
-  Picture, VideoPlay, Headset, Document, Folder, More
+  Search,
+  Star,
+  Filter,
+  Clock,
+  View,
+  Collection,
+  Close,
+  List,
+  Grid,
+  ArrowDown,
+  SortUp,
+  SortDown,
+  DocumentDelete,
+  Picture,
+  VideoPlay,
+  Headset,
+  Document,
+  Folder,
+  More
 } from '@element-plus/icons-vue'
 import SearchFilterPanel from '@/components/search/SearchFilterPanel.vue'
 import SearchHistory from '@/components/search/SearchHistory.vue'
@@ -387,7 +401,6 @@ const inputKeyword = ref('')
 const layoutMode = ref('grid')
 const sortBy = ref('relevance')
 const sortOrder = ref('desc')
-const showFilterPanel = ref(false)
 const detailVisible = ref(false)
 const detailFileId = ref(null)
 const imagePreviewVisible = ref(false)
@@ -443,15 +456,17 @@ const hasActiveFilters = computed(() => {
     filters.types.length > 0 ||
     filters.dateRange !== null ||
     filters.sizeRange !== null ||
-     filters.directoryPath !== null ||
-     filters.favorite === true ||
+    filters.directoryPath !== null ||
+    filters.favorite === true ||
     filters.tags.length > 0
   )
 })
 
 const currentPage = computed({
   get: () => searchState.page,
-  set: val => { searchState.page = val }
+  set: val => {
+    searchState.page = val
+  }
 })
 
 const sortLabel = computed(() => {
@@ -486,17 +501,20 @@ onMounted(() => {
   }
 })
 
-watch(() => route.query.q, newQ => {
-  keyword.value = newQ || ''
-  inputKeyword.value = keyword.value
-  selectedFiles.value = []
-  if (keyword.value) {
-    doSearch()
-  } else {
-    searchState.results = []
-    searchState.total = 0
+watch(
+  () => route.query.q,
+  newQ => {
+    keyword.value = newQ || ''
+    inputKeyword.value = keyword.value
+    selectedFiles.value = []
+    if (keyword.value) {
+      doSearch()
+    } else {
+      searchState.results = []
+      searchState.total = 0
+    }
   }
-})
+)
 
 const loadHistory = async () => {
   try {
@@ -696,21 +714,6 @@ const handleClearAllFilters = () => {
   filters.recent = false
   filters.tags = []
   handleFilterChange()
-}
-
-const handleFilterViewSelect = ({ filters: viewFilters }) => {
-  Object.assign(filters, viewFilters)
-  doSearch()
-}
-
-const handleSaveCustomView = async view => {
-  try {
-    await saveFilterView(view)
-    ElMessage.success('自定义视图已保存')
-    loadFilterViews()
-  } catch {
-    ElMessage.error('保存失败')
-  }
 }
 
 const isCurrentView = view => {

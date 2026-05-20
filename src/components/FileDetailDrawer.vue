@@ -95,7 +95,11 @@
       </div>
     </PageState>
 
-    <TagManager v-model="showTagManager" :file-id="detail?.resourceId || detail?.id" @change="handleTagsChange" />
+    <TagManager
+      v-model="showTagManager"
+      :file-id="detail?.resourceId || detail?.id"
+      @change="handleTagsChange"
+    />
   </el-drawer>
 </template>
 
@@ -104,7 +108,7 @@ import { computed, ref, watch } from 'vue'
 import { getFileRoute, getVideoRoute } from '@/router'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Star, StarFilled, Plus, Edit } from '@element-plus/icons-vue'
+import { Plus } from '@element-plus/icons-vue'
 import FavoriteButton from '@/components/common/FavoriteButton.vue'
 import TagManager from '@/components/detail/TagManager.vue'
 import RemarkEditor from '@/components/detail/RemarkEditor.vue'
@@ -198,7 +202,7 @@ const loadDetail = async () => {
   try {
     const [fileResponse, tagsResponse] = await Promise.all([
       getSearchFileDetail(props.fileId).catch(() => getFile(props.fileId)),
-      getFileTags(props.fileId).catch(() => ({ data: [] })),
+      getFileTags(props.fileId).catch(() => ({ data: [] }))
     ])
 
     const rawDetail = fileResponse.data || {}
@@ -211,7 +215,9 @@ const loadDetail = async () => {
     }
 
     if (detail.value.resourceId) {
-      const favoriteResponse = await getFileFavorite(detail.value.resourceId).catch(() => ({ data: false }))
+      const favoriteResponse = await getFileFavorite(detail.value.resourceId).catch(() => ({
+        data: false
+      }))
       detail.value.favorite = Boolean(favoriteResponse.data)
     }
 

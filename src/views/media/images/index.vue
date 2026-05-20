@@ -118,7 +118,7 @@ const loadMore = async () => {
   }
 }
 
-const openDetail = (item) => {
+const openDetail = item => {
   previewFiles.value = pictureList.value.map(file => ({
     fileId: file.fileId,
     fileName: file.fileName
@@ -127,7 +127,7 @@ const openDetail = (item) => {
   previewVisible.value = true
 }
 
-const getPictureCover = (item) => {
+const getPictureCover = item => {
   return (
     item.thumbnailUrls?.medium ||
     item.thumbnailUrls?.small ||
@@ -198,7 +198,9 @@ onMounted(() => {
   border: 1px solid var(--color-border-lighter);
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 
   &:hover {
     transform: translateY(-2px);

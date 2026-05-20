@@ -86,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   Headset,
@@ -118,7 +118,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['play', 'pause', 'ended', 'error', 'next', 'prev'])
+const emit = defineEmits(['play', 'pause', 'ended', 'error', 'next', 'prev', 'clear-playlist'])
 
 const audioRef = ref(null)
 const playing = ref(false)
@@ -233,7 +233,7 @@ const playAtIndex = index => {
 }
 
 const clearPlaylist = () => {
-  props.playlist.splice(0, props.playlist.length)
+  emit('clear-playlist')
 }
 
 const formatTime = seconds => {

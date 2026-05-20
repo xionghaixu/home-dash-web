@@ -87,7 +87,8 @@
               <span>最近观看</span>
             </div>
             <el-button link type="primary" @click="goTo('/media/videos')">
-              查看更多 <el-icon><ArrowRight /></el-icon>
+              查看更多
+              <el-icon><ArrowRight /></el-icon>
             </el-button>
           </div>
           <div class="panel-body">
@@ -137,7 +138,8 @@
               <span>最近收听</span>
             </div>
             <el-button link type="primary" @click="goTo('/media/audio')">
-              查看更多 <el-icon><ArrowRight /></el-icon>
+              查看更多
+              <el-icon><ArrowRight /></el-icon>
             </el-button>
           </div>
           <div class="panel-body">
@@ -182,7 +184,8 @@
               <span>图片速览</span>
             </div>
             <el-button link type="primary" @click="goTo('/media/images')">
-              全部图片 <el-icon><ArrowRight /></el-icon>
+              全部图片
+              <el-icon><ArrowRight /></el-icon>
             </el-button>
           </div>
           <div class="panel-body">
@@ -216,8 +219,9 @@
               <el-icon><UploadFilled /></el-icon>
               <span>最近上传</span>
             </div>
-            <el-button link type="primary" @click="goTo('/transfers')">
-              查看全部 <el-icon><ArrowRight /></el-icon>
+            <el-button link type="primary" @click="goTo('/files?view=recent')">
+              查看全部
+              <el-icon><ArrowRight /></el-icon>
             </el-button>
           </div>
           <div class="panel-body">
@@ -246,7 +250,9 @@
                 </div>
                 <div class="upload-info">
                   <div class="upload-name" :title="item.fileName">{{ item.fileName }}</div>
-                  <div class="upload-meta">{{ formatFileSize(item.size) }} · {{ formatTime(item.createTime) }}</div>
+                  <div class="upload-meta">
+                    {{ formatFileSize(item.size) }} · {{ formatTime(item.createTime) }}
+                  </div>
                 </div>
                 <el-icon class="upload-arrow"><ArrowRight /></el-icon>
               </div>
@@ -264,7 +270,9 @@
               <el-icon><List /></el-icon>
               <span>系统任务</span>
             </div>
-            <el-tag v-if="pendingTasks.length > 0" type="warning" size="small">{{ pendingTasks.length }} 个待处理</el-tag>
+            <el-tag v-if="pendingTasks.length > 0" type="warning" size="small">
+              {{ pendingTasks.length }} 个待处理
+            </el-tag>
           </div>
           <div class="panel-body">
             <div v-if="pendingTasks.length === 0" class="empty-state">
@@ -272,16 +280,14 @@
               <p>所有任务已完成</p>
             </div>
             <div v-else class="task-list">
-              <div
-                v-for="task in pendingTasks"
-                :key="task.taskId"
-                class="task-item"
-              >
+              <div v-for="task in pendingTasks" :key="task.taskId" class="task-item">
                 <div class="task-status-dot" :class="task.status?.toLowerCase()"></div>
                 <div class="task-info">
                   <div class="task-name">{{ task.taskType }} · {{ task.mediaType }}</div>
                   <div class="task-status">
-                    <el-tag :type="getTaskStatusType(task.status)" size="small">{{ task.status }}</el-tag>
+                    <el-tag :type="getTaskStatusType(task.status)" size="small">
+                      {{ task.status }}
+                    </el-tag>
                     <span v-if="task.errorMessage" class="task-error">{{ task.errorMessage }}</span>
                   </div>
                 </div>
@@ -298,35 +304,51 @@
       <div class="quick-title">快捷入口</div>
       <div class="quick-grid">
         <div class="quick-item" @click="goTo('/files')">
-          <div class="quick-icon folder"><el-icon><FolderOpened /></el-icon></div>
+          <div class="quick-icon folder">
+            <el-icon><FolderOpened /></el-icon>
+          </div>
           <span>文件管理</span>
         </div>
         <div class="quick-item" @click="goTo('/media/images')">
-          <div class="quick-icon image"><el-icon><Picture /></el-icon></div>
+          <div class="quick-icon image">
+            <el-icon><Picture /></el-icon>
+          </div>
           <span>图片库</span>
         </div>
         <div class="quick-item" @click="goTo('/media/videos')">
-          <div class="quick-icon video"><el-icon><VideoCamera /></el-icon></div>
+          <div class="quick-icon video">
+            <el-icon><VideoCamera /></el-icon>
+          </div>
           <span>视频库</span>
         </div>
         <div class="quick-item" @click="goTo('/media/audio')">
-          <div class="quick-icon audio"><el-icon><Headset /></el-icon></div>
+          <div class="quick-icon audio">
+            <el-icon><Headset /></el-icon>
+          </div>
           <span>音频库</span>
         </div>
         <div class="quick-item" @click="goTo('/transfers')">
-          <div class="quick-icon transfer"><el-icon><UploadFilled /></el-icon></div>
+          <div class="quick-icon transfer">
+            <el-icon><UploadFilled /></el-icon>
+          </div>
           <span>上传任务</span>
         </div>
         <div class="quick-item" @click="goTo('/category')">
-          <div class="quick-icon category"><el-icon><Grid /></el-icon></div>
+          <div class="quick-icon category">
+            <el-icon><Grid /></el-icon>
+          </div>
           <span>分类浏览</span>
         </div>
         <div class="quick-item" @click="goTo('/system')">
-          <div class="quick-icon system"><el-icon><Monitor /></el-icon></div>
+          <div class="quick-icon system">
+            <el-icon><Monitor /></el-icon>
+          </div>
           <span>系统监控</span>
         </div>
         <div class="quick-item" @click="goTo('/files')">
-          <div class="quick-icon recent"><el-icon><UploadFilled /></el-icon></div>
+          <div class="quick-icon recent">
+            <el-icon><UploadFilled /></el-icon>
+          </div>
           <span>全部文件</span>
         </div>
       </div>
@@ -348,8 +370,19 @@ import { useRouter } from 'vue-router'
 import { getHomeMediaSummary } from '@/apis/media'
 import { downloadFileUrl, getImageThumbnailUrl } from '@/apis/file'
 import {
-  Picture, VideoCamera, Headset, FolderOpened, ArrowRight, ArrowUp,
-  VideoPlay, UploadFilled, List, CircleCheck, Document, Grid, Monitor
+  Picture,
+  VideoCamera,
+  Headset,
+  FolderOpened,
+  ArrowRight,
+  ArrowUp,
+  VideoPlay,
+  UploadFilled,
+  List,
+  CircleCheck,
+  Document,
+  Grid,
+  Monitor
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
@@ -384,17 +417,19 @@ const currentUploadItems = computed(() => {
   const uploads = summary.value.recentUploads
   if (!uploads) return []
   switch (activeUploadTab.value) {
-    case 'images': return uploads.images || []
-    case 'videos': return uploads.videos || []
-    case 'audio': return uploads.audio || []
-    default: return []
+    case 'images':
+      return uploads.images || []
+    case 'videos':
+      return uploads.videos || []
+    case 'audio':
+      return uploads.audio || []
+    default:
+      return []
   }
 })
 
 const previewImages = computed(() => {
-  return imageReview.value
-    .map(resolveImageUrl)
-    .filter(Boolean)
+  return imageReview.value.map(resolveImageUrl).filter(Boolean)
 })
 
 const progressColors = [
@@ -410,7 +445,12 @@ let timeTimer = null
 const updateTime = () => {
   const now = new Date()
   currentTime.value = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-  currentDate.value = now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
+  currentDate.value = now.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long'
+  })
 }
 
 // 获取数据
@@ -421,7 +461,7 @@ const fetchSummary = async () => {
     if (res.code === 200) {
       summary.value = res.data || {}
     }
-  } catch (error) {
+  } catch {
     ElMessage.error('获取首页数据失败')
   } finally {
     loading.value = false
@@ -429,14 +469,14 @@ const fetchSummary = async () => {
 }
 
 // 工具函数
-const formatNumber = (num) => {
+const formatNumber = num => {
   if (num === undefined || num === null) return '0'
   if (num >= 10000) return (num / 10000).toFixed(1) + 'w'
   if (num >= 1000) return (num / 1000).toFixed(1) + 'k'
   return String(num)
 }
 
-const formatTime = (time) => {
+const formatTime = time => {
   if (!time) return ''
   const date = new Date(time)
   const now = new Date()
@@ -452,7 +492,7 @@ const formatTime = (time) => {
   return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
 }
 
-const formatFileSize = (size) => {
+const formatFileSize = size => {
   if (!size) return '0 B'
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
   let index = 0
@@ -464,34 +504,39 @@ const formatFileSize = (size) => {
   return value.toFixed(1) + ' ' + units[index]
 }
 
-const getTaskStatusType = (status) => {
+const getTaskStatusType = status => {
   switch (status) {
-    case 'PENDING': return 'info'
-    case 'RUNNING': return 'primary'
-    case 'FAILED': return 'danger'
-    case 'COMPLETED': return 'success'
-    default: return 'info'
+    case 'PENDING':
+      return 'info'
+    case 'RUNNING':
+      return 'primary'
+    case 'FAILED':
+      return 'danger'
+    case 'COMPLETED':
+      return 'success'
+    default:
+      return 'info'
   }
 }
 
 // 导航
-const goTo = (path) => {
+const goTo = path => {
   router.push(path)
 }
 
-const playVideo = (fileId) => {
+const playVideo = fileId => {
   router.push(`/video/${fileId}`)
 }
 
-const goToAudio = (fileId) => {
+const goToAudio = () => {
   router.push(`/media/audio`)
 }
 
-const goToFile = (fileId) => {
+const goToFile = () => {
   router.push(`/files`)
 }
 
-const previewImage = (img) => {
+const previewImage = img => {
   const currentUrl = resolveImageUrl(img)
   const idx = previewImages.value.findIndex(url => url === currentUrl)
   previewIndex.value = idx >= 0 ? idx : 0
@@ -500,7 +545,12 @@ const previewImage = (img) => {
 
 const resolveImageUrl = img => {
   if (!img) return ''
-  return img.thumbnailUrl || img.coverUrl || (img.resourceId ? getImageThumbnailUrl(img.resourceId) : '') || (img.fileId ? downloadFileUrl(img.fileId) : '')
+  return (
+    img.thumbnailUrl ||
+    img.coverUrl ||
+    (img.resourceId ? getImageThumbnailUrl(img.resourceId) : '') ||
+    (img.fileId ? downloadFileUrl(img.fileId) : '')
+  )
 }
 
 // 生命周期
@@ -593,10 +643,18 @@ onUnmounted(() => {
   }
 }
 
-.image-card::before { background: linear-gradient(90deg, #67c23a, #95d475); }
-.video-card::before { background: linear-gradient(90deg, #409eff, #79bbff); }
-.audio-card::before { background: linear-gradient(90deg, #e6a23c, #f3d19e); }
-.total-card::before { background: linear-gradient(90deg, #909399, #c8c9cc); }
+.image-card::before {
+  background: linear-gradient(90deg, #67c23a, #95d475);
+}
+.video-card::before {
+  background: linear-gradient(90deg, #409eff, #79bbff);
+}
+.audio-card::before {
+  background: linear-gradient(90deg, #e6a23c, #f3d19e);
+}
+.total-card::before {
+  background: linear-gradient(90deg, #909399, #c8c9cc);
+}
 
 .stat-icon-wrap {
   width: 48px;
@@ -608,10 +666,22 @@ onUnmounted(() => {
   margin-bottom: var(--spacing-md);
 }
 
-.image-card .stat-icon-wrap { background: rgba(103, 194, 58, 0.1); color: #67c23a; }
-.video-card .stat-icon-wrap { background: rgba(64, 158, 255, 0.1); color: #409eff; }
-.audio-card .stat-icon-wrap { background: rgba(230, 162, 60, 0.1); color: #e6a23c; }
-.total-card .stat-icon-wrap { background: rgba(144, 147, 153, 0.1); color: #909399; }
+.image-card .stat-icon-wrap {
+  background: rgba(103, 194, 58, 0.1);
+  color: #67c23a;
+}
+.video-card .stat-icon-wrap {
+  background: rgba(64, 158, 255, 0.1);
+  color: #409eff;
+}
+.audio-card .stat-icon-wrap {
+  background: rgba(230, 162, 60, 0.1);
+  color: #e6a23c;
+}
+.total-card .stat-icon-wrap {
+  background: rgba(144, 147, 153, 0.1);
+  color: #909399;
+}
 
 .stat-value {
   font-size: 28px;
@@ -1061,15 +1131,29 @@ onUnmounted(() => {
   margin-top: 6px;
   flex-shrink: 0;
 
-  &.pending { background: #909399; }
-  &.running { background: #409eff; animation: pulse 1.5s infinite; }
-  &.failed { background: #f56c6c; }
-  &.completed { background: #67c23a; }
+  &.pending {
+    background: #909399;
+  }
+  &.running {
+    background: #409eff;
+    animation: pulse 1.5s infinite;
+  }
+  &.failed {
+    background: #f56c6c;
+  }
+  &.completed {
+    background: #67c23a;
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .task-info {
@@ -1158,14 +1242,38 @@ onUnmounted(() => {
   justify-content: center;
   transition: transform var(--transition-fast);
 
-  &.folder { background: rgba(144, 147, 153, 0.1); color: #909399; }
-  &.image { background: rgba(103, 194, 58, 0.1); color: #67c23a; }
-  &.video { background: rgba(64, 158, 255, 0.1); color: #409eff; }
-  &.audio { background: rgba(230, 162, 60, 0.1); color: #e6a23c; }
-  &.transfer { background: rgba(131, 85, 218, 0.1); color: #8355da; }
-  &.category { background: rgba(245, 108, 108, 0.1); color: #f56c6c; }
-  &.system { background: rgba(32, 160, 255, 0.1); color: #20a0ff; }
-  &.recent { background: rgba(131, 85, 218, 0.1); color: #8355da; }
+  &.folder {
+    background: rgba(144, 147, 153, 0.1);
+    color: #909399;
+  }
+  &.image {
+    background: rgba(103, 194, 58, 0.1);
+    color: #67c23a;
+  }
+  &.video {
+    background: rgba(64, 158, 255, 0.1);
+    color: #409eff;
+  }
+  &.audio {
+    background: rgba(230, 162, 60, 0.1);
+    color: #e6a23c;
+  }
+  &.transfer {
+    background: rgba(131, 85, 218, 0.1);
+    color: #8355da;
+  }
+  &.category {
+    background: rgba(245, 108, 108, 0.1);
+    color: #f56c6c;
+  }
+  &.system {
+    background: rgba(32, 160, 255, 0.1);
+    color: #20a0ff;
+  }
+  &.recent {
+    background: rgba(131, 85, 218, 0.1);
+    color: #8355da;
+  }
 }
 
 // 响应式

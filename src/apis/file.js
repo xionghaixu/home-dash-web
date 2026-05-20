@@ -49,21 +49,6 @@ export const getFile = fileId => {
 }
 
 /**
- * 获取最近上传文件列表
- * @param {Number} [limit=20] - 最近上传数量
- * @param {Object} [options] - 查询选项
- * @param {String} [options.sortBy] - 排序字段
- * @param {String} [options.sortOrder] - 排序方式
- * @returns {Promise} 最近上传文件Promise
- */
-export const getRecentFiles = (limit = 20, options = {}) => {
-  return request({
-    url: '/v1/file/recent',
-    params: { limit, ...options }
-  })
-}
-
-/**
  * 获取分类摘要
  * @returns {Promise} 分类摘要Promise
  */
@@ -155,7 +140,9 @@ export const moveOrCopyFiles = (payloadOrFileIds, targetIds, type) => {
     typeof payloadOrFileIds === 'object' && payloadOrFileIds !== null
       ? {
           fileIds: payloadOrFileIds.fileIds || payloadOrFileIds.sourceIds || [],
-          targetIds: payloadOrFileIds.targetIds || (payloadOrFileIds.targetId ? [payloadOrFileIds.targetId] : []),
+          targetIds:
+            payloadOrFileIds.targetIds ||
+            (payloadOrFileIds.targetId ? [payloadOrFileIds.targetId] : []),
           type: payloadOrFileIds.type || payloadOrFileIds.operation
         }
       : {
@@ -674,18 +661,6 @@ export const getSameDirectoryFiles = (fileId, limit = 10) => {
 export const getSameTypeFiles = (fileId, limit = 10) => {
   return request({
     url: `/v1/search/file/${fileId}/same-type`,
-    params: { limit }
-  })
-}
-
-/**
- * 获取最近上传文件（搜索模块）
- * @param {Number} [limit=10] - 返回数量限制
- * @returns {Promise} 最近上传文件列表Promise
- */
-export const getSearchRecentUploads = (limit = 10) => {
-  return request({
-    url: '/v1/search/recent-uploads',
     params: { limit }
   })
 }

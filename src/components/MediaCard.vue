@@ -1,7 +1,11 @@
 <template>
   <div class="media-card" @click="handleClick">
     <div class="media-card__cover-wrapper">
-      <div v-if="cover" class="media-card__cover" :style="{ backgroundImage: `url(${cover})` }"></div>
+      <div
+        v-if="cover"
+        class="media-card__cover"
+        :style="{ backgroundImage: `url(${cover})` }"
+      ></div>
       <div v-else class="media-card__cover media-card__cover--placeholder">
         <el-icon :size="40"><component :is="placeholderIcon" /></el-icon>
       </div>

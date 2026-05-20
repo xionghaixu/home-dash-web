@@ -43,17 +43,17 @@
         </div>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="profile">
-              <el-icon><User /></el-icon>
-              个人中心
+            <el-dropdown-item command="files">
+              <el-icon><FolderOpened /></el-icon>
+              全部文件
             </el-dropdown-item>
-            <el-dropdown-item command="settings">
+            <el-dropdown-item command="system">
               <el-icon><Setting /></el-icon>
-              设置
+              系统信息
             </el-dropdown-item>
-            <el-dropdown-item divided command="logout">
-              <el-icon><SwitchButton /></el-icon>
-              退出登录
+            <el-dropdown-item divided command="theme">
+              <el-icon><Brush /></el-icon>
+              主题设置
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -118,7 +118,11 @@
           <div class="theme-section-title">显示设置</div>
           <div class="theme-option-row">
             <span class="option-label">字体大小</span>
-            <el-radio-group :model-value="themeStore.fontSize" @change="themeStore.setFontSize" size="small">
+            <el-radio-group
+              :model-value="themeStore.fontSize"
+              size="small"
+              @change="themeStore.setFontSize"
+            >
               <el-radio-button value="small">小</el-radio-button>
               <el-radio-button value="default">默认</el-radio-button>
               <el-radio-button value="large">大</el-radio-button>
@@ -126,7 +130,11 @@
           </div>
           <div class="theme-option-row">
             <span class="option-label">圆角风格</span>
-            <el-radio-group :model-value="themeStore.borderRadius" @change="themeStore.setBorderRadius" size="small">
+            <el-radio-group
+              :model-value="themeStore.borderRadius"
+              size="small"
+              @change="themeStore.setBorderRadius"
+            >
               <el-radio-button value="small">小</el-radio-button>
               <el-radio-button value="medium">中</el-radio-button>
               <el-radio-button value="large">大</el-radio-button>
@@ -153,7 +161,6 @@ import {
   Upload,
   User,
   Setting,
-  SwitchButton,
   Brush,
   Check,
   Sunny,
@@ -162,7 +169,6 @@ import {
 } from '@element-plus/icons-vue'
 import userAvatarImage from '@/assets/user.jpeg'
 
-const route = useRoute()
 const router = useRouter()
 const themeStore = useThemeStore()
 
@@ -195,14 +201,14 @@ const handleSearch = () => {
 
 const handleCommand = command => {
   switch (command) {
-    case 'logout':
-      console.log('Logout')
+    case 'files':
+      router.push('/files')
       break
-    case 'profile':
-      router.push('/profile')
+    case 'system':
+      router.push('/system')
       break
-    case 'settings':
-      router.push('/settings')
+    case 'theme':
+      themeDialogVisible.value = true
       break
   }
 }

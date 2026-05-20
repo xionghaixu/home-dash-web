@@ -25,7 +25,7 @@
 <script setup>
 import { TrendCharts } from '@element-plus/icons-vue'
 
-const props = defineProps({
+defineProps({
   hotFilters: {
     type: Array,
     default: () => []

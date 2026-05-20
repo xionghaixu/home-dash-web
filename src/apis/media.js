@@ -50,7 +50,7 @@ export const getPictureTimeline = groupBy => {
  * @param {String} albumType - 相册类型
  * @returns {Promise} 相册列表Promise
  */
-export const getAlbumList = (albumType) => {
+export const getAlbumList = albumType => {
   return request({
     url: '/v1/media/albums',
     params: { albumType }

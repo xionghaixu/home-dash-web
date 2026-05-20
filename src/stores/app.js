@@ -10,7 +10,7 @@ export const useAppStore = defineStore('app', {
    * @returns {Object} 状态对象
    */
   state: () => ({
-    folderId: 0,
+    folderId: '0',
     transferCount: 0
   }),
 
@@ -21,7 +21,7 @@ export const useAppStore = defineStore('app', {
     /**
      * 获取当前文件夹ID
      * @param {Object} state - 状态对象
-     * @returns {Number} 当前文件夹ID
+     * @returns {String} 当前文件夹ID
      */
     currentFolderId: state => state.folderId
   },
@@ -31,9 +31,10 @@ export const useAppStore = defineStore('app', {
    */
   actions: {
     setFolderId(id) {
-      if (typeof id === 'number' && Number.isInteger(id) && id >= 0) {
-        this.folderId = id
+      if (id === undefined || id === null) {
+        return
       }
+      this.folderId = String(id)
     },
     setTransferCount(count) {
       this.transferCount = count
