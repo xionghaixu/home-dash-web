@@ -99,7 +99,7 @@
             </el-button>
           </div>
           <div v-if="filterViews.length === 0" class="empty-views">
-            <el-empty description="暂无保存的视图" :image-size="60" />
+            暂无保存的视图
           </div>
           <div v-else class="filter-views-list">
             <div
@@ -919,7 +919,7 @@ const loadTextPreview = async () => {
 .search-input {
   :deep(.el-input__wrapper) {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-xl) 0 0 var(--radius-xl);
     padding: 4px 8px;
   }
 
@@ -934,6 +934,7 @@ const loadTextPreview = async () => {
     color: white;
     border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
     padding: 0 24px;
+    border-left: none;
   }
 }
 
@@ -974,9 +975,18 @@ const loadTextPreview = async () => {
   height: fit-content;
   position: sticky;
   top: var(--spacing-xl);
-  overflow: hidden;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
   box-sizing: border-box;
   max-width: 100%;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-border-light);
+    border-radius: var(--radius-sm);
+  }
 }
 
 .sidebar-section {
@@ -1004,6 +1014,10 @@ const loadTextPreview = async () => {
 
 .empty-views {
   padding: var(--spacing-md) 0;
+  text-align: center;
+  color: var(--color-text-placeholder);
+  font-size: var(--font-size-sm);
+  font-style: italic;
 }
 
 .filter-views-list {
@@ -1065,7 +1079,7 @@ const loadTextPreview = async () => {
 
 .results-info {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: var(--spacing-sm);
   flex-wrap: wrap;
 }
@@ -1090,6 +1104,7 @@ const loadTextPreview = async () => {
   display: flex;
   gap: var(--spacing-sm);
   align-items: center;
+  flex-wrap: nowrap;
 }
 
 // 已激活筛选标签
@@ -1172,18 +1187,26 @@ const loadTextPreview = async () => {
 // 响应式
 @media (max-width: 768px) {
   .search-content {
-    flex-direction: column;
+    flex-direction: column-reverse;
     padding: var(--spacing-md);
   }
 
   .search-sidebar {
     width: 100%;
     position: static;
+    max-height: none;
+    overflow-y: visible;
   }
 
   .results-toolbar {
     flex-direction: column;
     align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+
+  .toolbar-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
 </style>
