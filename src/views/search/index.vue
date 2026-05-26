@@ -98,9 +98,7 @@
               保存当前
             </el-button>
           </div>
-          <div v-if="filterViews.length === 0" class="empty-views">
-            暂无保存的视图
-          </div>
+          <div v-if="filterViews.length === 0" class="empty-views">暂无保存的视图</div>
           <div v-else class="filter-views-list">
             <div
               v-for="view in filterViews"

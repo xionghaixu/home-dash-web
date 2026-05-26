@@ -240,7 +240,7 @@
                 v-for="item in currentUploadItems"
                 :key="item.fileId"
                 class="upload-item"
-                @click="goToFile(item.fileId)"
+                @click="goToFile(item)"
               >
                 <div class="upload-icon">
                   <el-icon v-if="item.type === 'PICTURE'"><Picture /></el-icon>
@@ -528,12 +528,21 @@ const playVideo = fileId => {
   router.push(`/video/${fileId}`)
 }
 
-const goToAudio = () => {
-  router.push(`/media/audio`)
+const goToAudio = fileId => {
+  if (fileId) {
+    router.push({ path: '/media/audio', query: { playId: fileId } })
+  } else {
+    router.push('/media/audio')
+  }
 }
 
-const goToFile = () => {
-  router.push(`/files`)
+const goToFile = item => {
+  if (item && item.fileId) {
+    const parentId = item.parentId ?? 0
+    router.push({ path: `/files/${parentId}`, query: { highlightId: item.fileId } })
+  } else {
+    router.push('/files')
+  }
 }
 
 const previewImage = img => {

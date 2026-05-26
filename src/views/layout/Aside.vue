@@ -59,7 +59,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   HomeFilled,
@@ -106,6 +106,19 @@ const storageTotal = computed(() => store.storageTotal || 0)
 const storagePercent = computed(() => {
   if (!storageTotal.value) return 0
   return Math.min(100, (storageUsed.value / storageTotal.value) * 100)
+})
+
+const handleFlush = () => {
+  store.fetchStorageInfo()
+}
+
+onMounted(() => {
+  store.fetchStorageInfo()
+  window.eventBus.on('flushFileList', handleFlush)
+})
+
+onUnmounted(() => {
+  window.eventBus.off('flushFileList', handleFlush)
 })
 </script>
 

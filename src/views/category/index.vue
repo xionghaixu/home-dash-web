@@ -37,14 +37,9 @@
       min-height="420px"
       @retry="refreshAll"
     >
-      <div v-if="fileList.length > 0" class="batch-toolbar">
-        <el-checkbox v-model="selectAll" :indeterminate="isIndeterminate" @change="handleSelectAll">
-          全选
-        </el-checkbox>
-        <span v-if="selectedFiles.length > 0" class="selected-info">
-          已选择 {{ selectedFiles.length }} 个文件
-        </span>
-        <div v-if="selectedFiles.length > 0" class="batch-actions">
+      <div v-if="selectedFiles.length > 0" class="batch-toolbar">
+        <span class="selected-info">已选择 {{ selectedFiles.length }} 个文件</span>
+        <div class="batch-actions">
           <el-button type="primary" size="small" @click="batchDownload">
             <el-icon><Download /></el-icon>
             批量下载
@@ -164,7 +159,6 @@ const sortState = ref({
   sortOrder: 'desc'
 })
 const selectedFiles = ref([])
-const selectAll = ref(false)
 
 const categoryIconMap = {
   picture: Picture,
@@ -289,26 +283,8 @@ const openRow = row => {
 }
 
 const downloadFile = fileId => {
-  try {
-    const link = document.createElement('a')
-    link.href = downloadFileUrl(fileId)
-    link.click()
-    ElMessage.success('下载任务已开始')
-  } catch {
-    ElMessage.error('下载失败，请稍后重试')
-  }
-}
-
-const isIndeterminate = computed(() => {
-  return selectedFiles.value.length > 0 && selectedFiles.value.length < fileList.value.length
-})
-
-const handleSelectAll = checked => {
-  if (checked) {
-    selectedFiles.value = [...fileList.value]
-  } else {
-    selectedFiles.value = []
-  }
+  window.open(downloadFileUrl(fileId), '_blank')
+  ElMessage.success('下载任务已开始')
 }
 
 const handleSelectionChange = selection => {
@@ -317,22 +293,13 @@ const handleSelectionChange = selection => {
 
 const clearSelection = () => {
   selectedFiles.value = []
-  selectAll.value = false
 }
 
 const batchDownload = () => {
-  let successCount = 0
   selectedFiles.value.forEach(file => {
-    try {
-      const link = document.createElement('a')
-      link.href = downloadFileUrl(file.id)
-      link.click()
-      successCount++
-    } catch {
-      // 忽略单个下载失败
-    }
+    window.open(downloadFileUrl(file.id), '_blank')
   })
-  ElMessage.success(`已开始下载 ${successCount} 个文件`)
+  ElMessage.success(`已开始下载 ${selectedFiles.value.length} 个文件`)
   clearSelection()
 }
 
@@ -370,7 +337,6 @@ watch(
       return
     }
     selectedFiles.value = []
-    selectAll.value = false
     loading.value = true
     Promise.all([loadSummary().catch(() => {}), loadCategoryFiles()]).finally(() => {
       loading.value = false

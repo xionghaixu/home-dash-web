@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { systemInfo } from '@/apis/system'
 
 /**
  * 应用状态管理
@@ -11,7 +12,9 @@ export const useAppStore = defineStore('app', {
    */
   state: () => ({
     folderId: '0',
-    transferCount: 0
+    transferCount: 0,
+    storageUsed: 0,
+    storageTotal: 0
   }),
 
   /**
@@ -45,6 +48,17 @@ export const useAppStore = defineStore('app', {
     decrementTransferCount() {
       if (this.transferCount > 0) {
         this.transferCount--
+      }
+    },
+    async fetchStorageInfo() {
+      try {
+        const res = await systemInfo()
+        if (res.code === 200 && res.data) {
+          this.storageUsed = res.data.totalCap - res.data.usableCap
+          this.storageTotal = res.data.totalCap
+        }
+      } catch (error) {
+        console.error('Failed to fetch storage info:', error)
       }
     }
   }

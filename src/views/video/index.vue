@@ -44,7 +44,7 @@
             </div>
             <div class="info-item">
               <span class="info-label">播放状态</span>
-              <span class="info-value status" :class="playerStatus">
+              <span class="info-value status" :class="['status--' + playerStatus]">
                 <span class="status-dot"></span>
                 {{ statusText }}
               </span>

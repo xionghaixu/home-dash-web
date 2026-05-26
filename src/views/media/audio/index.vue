@@ -69,11 +69,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { RefreshRight, Headset, VideoPlay } from '@element-plus/icons-vue'
 import { getAudioList } from '@/apis/media'
 import PageState from '@/components/PageState.vue'
 import AudioPlayerBar from '@/components/preview/AudioPlayerBar.vue'
 import { resolveErrorMessage } from '@/utils/file'
+
+const route = useRoute()
 
 const audioList = ref([])
 const loading = ref(false)
@@ -97,6 +100,12 @@ const loadAudio = async () => {
     if (data && data.list) {
       audioList.value = data.list
       hasMore.value = data.hasMore || false
+      if (route.query.playId) {
+        const item = audioList.value.find(a => String(a.fileId) === String(route.query.playId))
+        if (item) {
+          playAudio(item)
+        }
+      }
     } else {
       audioList.value = []
       hasMore.value = false

@@ -151,6 +151,7 @@
         <el-table
           :data="displayedFileList"
           style="width: 100%"
+          :row-class-name="getRowClassName"
           @selection-change="handleSelectionChange"
           @row-contextmenu="handleRowContextMenu"
           @row-click="handleRowClick"
@@ -210,7 +211,11 @@
                   下载
                 </el-button>
                 <el-button link :icon="Edit" @click.stop="renameFile(row)">重命名</el-button>
-                <el-dropdown trigger="click" @command="cmd => handleMoreAction(cmd, row)" @click.stop>
+                <el-dropdown
+                  trigger="click"
+                  @command="cmd => handleMoreAction(cmd, row)"
+                  @click.stop
+                >
                   <el-button link class="more-btn" @click.stop>
                     <el-icon><ArrowDown /></el-icon>
                   </el-button>
@@ -522,7 +527,7 @@ const normalizeBreadcrumbs = paths => {
         ? String(item.id)
         : item.fileId !== undefined && item.fileId !== null
           ? String(item.fileId)
-          : item.id ?? item.fileId
+          : (item.id ?? item.fileId)
   }))
 }
 
@@ -603,6 +608,13 @@ const handleRowClick = row => {
   }
 }
 
+const getRowClassName = ({ row }) => {
+  if (route.query.highlightId && String(row.id) === String(route.query.highlightId)) {
+    return 'highlight-row'
+  }
+  return ''
+}
+
 const uploadFileTrigger = () => {
   window.eventBus.emit('openUploader')
 }
@@ -648,6 +660,7 @@ const renderFileList = async () => {
     }
 
     await loadRecentSummary()
+    store.fetchStorageInfo()
     selection.value = []
     syncPaginationState()
   } catch (error) {
@@ -1439,6 +1452,22 @@ onUnmounted(() => {
 
   .summary-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+:deep(.el-table__row.highlight-row) {
+  animation: flashHighlight 2s ease-out;
+}
+
+@keyframes flashHighlight {
+  0% {
+    background-color: var(--color-primary-bg);
+  }
+  50% {
+    background-color: var(--color-primary-bg);
+  }
+  100% {
+    background-color: transparent;
   }
 }
 </style>
