@@ -950,6 +950,14 @@ const loadTextPreview = async () => {
   cursor: pointer;
   user-select: none;
   transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+
+  :deep(.el-tag__content) {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
 
   &:hover {
     transform: translateY(-2px);

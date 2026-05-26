@@ -38,8 +38,10 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    // 混淆压缩器: 'esbuild' (极速、轻量，推荐) 或 'terser' (慢、吃内存，易OOM)
     minify: 'esbuild',
     chunkSizeWarningLimit: 1500,
+    // 是否生成 Gzip 压缩大小报告 (开发辅助): true (开启) 或 false (关闭，省内存)
     reportCompressedSize: true,
     rollupOptions: {
       output: {
