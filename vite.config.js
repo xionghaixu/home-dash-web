@@ -38,7 +38,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    minify: 'terser',
+    minify: 'esbuild',
     chunkSizeWarningLimit: 1500,
     reportCompressedSize: true,
     rollupOptions: {
@@ -61,13 +61,10 @@ export default defineConfig({
         entryFileNames: 'assets/js/[name]-[hash].js',
         assetFileNames: 'assets/[ext]/[name]-[hash].[ext]'
       }
-    },
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true
-      }
     }
+  },
+  esbuild: {
+    drop: ['console', 'debugger']
   },
   optimizeDeps: {
     include: ['vue', 'vue-router', 'pinia', 'axios', 'element-plus']
