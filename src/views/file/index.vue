@@ -292,7 +292,50 @@
 
     <!-- Dialogs -->
     <FolderTreeDialog v-if="folderTreeVisible" v-bind="folderTreeProps" @return="dealReturn" />
-    <FileDetailDrawer v-model="detailVisible" :file-id="detailFileId" />
+    <FileDetailDrawer
+      v-model="detailVisible"
+      :file-id="detailFileId"
+      @preview="handleDrawerPreview"
+      @playAudio="handlePlayAudio"
+    />
+
+    <!-- Image Preview -->
+    <ImagePreview
+      v-model="imagePreviewVisible"
+      :file-list="previewImages"
+      :initial-index="previewImageIndex"
+    />
+
+    <!-- Text Preview Dialog -->
+    <el-dialog
+      v-model="textPreviewVisible"
+      :title="previewFileName || '文本预览'"
+      width="800px"
+      destroy-on-close
+    >
+      <PageState
+        :loading="textPreviewLoading"
+        :error="Boolean(textPreviewError)"
+        :error-description="textPreviewError"
+        :empty="!textPreviewLoading && !textPreviewError && !textPreviewContent"
+        min-height="300px"
+        @retry="loadTextPreview"
+      >
+        <TextPreview
+          v-if="textPreviewContent"
+          :content="textPreviewContent"
+          :file-name="previewFileName"
+        />
+      </PageState>
+    </el-dialog>
+
+    <!-- Audio Player Bar -->
+    <AudioPlayerBar
+      v-if="audioPlayerVisible"
+      :file-id="audioFileId"
+      :file-name="audioFileName"
+      @close="audioPlayerVisible = false"
+    />
   </div>
 </template>
 
@@ -323,12 +366,16 @@ import {
   getRecentUploadSummary,
   moveOrCopyFiles,
   renameFile as renameFileApi,
-  searchFiles
+  searchFiles,
+  getTextPreview
 } from '@/apis/file'
 import FileTypeIcon from '@/components/FileTypeIcon.vue'
 import FolderTreeDialog from '@/components/FolderTreeDialog.vue'
 import PageState from '@/components/PageState.vue'
 import FileDetailDrawer from '@/components/FileDetailDrawer.vue'
+import ImagePreview from '@/components/ImagePreview.vue'
+import TextPreview from '@/components/preview/TextPreview.vue'
+import AudioPlayerBar from '@/components/preview/AudioPlayerBar.vue'
 import { formatSize } from '@/utils'
 import { formatFileDate, formatFileSize, resolveErrorMessage } from '@/utils/file'
 import { useAppStore } from '@/stores/app'
@@ -375,6 +422,20 @@ const isSearching = ref(false)
 const recentSummary = ref({})
 const summaryLoading = ref(false)
 const summaryErrorMessage = ref('')
+
+// Previews
+const imagePreviewVisible = ref(false)
+const previewImages = ref([])
+const previewImageIndex = ref(0)
+const textPreviewVisible = ref(false)
+const previewFileId = ref(null)
+const previewFileName = ref('')
+const textPreviewLoading = ref(false)
+const textPreviewError = ref('')
+const textPreviewContent = ref('')
+const audioPlayerVisible = ref(false)
+const audioFileId = ref(null)
+const audioFileName = ref('')
 
 const isRootWorkspace = computed(() => !isSearching.value && isRootFolderId(currentFolderId.value))
 const isRecentView = computed(() => isRootWorkspace.value && route.query.view === 'recent')
@@ -605,6 +666,8 @@ const handleContextAction = action => {
 const handleRowClick = row => {
   if (row.type === 'folder') {
     router.push(getFileRoute(row.id))
+  } else {
+    openRow(row)
   }
 }
 
@@ -751,7 +814,18 @@ const openRow = row => {
     openVideo(row.id)
     return
   }
-  showDetail(row)
+  if (row.type === 'picture') {
+    handlePreview(row)
+    return
+  }
+  if (row.type === 'audio') {
+    handlePlay(row)
+    return
+  }
+  if (row.type === 'txt' || row.type === 'text') {
+    handlePreview(row)
+    return
+  }
 }
 
 const downloadFile = row => {
@@ -868,6 +942,58 @@ const showDetail = row => {
   detailVisible.value = true
 }
 
+const handlePreview = file => {
+  if (file.type === 'picture') {
+    const images = currentTableData.value.filter(f => f.type === 'picture')
+    const index = images.findIndex(f => f.id === file.id)
+    previewImages.value = images
+    previewImageIndex.value = index >= 0 ? index : 0
+    imagePreviewVisible.value = true
+  } else if (file.type === 'txt' || file.type === 'text') {
+    previewFileId.value = file.resourceId || file.id
+    previewFileName.value = file.fileName
+    loadTextPreview()
+    textPreviewVisible.value = true
+  }
+}
+
+const handlePlay = file => {
+  if (file.type === 'video') {
+    openVideo(file.id)
+  } else if (file.type === 'audio') {
+    audioFileId.value = file.resourceId || file.id
+    audioFileName.value = file.fileName
+    audioPlayerVisible.value = true
+  }
+}
+
+const handleDrawerPreview = payload => {
+  if (payload.type === 'image') {
+    handlePreview(payload.file)
+  } else {
+    handlePreview(payload.file)
+  }
+}
+
+const handlePlayAudio = payload => {
+  handlePlay(payload.file)
+}
+
+const loadTextPreview = async () => {
+  if (!previewFileId.value) return
+  textPreviewLoading.value = true
+  textPreviewError.value = ''
+  textPreviewContent.value = ''
+  try {
+    const response = await getTextPreview(previewFileId.value)
+    textPreviewContent.value = response.data?.content || ''
+  } catch (error) {
+    textPreviewError.value = '文本预览加载失败'
+  } finally {
+    textPreviewLoading.value = false
+  }
+}
+
 const openRecentFolder = file => {
   router.push(getFileRoute(file.parentId ?? 0))
 }
@@ -917,6 +1043,11 @@ const openRecentRange = range => {
 const dealReturn = async result => {
   folderTreeVisible.value = false
   if (!result || result.type !== 'submit') {
+    return
+  }
+
+  if (result.conflicts && result.conflicts.length > 0) {
+    ElMessage.error('目标文件夹存在同名文件，无法进行移动/复制')
     return
   }
 

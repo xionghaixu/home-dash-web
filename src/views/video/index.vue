@@ -1,68 +1,48 @@
 <template>
-  <el-container class="video-page">
-    <el-header height="56px">
-      <div class="header-container">
-        <div class="header-left">
-          <el-button :icon="ArrowLeft" text class="back-btn" @click="goBack">返回</el-button>
-          <div class="video-title">
-            <el-icon><VideoCamera /></el-icon>
-            <span>{{ title }}</span>
-          </div>
-        </div>
-        <div class="header-right">
-          <el-button type="primary" :icon="Download" @click="download">下载视频</el-button>
+  <div class="video-page">
+    <!-- 顶部导航栏 -->
+    <div class="video-header">
+      <div class="header-left">
+        <el-button :icon="ArrowLeft" text class="back-btn" @click="goBack">返回</el-button>
+        <div class="video-title">
+          <el-icon><VideoCamera /></el-icon>
+          <span>{{ title }}</span>
         </div>
       </div>
-    </el-header>
-    <el-main>
-      <PageState
-        :loading="loading"
-        :error="Boolean(errorMessage)"
-        :error-description="errorMessage"
-        :empty="false"
-        min-height="70vh"
-        @retry="loadVideoInfo"
-      >
-        <div class="video-container">
-          <div class="player-wrapper">
-            <video
-              ref="videoPlayer"
-              controls
-              class="video-player"
-              :src="videoSrc"
-              preload="metadata"
-              @error="handleVideoError"
-              @loadeddata="handleVideoLoaded"
-            >
-              您的浏览器不支持视频播放
-            </video>
-          </div>
-          <div class="video-info">
-            <div class="info-item">
-              <span class="info-label">文件名称</span>
-              <span class="info-value">{{ title }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">播放状态</span>
-              <span class="info-value status" :class="['status--' + playerStatus]">
-                <span class="status-dot"></span>
-                {{ statusText }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </PageState>
-    </el-main>
-  </el-container>
+      <div class="header-right">
+        <el-button :icon="Download" text class="action-btn" @click="download">下载</el-button>
+      </div>
+    </div>
+
+    <!-- 播放器容器 -->
+    <div class="player-container">
+      <div ref="playerRef" class="dplayer-wrapper"></div>
+    </div>
+
+    <!-- 视频信息 -->
+    <div class="video-info">
+      <div class="info-item">
+        <span class="info-label">文件名</span>
+        <span class="info-value">{{ title }}</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">播放状态</span>
+        <span class="info-value status" :class="['status--' + playerStatus]">
+          <span class="status-dot"></span>
+          {{ statusText }}
+        </span>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, VideoCamera, Download } from '@element-plus/icons-vue'
 import { getFile, downloadFileUrl } from '@/apis/file'
-import PageState from '@/components/PageState.vue'
 import { resolveErrorMessage } from '@/utils/file'
+import DPlayer from 'dplayer'
 
 const props = defineProps({
   fileId: {
@@ -72,13 +52,12 @@ const props = defineProps({
 })
 
 const router = useRouter()
+const playerRef = ref(null)
 const title = ref('加载中...')
-const videoSrc = ref('')
-const videoPlayer = ref(null)
 const playerStatus = ref('idle')
 const loading = ref(false)
 const errorMessage = ref('')
-const videoEvents = []
+let dp = null
 
 const statusText = computed(() => {
   switch (playerStatus.value) {
@@ -95,29 +74,14 @@ const statusText = computed(() => {
   }
 })
 
-const addVideoEvent = (event, handler) => {
-  if (videoPlayer.value) {
-    videoPlayer.value.addEventListener(event, handler)
-    videoEvents.push({ event, handler })
-  }
-}
-
-const removeVideoEvents = () => {
-  if (videoPlayer.value) {
-    videoEvents.forEach(({ event, handler }) => {
-      videoPlayer.value.removeEventListener(event, handler)
-    })
-    videoEvents.length = 0
-  }
-}
-
 const loadVideoInfo = async () => {
   loading.value = true
   errorMessage.value = ''
   try {
     const response = await getFile(props.fileId)
     title.value = response.data.fileName || '未知文件'
-    videoSrc.value = downloadFileUrl(props.fileId)
+    await nextTick()
+    initPlayer()
   } catch (error) {
     title.value = '加载失败'
     errorMessage.value = resolveErrorMessage(error, '视频信息加载失败')
@@ -126,24 +90,72 @@ const loadVideoInfo = async () => {
   }
 }
 
-const handleVideoError = () => {
-  playerStatus.value = 'error'
-}
+const initPlayer = () => {
+  if (!playerRef.value) return
 
-const handleVideoLoaded = () => {
-  if (playerStatus.value !== 'playing' && playerStatus.value !== 'paused') {
-    playerStatus.value = 'idle'
+  const videoUrl = downloadFileUrl(props.fileId)
+
+  dp = new DPlayer({
+    container: playerRef.value,
+    autoplay: false,
+    theme: '#409eff',
+    loop: false,
+    lang: 'zh-cn',
+    screenshot: false,
+    hotkey: true,
+    preload: 'auto',
+    volume: 0.7,
+    mutex: true,
+    video: {
+      url: videoUrl,
+      type: 'auto'
+    }
+  })
+
+  // 监听播放事件
+  dp.on('play', () => {
+    playerStatus.value = 'playing'
+  })
+
+  dp.on('pause', () => {
+    playerStatus.value = 'paused'
+  })
+
+  dp.on('ended', () => {
+    playerStatus.value = 'ended'
+  })
+
+  dp.on('error', () => {
+    playerStatus.value = 'error'
+  })
+
+  dp.on('loadeddata', () => {
+    if (playerStatus.value !== 'playing' && playerStatus.value !== 'paused') {
+      playerStatus.value = 'idle'
+    }
+  })
+
+  // 恢复播放进度
+  const savedTime = localStorage.getItem(`video_progress_${props.fileId}`)
+  if (savedTime) {
+    dp.seek(parseFloat(savedTime))
   }
+
+  // 定期保存播放进度
+  dp.on('timeupdate', () => {
+    if (dp.video.currentTime > 0) {
+      localStorage.setItem(`video_progress_${props.fileId}`, dp.video.currentTime.toString())
+    }
+  })
 }
 
 const goBack = () => {
+  saveProgress()
   router.back()
 }
 
 const download = () => {
-  if (!props.fileId) {
-    return
-  }
+  if (!props.fileId) return
   try {
     const link = document.createElement('a')
     link.href = downloadFileUrl(props.fileId)
@@ -153,53 +165,53 @@ const download = () => {
   }
 }
 
+const saveProgress = () => {
+  if (dp && dp.video.currentTime > 0) {
+    localStorage.setItem(`video_progress_${props.fileId}`, dp.video.currentTime.toString())
+  }
+}
+
 onMounted(() => {
   loadVideoInfo()
-
-  addVideoEvent('play', () => {
-    playerStatus.value = 'playing'
-  })
-  addVideoEvent('pause', () => {
-    playerStatus.value = 'paused'
-  })
-  addVideoEvent('ended', () => {
-    playerStatus.value = 'ended'
-  })
 })
 
 onUnmounted(() => {
-  removeVideoEvents()
+  saveProgress()
+  if (dp) {
+    dp.destroy()
+    dp = null
+  }
 })
 </script>
 
 <style lang="scss" scoped>
 .video-page {
-  height: 100vh;
+  min-height: 100vh;
   background: #0d0d0d;
+  display: flex;
+  flex-direction: column;
 }
 
-.header-container {
-  width: 100%;
-  height: 100%;
+.video-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--spacing-xl);
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+  padding: 12px 24px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 100%);
+  z-index: 10;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xl);
+  gap: 16px;
 }
 
 .back-btn {
-  color: #fff;
-  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.85);
 
   &:hover {
-    color: var(--color-primary-light);
+    color: #fff;
     background: rgba(255, 255, 255, 0.1);
   }
 }
@@ -207,93 +219,83 @@ onUnmounted(() => {
 .video-title {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: 8px;
   color: #fff;
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
+  font-size: 15px;
+  font-weight: 500;
 
   .el-icon {
-    font-size: 20px;
-    color: var(--color-primary-light);
+    font-size: 18px;
+    color: #409eff;
+  }
+
+  span {
+    max-width: 500px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
 .header-right {
-  :deep(.el-button) {
-    background: var(--color-primary);
-    border-color: var(--color-primary);
-
-    &:hover {
-      background: var(--color-primary-light);
-      border-color: var(--color-primary-light);
-    }
-  }
-}
-
-.el-main {
-  padding: 0;
   display: flex;
-  justify-content: center;
-  overflow-y: auto;
+  gap: 8px;
 }
 
-.video-container {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--spacing-2xl);
-}
+.action-btn {
+  color: rgba(255, 255, 255, 0.85);
 
-.player-wrapper {
-  position: relative;
-  width: 100%;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  background: #000;
-  box-shadow: var(--shadow-xl);
-}
-
-.video-player {
-  width: 100%;
-  display: block;
-  max-height: 70vh;
-  background: #000;
-
-  &::-webkit-media-controls {
-    background: rgba(0, 0, 0, 0.6);
+  &:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
   }
+}
+
+.player-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: #000;
+}
+
+.dplayer-wrapper {
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: calc(100vh - 180px);
 }
 
 .video-info {
   display: flex;
-  gap: var(--spacing-3xl);
-  margin-top: var(--spacing-2xl);
-  padding: var(--spacing-xl);
+  gap: 32px;
+  padding: 16px 24px;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: var(--radius-lg);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .info-item {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: 4px;
 }
 
 .info-label {
-  font-size: var(--font-size-xs);
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.5);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .info-value {
-  font-size: var(--font-size-base);
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.9);
 
   &.status {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    gap: 8px;
   }
 }
 
@@ -301,93 +303,167 @@ onUnmounted(() => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--color-success);
+  background: #67c23a;
 
   .status--playing & {
-    background: var(--color-primary);
+    background: #409eff;
     animation: pulse 1.5s infinite;
   }
 
   .status--paused & {
-    background: var(--color-warning);
+    background: #e6a23c;
   }
 
   .status--ended & {
-    background: var(--color-info);
+    background: #909399;
   }
 
   .status--error & {
-    background: var(--color-danger);
+    background: #f56c6c;
   }
 }
 
-@media (max-width: 1280px) {
-  .video-container {
-    max-width: 100%;
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
   }
-
-  .player-wrapper {
-    border-radius: var(--radius-md);
+  50% {
+    opacity: 0.5;
   }
 }
 
-@media (max-width: 960px) {
-  .video-container {
-    padding: var(--spacing-lg);
+// DPlayer 样式定制
+:deep(.dplayer) {
+  // 控制栏渐变背景
+  .dplayer-controller {
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8)) !important;
   }
 
-  .video-info {
-    flex-direction: column;
-    gap: var(--spacing-lg);
+  // 进度条高度
+  .dplayer-bar-wrap {
+    padding: 0 !important;
   }
 
-  .header-left {
-    gap: var(--spacing-md);
+  .dplayer-bar {
+    height: 4px !important;
+    transition: height 0.2s;
+
+    &:hover {
+      height: 6px !important;
+    }
+  }
+
+  // 已播放进度条颜色
+  .dplayer-played-bar {
+    background: #409eff !important;
+  }
+
+  // 缓冲进度条颜色
+  .dplayer-loaded-bar {
+    background: rgba(255, 255, 255, 0.3) !important;
+  }
+
+  // 进度条滑块
+  .dplayer-thumb {
+    background: #409eff !important;
+    width: 12px !important;
+    height: 12px !important;
+    border: 2px solid #fff !important;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  // 控制栏按钮颜色
+  .dplayer-icon {
+    color: rgba(255, 255, 255, 0.9) !important;
+
+    &:hover {
+      color: #fff !important;
+    }
+  }
+
+  // 音量条
+  .dplayer-volume-bar {
+    height: 4px !important;
+
+    .dplayer-volume-bar-inner {
+      background: #409eff !important;
+    }
+  }
+
+  // 播放按钮
+  .dplayer-play-icon {
+    transform: scale(1.2);
+  }
+
+  // 视频加载中
+  .dplayer-loading-icon {
+    color: #409eff !important;
+  }
+
+  // 右键菜单
+  .dplayer-menu {
+    background: rgba(0, 0, 0, 0.85) !important;
+    border-radius: 4px !important;
+    padding: 4px 0 !important;
+
+    .dplayer-menu-item {
+      color: rgba(255, 255, 255, 0.85) !important;
+      padding: 8px 16px !important;
+      font-size: 13px !important;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+        color: #fff !important;
+      }
+    }
+  }
+
+  // 提示信息
+  .dplayer-info-panel {
+    background: rgba(0, 0, 0, 0.7) !important;
+    border-radius: 4px !important;
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+  }
+
+  // 倍速菜单
+  .dplayer-setting-speed-panel {
+    background: rgba(0, 0, 0, 0.85) !important;
+    border-radius: 4px !important;
+
+    .dplayer-setting-speed-item {
+      color: rgba(255, 255, 255, 0.85) !important;
+
+      &.dplayer-setting-speed-item-active {
+        color: #409eff !important;
+      }
+    }
+  }
+
+  // 进度条预览
+  .dplayer-bar-preview {
+    background: rgba(0, 0, 0, 0.8) !important;
+    border-radius: 4px !important;
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+  }
+}
+
+// 响应式适配
+@media (max-width: 768px) {
+  .video-header {
+    padding: 8px 12px;
   }
 
   .video-title span {
     max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .header-container {
-    padding: 0 var(--spacing-lg);
-  }
-}
-
-@media (max-width: 640px) {
-  .video-container {
-    padding: var(--spacing-md);
-  }
-
-  .header-container {
-    padding: 0 var(--spacing-md);
-  }
-
-  .header-left {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-sm);
-  }
-
-  .header-right {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
-  .video-title {
-    font-size: var(--font-size-sm);
   }
 
   .video-info {
-    padding: var(--spacing-md);
-    gap: var(--spacing-md);
-  }
-
-  .info-item {
-    width: 100%;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
   }
 }
 </style>

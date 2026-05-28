@@ -62,6 +62,26 @@ const routes = [
         path: 'media/audio',
         component: () => import('@/views/media/audio/index.vue'),
         meta: { title: '音频', keepAlive: true }
+      },
+      {
+        path: 'governance/recycle',
+        component: () => import('@/views/governance/recycle/index.vue'),
+        meta: { title: '回收站', keepAlive: true }
+      },
+      {
+        path: 'governance/analysis',
+        component: () => import('@/views/governance/analysis/index.vue'),
+        meta: { title: '存储分析', keepAlive: true }
+      },
+      {
+        path: 'tasks',
+        component: () => import('@/views/task-center/index.vue'),
+        meta: { title: '任务中心', keepAlive: true }
+      },
+      {
+        path: 'governance/cleanup',
+        component: () => import('@/views/governance/cleanup/index.vue'),
+        meta: { title: '空间瘦身', keepAlive: true }
       }
     ]
   },

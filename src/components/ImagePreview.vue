@@ -2,15 +2,15 @@
   <el-dialog
     v-model="visible"
     :title="title"
-    width="auto"
+    width="fit-content"
     :close-on-click-modal="true"
     :close-on-press-escape="true"
     class="image-preview-dialog"
     @closed="handleClosed"
   >
     <div class="preview-container">
-      <div class="preview-nav">
-        <el-button v-if="hasPrev" :icon="ArrowLeft" circle class="nav-btn" @click="prev" />
+      <div class="preview-nav" v-if="hasPrev">
+        <el-button :icon="ArrowLeft" circle class="nav-btn" @click="prev" />
       </div>
       <div class="preview-image-wrapper">
         <el-image
@@ -22,25 +22,40 @@
           hide-on-click-modal
           @load="handleImageLoad"
           @error="handleImageError"
-        />
+        >
+          <template #placeholder>
+            <div class="image-loading">
+              <el-icon class="is-loading"><Loading /></el-icon>
+              <span>加载中...</span>
+            </div>
+          </template>
+          <template #error>
+            <div class="image-error">
+              <el-icon><PictureFilled /></el-icon>
+              <span>加载失败</span>
+            </div>
+          </template>
+        </el-image>
       </div>
-      <div class="preview-nav">
-        <el-button v-if="hasNext" :icon="ArrowRight" circle class="nav-btn" @click="next" />
+      <div class="preview-nav" v-if="hasNext">
+        <el-button :icon="ArrowRight" circle class="nav-btn" @click="next" />
       </div>
     </div>
     <template #footer>
       <div class="preview-footer">
         <span class="image-info">{{ currentIndex + 1 }} / {{ imageList.length }}</span>
-        <el-button @click="handleClose">关闭</el-button>
-        <el-button type="primary" @click="download">下载</el-button>
+        <div class="footer-actions">
+          <el-button @click="handleClose">关闭</el-button>
+          <el-button type="primary" @click="download">下载</el-button>
+        </div>
       </div>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
+import { ref, computed, watch } from 'vue'
+import { ArrowLeft, ArrowRight, Loading, PictureFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { downloadFileUrl } from '@/apis/file'
 
@@ -69,6 +84,22 @@ const visible = computed({
 const currentIndex = ref(props.initialIndex)
 const loading = ref(false)
 const error = ref(false)
+
+watch(
+  () => props.initialIndex,
+  newVal => {
+    currentIndex.value = newVal
+  }
+)
+
+watch(
+  () => props.modelValue,
+  val => {
+    if (val) {
+      currentIndex.value = props.initialIndex
+    }
+  }
+)
 
 const imageList = computed(() => {
   return props.fileList
@@ -150,20 +181,27 @@ defineExpose({
 
 <style lang="scss" scoped>
 .image-preview-dialog {
+  // 限制弹窗宽度范围
+  :deep(.el-dialog) {
+    max-width: 85vw;
+    min-width: 300px;
+    margin: 0 auto;
+  }
+
   :deep(.el-dialog__header) {
     border-bottom: 1px solid var(--color-border-lighter);
-    padding: var(--spacing-lg) var(--spacing-xl);
+    padding: var(--spacing-md) var(--spacing-lg);
+    margin: 0;
   }
 
   :deep(.el-dialog__body) {
     padding: 0;
-    max-height: 80vh;
     overflow: hidden;
   }
 
   :deep(.el-dialog__footer) {
     border-top: 1px solid var(--color-border-lighter);
-    padding: var(--spacing-md) var(--spacing-xl);
+    padding: var(--spacing-sm) var(--spacing-lg);
   }
 }
 
@@ -171,14 +209,17 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 60vh;
-  max-height: 80vh;
+  gap: var(--spacing-sm);
   background: var(--color-bg-page);
-  padding: var(--spacing-xl);
+  padding: var(--spacing-md);
+  // 限制容器高度
+  max-height: 75vh;
 }
 
 .preview-nav {
-  padding: var(--spacing-lg);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 .nav-btn {
@@ -198,15 +239,37 @@ defineExpose({
   justify-content: center;
   align-items: center;
   min-width: 0;
-  max-width: calc(100% - 160px);
+  // 限制图片容器尺寸
+  max-width: 70vw;
+  max-height: 70vh;
 }
 
 .preview-image {
+  // 图片自适应，保持比例
   max-width: 100%;
   max-height: 70vh;
+  width: auto;
+  height: auto;
   object-fit: contain;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
+}
+
+.image-loading,
+.image-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 200px;
+  height: 200px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+
+  .el-icon {
+    font-size: 32px;
+  }
 }
 
 .preview-footer {
@@ -216,22 +279,34 @@ defineExpose({
   width: 100%;
 }
 
+.footer-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
 .image-info {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
 }
 
+// 响应式调整
 @media (max-width: 768px) {
-  .preview-container {
-    padding: var(--spacing-md);
+  .image-preview-dialog {
+    :deep(.el-dialog) {
+      max-width: 95vw;
+    }
   }
 
-  .preview-nav {
+  .preview-container {
     padding: var(--spacing-sm);
   }
 
   .preview-image-wrapper {
-    max-width: calc(100% - 100px);
+    max-width: 85vw;
+  }
+
+  .preview-image {
+    max-height: 60vh;
   }
 }
 
@@ -242,6 +317,10 @@ defineExpose({
 
   .preview-image-wrapper {
     max-width: 100%;
+  }
+
+  .preview-image {
+    max-height: 50vh;
   }
 }
 </style>

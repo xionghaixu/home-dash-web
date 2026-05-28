@@ -69,7 +69,11 @@ import {
   Picture,
   Headset,
   Grid,
-  TrendCharts
+  TrendCharts,
+  Delete,
+  List,
+  Brush,
+  PieChart
 } from '@element-plus/icons-vue'
 import { formatFileSize } from '@/utils/file'
 import { useAppStore } from '@/stores/app'
@@ -91,7 +95,11 @@ const mediaMenuItems = [
 
 const systemMenuItems = [
   { path: '/category', label: '分类浏览', icon: Grid },
-  { path: '/system', label: '系统信息', icon: TrendCharts }
+  { path: '/system', label: '系统信息', icon: TrendCharts },
+  { path: '/governance/recycle', label: '回收站', icon: Delete },
+  { path: '/governance/cleanup', label: '空间瘦身', icon: Brush },
+  { path: '/governance/analysis', label: '存储分析', icon: PieChart },
+  { path: '/tasks', label: '任务中心', icon: List }
 ]
 
 const isActive = path => {

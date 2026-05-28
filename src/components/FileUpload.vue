@@ -210,7 +210,13 @@ export default {
         fileParameterName: 'file',
         maxChunkRetries: 3,
         testChunks: true,
-        simultaneousUploads: 3
+        simultaneousUploads: 3,
+        allowDuplicateUploads: true,
+        generateUniqueIdentifier: (file) => {
+          const relativePath = file.relativePath || file.webkitRelativePath || file.fileName || file.name
+          const uniqueSuffix = Date.now() + '-' + Math.random().toString(36).substr(2, 9)
+          return file.size + '-' + relativePath.replace(/[^0-9a-zA-Z_-]/img, '') + '-' + uniqueSuffix
+        }
       },
       statusText: {
         success: '完成',
@@ -321,8 +327,13 @@ export default {
       }
 
       mergeResource(resource)
-        .then(() => {
-          ElMessage.success({ message: `${file.name} 上传成功`, duration: 3000 })
+        .then((res) => {
+          // 检查是否为秒传
+          const isInstantUpload = res?.data?.isInstantUpload
+          const message = isInstantUpload
+            ? `${file.name} 秒传成功（文件已存在）`
+            : `${file.name} 上传成功`
+          ElMessage.success({ message, duration: 3000 })
           window.eventBus.emit('flushFileList', parentId)
           window.eventBus.emit('uploadCompleted', identifier)
           this.store.decrementTransferCount()
@@ -347,10 +358,12 @@ export default {
     },
     pauseFile(file) {
       file.pause?.()
+      this.$forceUpdate()
       window.eventBus.emit('uploadPaused', file.uniqueIdentifier)
     },
     resumeFile(file) {
       file.resume?.()
+      this.$forceUpdate()
       window.eventBus.emit('uploadResumed', file.uniqueIdentifier)
     },
     retryFile(file) {
@@ -370,6 +383,7 @@ export default {
           window.eventBus.emit('uploadPaused', f.uniqueIdentifier)
         }
       })
+      this.$forceUpdate()
     },
     clearAll() {
       this.files.forEach(f => {
@@ -383,12 +397,14 @@ export default {
       const file = this.files.find(f => f.uniqueIdentifier === identifier)
       if (file && file.isUploading?.()) {
         file.pause?.()
+        this.$forceUpdate()
       }
     },
     resumeByIdentifier(identifier) {
       const file = this.files.find(f => f.uniqueIdentifier === identifier)
       if (file && file.paused) {
         file.resume?.()
+        this.$forceUpdate()
       }
     },
     cancelByIdentifier(identifier) {
