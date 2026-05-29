@@ -85,10 +85,26 @@
           <el-table-column prop="fileName" label="文件名" min-width="260" />
           <el-table-column label="状态" width="120">
             <template #default="{ row }">
-              <el-tag :type="statusTagType(row.status)" size="small" effect="light">
-                <span class="status-dot" :class="`status-dot--${row.status}`"></span>
-                {{ statusLabel(row.status) }}
-              </el-tag>
+              <div v-if="getTaskStatus(row) === 'uploading'" class="status-badge uploading">
+                <span class="status-dot"></span>
+                <span>上传中</span>
+              </div>
+              <div v-else-if="getTaskStatus(row) === 'paused'" class="status-badge warning">
+                <el-icon><VideoPause /></el-icon>
+                <span>暂停</span>
+              </div>
+              <div v-else-if="getTaskStatus(row) === 'failed'" class="status-badge exception">
+                <el-icon><WarningFilled /></el-icon>
+                <span>失败</span>
+              </div>
+              <div v-else-if="getTaskStatus(row) === 'completed'" class="status-badge success">
+                <el-icon><Check /></el-icon>
+                <span>完成</span>
+              </div>
+              <div v-else-if="getTaskStatus(row) === 'cancelled'" class="status-badge exception">
+                <el-icon><CircleClose /></el-icon>
+                <span>已取消</span>
+              </div>
             </template>
           </el-table-column>
           <el-table-column label="总进度" min-width="220">
@@ -96,10 +112,10 @@
               <div class="progress-cell">
                 <el-progress
                   :percentage="getTaskProgress(row)"
-                  :status="progressStatus(row.status)"
+                  :status="progressStatus(getTaskStatus(row))"
                   :stroke-width="6"
                 />
-                <span v-if="row.status === 'uploading' || row.status === 'paused'" class="progress-text">
+                <span v-if="getTaskStatus(row) === 'uploading' || getTaskStatus(row) === 'paused'" class="progress-text">
                   {{ getTaskProgress(row) }}%
                   <span v-if="getTaskSpeed(row)" class="progress-speed">· {{ getTaskSpeed(row) }}</span>
                 </span>
@@ -118,9 +134,9 @@
             <template #default="{ row }">
               <span
                 class="message-text"
-                :class="{ 'message-text--error': row.status === 'failed' }"
+                :class="{ 'message-text--error': getTaskStatus(row) === 'failed' }"
               >
-                {{ row.errorMessage || statusHint(row.status) }}
+                {{ row.errorMessage || statusHint(getTaskStatus(row)) }}
               </span>
             </template>
           </el-table-column>
@@ -131,20 +147,20 @@
                   目录
                 </el-button>
                 <el-button v-if="row.fileId" link @click="openCompletedTask(row)">打开</el-button>
-                <el-button v-if="row.status === 'uploading'" link @click="pauseTask(row)">
+                <el-button v-if="getTaskStatus(row) === 'uploading'" link @click="pauseTask(row)">
                   暂停
                 </el-button>
-                <el-button v-if="row.status === 'paused'" link @click="resumeTask(row)">
+                <el-button v-if="getTaskStatus(row) === 'paused'" link @click="resumeTask(row)">
                   继续
                 </el-button>
                 <el-button
-                  v-if="row.status === 'uploading' || row.status === 'paused'"
+                  v-if="getTaskStatus(row) === 'uploading' || getTaskStatus(row) === 'paused'"
                   link
                   @click="cancelTask(row)"
                 >
                   取消
                 </el-button>
-                <el-button v-if="row.status === 'failed'" link @click="retryTask(row)">
+                <el-button v-if="getTaskStatus(row) === 'failed'" link @click="retryTask(row)">
                   重试
                 </el-button>
               </div>
@@ -412,9 +428,20 @@ const handleUploadProgress = (progressData) => {
   }, 1000)
 }
 
-const getTaskProgress = (row) => {
+const getTaskStatus = (row) => {
   const rt = realtimeProgress[row.identifier]
-  if (rt && (row.status === 'uploading' || row.status === 'paused')) {
+  if (rt) {
+    if (rt.error) return 'failed'
+    if (rt.paused) return 'paused'
+    if (rt.uploading) return 'uploading'
+  }
+  return row.status
+}
+
+const getTaskProgress = (row) => {
+  const status = getTaskStatus(row)
+  const rt = realtimeProgress[row.identifier]
+  if (rt && (status === 'uploading' || status === 'paused')) {
     return rt.progress || 0
   }
   return row.progress || 0
@@ -430,19 +457,19 @@ const getTaskSpeed = (row) => {
 
 const handleUploadCompleted = (identifier) => {
   lastProgressUpdateTime = 0
-  delete realtimeProgress[identifier]
+  setTimeout(() => delete realtimeProgress[identifier], 2000)
   loadTransfers(true)
 }
 
 const handleUploadError = (identifier) => {
   lastProgressUpdateTime = 0
-  delete realtimeProgress[identifier]
+  setTimeout(() => delete realtimeProgress[identifier], 2000)
   loadTransfers(true)
 }
 
 const handleUploadCancelled = (identifier) => {
   lastProgressUpdateTime = 0
-  delete realtimeProgress[identifier]
+  setTimeout(() => delete realtimeProgress[identifier], 2000)
   loadTransfers(true)
 }
 

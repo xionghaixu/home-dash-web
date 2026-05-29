@@ -187,9 +187,6 @@ import {
 import { ElMessage } from 'element-plus'
 import UploaderUtils from 'simple-uploader.js'
 
-// 模块级暂停标识集合，preprocess 回调通过闭包访问
-const _pausedIdentifiers = new Set()
-
 export default {
   name: 'FileUpload',
   components: {
@@ -205,18 +202,39 @@ export default {
     UploadFilled
   },
   data() {
+    // 创建本地 pausedIdentifiers 引用，供 preprocess 回调使用
+    const pausedIdentifiers = new Set()
+
     return {
       store: useAppStore(),
       fileMap: {},
-      pausedIdentifiers: _pausedIdentifiers,
+      pausedIdentifiers,  // 直接在组件内创建，不依赖模块级变量
       uploaderOptions: {
         target: resourceUploadUrl(),
-        chunkSize: 2048000,
+        chunkSize: 512000,  // 默认分片大小，会被 initFileFn 动态覆写
+        forceChunkSize: true, // 强制分片大小，确保最后一片不超出限制（后端限制10MB）
         fileParameterName: 'file',
         maxChunkRetries: 3,
         testChunks: true,
         simultaneousUploads: 3,
         allowDuplicateUploads: true,
+        initFileFn: function (file) {
+          const MB = 1024 * 1024
+          const size = file.size
+          let dynamicChunkSize = 1 * MB
+
+          if (size < 50 * MB) {
+            dynamicChunkSize = 1 * MB // < 50MB 使用 1MB 分片
+          } else if (size < 300 * MB) {
+            dynamicChunkSize = 2 * MB // 50MB - 300MB 使用 2MB 分片
+          } else if (size < 800 * MB) {
+            dynamicChunkSize = 5 * MB // 300MB - 800MB 使用 5MB 分片
+          } else {
+            dynamicChunkSize = 8 * MB // >= 800MB 使用 8MB 分片
+          }
+
+          this.uploader.opts.chunkSize = dynamicChunkSize
+        },
         checkChunkUploadedByResponse: (chunk, response_message) => {
           try {
             const res = JSON.parse(response_message)
@@ -232,8 +250,9 @@ export default {
         },
         preprocess: (chunk) => {
           const identifier = chunk.file?.uniqueIdentifier || chunk.file?.file?.uniqueIdentifier
-          if (identifier && _pausedIdentifiers.has(identifier)) {
-            // 暂停状态，不调用 preprocessFinished，分块会一直等待
+          if (identifier && pausedIdentifiers.has(identifier)) {
+            // 暂停状态，标记分块为预处理中，等待恢复
+            chunk.preprocessState = 1
             return
           }
           chunk.preprocessFinished()
@@ -443,12 +462,13 @@ export default {
         // 恢复因软暂停阻塞在 preprocess 的分块
         if (file.chunks) {
           file.chunks.forEach(chunk => {
+            // 恢复所有被暂停阻塞的分块
             if (chunk.preprocessState === 1) {
               chunk.preprocessState = 0
-              chunk.send()
             }
           })
         }
+        // 触发上传
         this.uploaderInstance?.upload()
       }
       this.$forceUpdate()
@@ -529,7 +549,6 @@ export default {
             file.chunks.forEach(chunk => {
               if (chunk.preprocessState === 1) {
                 chunk.preprocessState = 0
-                chunk.send()
               }
             })
           }
@@ -583,13 +602,13 @@ export default {
         )
         if (hasActive || this.files.some(f => !f.isComplete && !f.error)) {
           const now = Date.now()
-          if (now - this.lastProgressEmitTime > 800) {
+          if (now - this.lastProgressEmitTime > 300) {  // 300ms 更新一次
             const progressData = this.collectProgressData()
             window.eventBus.emit('uploadProgress', progressData)
             this.lastProgressEmitTime = now
           }
         }
-      }, 800)
+      }, 300)  // 每 300ms 检查一次
     },
     stopProgressPolling() {
       if (this.progressTimer) {
