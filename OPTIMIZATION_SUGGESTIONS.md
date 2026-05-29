@@ -12,7 +12,7 @@
 | 阶段一 | 核心文件工作台 | 已完全完成 |
 | 阶段二 | 预览与检索整理 | 已完全完成 |
 | 阶段三 | 媒体中心与 NAS 体验 | 已完全完成 |
-| 阶段四 | 数据治理与任务中心 | 待开发 |
+| 阶段四 | 数据治理与任务中心 | 已完成 |
 | 阶段五 | 家庭设备与备份页面 | 待开发 |
 | 阶段六 | 登录与安全页面 | 延后处理 |
 
@@ -196,6 +196,37 @@
 - 用户可查看并执行治理操作
 - 任务状态清晰、可筛选、可重试
 - 主要治理动作可在有限页面入口内完成
+
+### 6.5 阶段四验收结论
+
+**已实现页面：**
+
+| 页面 | 路由 | 功能 |
+|------|------|------|
+| 回收站 | `/governance/recycle` | 文件恢复、清空、错误提示 |
+| 空间瘦身 | `/governance/cleanup` | 重复文件/大文件/空目录清理、摘要统计 |
+| 存储分析 | `/governance/analysis` | 容量分布、目录排行、大文件排行、清理建议 |
+| 任务中心 | `/tasks` | 统一任务查询、状态筛选、重试、批量重试 |
+
+**已实现API模块：**
+
+| 模块 | 文件 | 方法 |
+|------|------|------|
+| 治理接口 | `apis/governance.js` | getStorageAnalysis, getDuplicates, getLargeFiles, getEmptyDirs, smartCleanup, cleanupGroup |
+| 回收站接口 | `apis/recycleBin.js` | getRecycleBinList, restoreFiles, emptyRecycleBin |
+| 任务接口 | `apis/task.js` | getTasks, getTaskDetail, retryTask, batchRetryTasks |
+
+**延后功能（用户明确不需要）：**
+- 巡检报告页
+- 操作记录页
+- 最近失败任务卡片区
+
+**额外优化：**
+- 统一治理页面的 formatSize 函数
+- 回收站页面重构使用 API 模块
+- 清理搜索 Store 死代码
+- 图片预览弹窗自适应优化
+- 视频播放器集成 DPlayer
 
 ## 7. 阶段五：家庭设备与备份页面
 
