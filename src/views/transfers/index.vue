@@ -114,6 +114,7 @@
                   :percentage="getTaskProgress(row)"
                   :status="progressStatus(getTaskStatus(row))"
                   :stroke-width="6"
+                  :show-text="false"
                 />
                 <span v-if="getTaskStatus(row) === 'uploading' || getTaskStatus(row) === 'paused'" class="progress-text">
                   {{ getTaskProgress(row) }}%
@@ -206,6 +207,33 @@ const PROGRESS_THROTTLE_MS = 5000
 // 实时进度数据（来自 FileUpload 组件的 eventBus 推送）
 const realtimeProgress = reactive({})
 
+const pollingTimer = ref(null)
+
+const startPolling = () => {
+  if (pollingTimer.value) return
+  pollingTimer.value = setInterval(async () => {
+    try {
+      const response = await getTransferTasks()
+      tasks.value = response.data || []
+      summary.value = response.extra || {}
+      
+      const hasUploading = tasks.value.some(t => t.status === 'uploading')
+      if (!hasUploading) {
+        stopPolling()
+      }
+    } catch (error) {
+      console.error('Polling failed:', error)
+    }
+  }, 800)
+}
+
+const stopPolling = () => {
+  if (pollingTimer.value) {
+    clearInterval(pollingTimer.value)
+    pollingTimer.value = null
+  }
+}
+
 const filteredTasks = computed(() => {
   if (statusFilter.value === 'all') {
     return tasks.value
@@ -234,6 +262,14 @@ const loadTransfers = async (silent = false) => {
     const response = await getTransferTasks()
     tasks.value = response.data || []
     summary.value = response.extra || {}
+    
+    // 如果有正在上传的任务，启动轮询
+    const hasUploading = tasks.value.some(t => t.status === 'uploading')
+    if (hasUploading) {
+      startPolling()
+    } else {
+      stopPolling()
+    }
   } catch (error) {
     if (!silent) {
       tasks.value = []
@@ -496,6 +532,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  stopPolling()
   window.eventBus.off('refreshTransfers', handleRefresh)
   window.eventBus.off('uploadStarted', handleUploadStarted)
   window.eventBus.off('uploadProgress', handleUploadProgress)
