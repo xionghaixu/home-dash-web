@@ -87,7 +87,8 @@
                 <div class="file-info">
                   <div class="file-name">{{ file.name }}</div>
                   <div class="file-meta">
-                    <span v-if="file.isUploading?.()">{{ getFileSpeed(file) }}</span>
+                    <span v-if="isSoftPaused(file)" class="text-paused">已暂停</span>
+                    <span v-else-if="file.isUploading?.()">{{ getFileSpeed(file) }}</span>
                     <span v-else-if="file.isComplete && !file.error" class="text-success">
                       已完成
                     </span>
@@ -98,7 +99,7 @@
 
                 <div class="file-actions">
                   <el-button
-                    v-if="file.isUploading?.()"
+                    v-if="file.isUploading?.() && !isSoftPaused(file)"
                     :icon="VideoPause"
                     circle
                     size="small"
@@ -107,7 +108,7 @@
                     @click="pauseFile(file)"
                   />
                   <el-button
-                    v-if="file.paused"
+                    v-if="isSoftPaused(file) || file.paused"
                     :icon="VideoPlay"
                     circle
                     size="small"
@@ -116,7 +117,7 @@
                     @click="resumeFile(file)"
                   />
                   <el-button
-                    v-if="file.error"
+                    v-if="file.error && !isSoftPaused(file)"
                     :icon="Refresh"
                     circle
                     size="small"
@@ -186,6 +187,9 @@ import {
 import { ElMessage } from 'element-plus'
 import UploaderUtils from 'simple-uploader.js'
 
+// 模块级暂停标识集合，preprocess 回调通过闭包访问
+const _pausedIdentifiers = new Set()
+
 export default {
   name: 'FileUpload',
   components: {
@@ -204,6 +208,7 @@ export default {
     return {
       store: useAppStore(),
       fileMap: {},
+      pausedIdentifiers: _pausedIdentifiers,
       uploaderOptions: {
         target: resourceUploadUrl(),
         chunkSize: 2048000,
@@ -224,6 +229,14 @@ export default {
           const relativePath = file.relativePath || file.webkitRelativePath || file.fileName || file.name
           const lastModified = file.lastModified || ''
           return file.size + '-' + lastModified + '-' + relativePath.replace(/[^0-9a-zA-Z_-]/img, '')
+        },
+        preprocess: (chunk) => {
+          const identifier = chunk.file?.uniqueIdentifier || chunk.file?.file?.uniqueIdentifier
+          if (identifier && _pausedIdentifiers.has(identifier)) {
+            // 暂停状态，不调用 preprocessFinished，分块会一直等待
+            return
+          }
+          chunk.preprocessFinished()
         }
       },
       statusText: {
@@ -256,7 +269,7 @@ export default {
       return this.files.length
     },
     uploadingCount() {
-      return this.files.filter(f => f.isUploading?.()).length
+      return this.files.filter(f => f.isUploading?.() && !this.pausedIdentifiers.has(f.uniqueIdentifier)).length
     },
     completedCount() {
       return this.files.filter(f => f.isComplete && !f.error).length
@@ -267,7 +280,7 @@ export default {
     filteredFiles() {
       if (this.activeTab === 'uploading') {
         return this.files.filter(
-          f => f.isUploading?.() || f.paused || (!f.isComplete && !f.error && !f.isUploading?.())
+          f => f.isUploading?.() || f.paused || this.pausedIdentifiers.has(f.uniqueIdentifier) || (!f.isComplete && !f.error && !f.isUploading?.())
         )
       } else if (this.activeTab === 'done') {
         return this.files.filter(f => f.isComplete && !f.error)
@@ -295,7 +308,11 @@ export default {
     toggleMinimize() {
       this.isMinimized = !this.isMinimized
     },
+    isSoftPaused(file) {
+      return this.pausedIdentifiers.has(file.uniqueIdentifier)
+    },
     getFileStatus(file) {
+      if (this.isSoftPaused(file)) return 'paused'
       if (file.error) return 'error'
       if (file.isComplete && !file.error) return 'success'
       if (file.isUploading?.()) return 'uploading'
@@ -370,6 +387,13 @@ export default {
         })
     },
     handleFileError(rootFile, file, response) {
+      const identifier = rootFile.uniqueIdentifier
+      // 如果文件处于软暂停状态，忽略错误（暂停期间的分块错误不是真正的失败）
+      if (this.pausedIdentifiers.has(identifier)) {
+        console.warn('文件处于暂停状态，忽略分块错误:', identifier)
+        return
+      }
+
       let msg = '上传失败'
       try {
         if (typeof response === 'string' && response.startsWith('{')) {
@@ -381,7 +405,7 @@ export default {
       } catch (e) {
         msg = typeof response === 'string' && response ? response : '上传失败'
       }
-      
+
       if (msg && msg.length > 50) {
         msg = msg.substring(0, 50) + '...'
       }
@@ -390,49 +414,70 @@ export default {
         message: `${file?.name || '文件'}：${msg}`,
         duration: 4000
       })
-      const identifier = rootFile.uniqueIdentifier
       this.store.decrementTransferCount()
       this.syncStatusToBackend(rootFile, 'failed').then(() => {
         window.eventBus.emit('uploadError', identifier)
       })
     },
+    // ========== 软暂停机制 ==========
+    // 不调用 file.pause()（会abort XHR触发重试链），而是阻止新分块发送
     pauseFile(file) {
-      file.pause?.()
+      const identifier = file.uniqueIdentifier
+      this.pausedIdentifiers.add(identifier)
       this.$forceUpdate()
       this.syncStatusToBackend(file, 'paused').then(() => {
-        window.eventBus.emit('uploadPaused', file.uniqueIdentifier)
+        window.eventBus.emit('uploadPaused', identifier)
       })
     },
     resumeFile(file) {
+      const identifier = file.uniqueIdentifier
+      this.pausedIdentifiers.delete(identifier)
+      // 恢复 paused 标志和 error 标志
+      if (file.paused) {
+        file.paused = false
+        file.aborted = false
+      }
       if (file.error) {
         file.retry?.()
       } else {
-        file.resume?.()
+        // 恢复因软暂停阻塞在 preprocess 的分块
+        if (file.chunks) {
+          file.chunks.forEach(chunk => {
+            if (chunk.preprocessState === 1) {
+              chunk.preprocessState = 0
+              chunk.send()
+            }
+          })
+        }
+        this.uploaderInstance?.upload()
       }
       this.$forceUpdate()
       this.syncStatusToBackend(file, 'uploading').then(() => {
-        window.eventBus.emit('uploadResumed', file.uniqueIdentifier)
+        window.eventBus.emit('uploadResumed', identifier)
       })
     },
     retryFile(file) {
+      this.pausedIdentifiers.delete(file.uniqueIdentifier)
       file.retry?.()
       this.syncStatusToBackend(file, 'uploading').then(() => {
         window.eventBus.emit('uploadStarted', file.uniqueIdentifier)
       })
     },
     removeFile(file) {
+      const identifier = file.uniqueIdentifier
+      this.pausedIdentifiers.delete(identifier)
       this.syncStatusToBackend(file, 'cancelled').then(() => {
         file.cancel?.()
         this.uploaderInstance?.removeFile?.(file)
-        delete this.fileMap[file.uniqueIdentifier]
-        window.eventBus.emit('uploadCancelled', file.uniqueIdentifier)
+        delete this.fileMap[identifier]
+        window.eventBus.emit('uploadCancelled', identifier)
       })
     },
     pauseAll() {
       const promises = []
       this.files.forEach(f => {
-        if (f.isUploading?.()) {
-          f.pause?.()
+        if (f.isUploading?.() && !this.pausedIdentifiers.has(f.uniqueIdentifier)) {
+          this.pausedIdentifiers.add(f.uniqueIdentifier)
           promises.push(
             this.syncStatusToBackend(f, 'paused').then(() => {
               window.eventBus.emit('uploadPaused', f.uniqueIdentifier)
@@ -447,6 +492,7 @@ export default {
     clearAll() {
       const promises = []
       this.files.forEach(f => {
+        this.pausedIdentifiers.delete(f.uniqueIdentifier)
         promises.push(
           this.syncStatusToBackend(f, 'cancelled').then(() => {
             f.cancel?.()
@@ -462,7 +508,7 @@ export default {
     pauseByIdentifier(identifier) {
       const file = this.files.find(f => f.uniqueIdentifier === identifier)
       if (file) {
-        file.pause?.()
+        this.pausedIdentifiers.add(identifier)
         this.$forceUpdate()
         this.syncStatusToBackend(file, 'paused')
       }
@@ -470,12 +516,24 @@ export default {
     resumeByIdentifier(identifier) {
       const file = this.files.find(f => f.uniqueIdentifier === identifier)
       if (file) {
+        this.pausedIdentifiers.delete(identifier)
+        if (file.paused) {
+          file.paused = false
+          file.aborted = false
+        }
         if (file.error) {
           file.retry?.()
-        } else if (file.paused) {
-          file.resume?.()
         } else {
-          file.resume?.()
+          // 恢复因软暂停阻塞在 preprocess 的分块
+          if (file.chunks) {
+            file.chunks.forEach(chunk => {
+              if (chunk.preprocessState === 1) {
+                chunk.preprocessState = 0
+                chunk.send()
+              }
+            })
+          }
+          this.uploaderInstance?.upload()
         }
         this.$forceUpdate()
         this.syncStatusToBackend(file, 'uploading')
@@ -484,6 +542,7 @@ export default {
     cancelByIdentifier(identifier) {
       const file = this.files.find(f => f.uniqueIdentifier === identifier)
       if (file) {
+        this.pausedIdentifiers.delete(identifier)
         this.syncStatusToBackend(file, 'cancelled').then(() => {
           file.cancel?.()
           this.uploaderInstance?.removeFile?.(file)
@@ -499,18 +558,38 @@ export default {
         }
       }
     },
+    // ========== 实时进度推送 ==========
+    collectProgressData() {
+      const data = {}
+      this.files.forEach(f => {
+        if (!f.isComplete || f.error) {
+          data[f.uniqueIdentifier] = {
+            progress: Math.floor((f.progress?.() || 0) * 100),
+            speed: f.averageSpeed || 0,
+            paused: this.pausedIdentifiers.has(f.uniqueIdentifier),
+            uploading: f.isUploading?.() && !this.pausedIdentifiers.has(f.uniqueIdentifier),
+            error: !!f.error
+          }
+        }
+      })
+      return data
+    },
     startProgressPolling() {
       this.stopProgressPolling()
       this.progressTimer = setInterval(() => {
-        const hasUploading = this.files.some(f => f.isUploading?.())
-        if (hasUploading) {
+        const hasActive = this.files.some(f =>
+          (f.isUploading?.() && !this.pausedIdentifiers.has(f.uniqueIdentifier)) ||
+          this.pausedIdentifiers.has(f.uniqueIdentifier)
+        )
+        if (hasActive || this.files.some(f => !f.isComplete && !f.error)) {
           const now = Date.now()
-          if (now - this.lastProgressEmitTime > 500) {
-            window.eventBus.emit('uploadProgress')
+          if (now - this.lastProgressEmitTime > 800) {
+            const progressData = this.collectProgressData()
+            window.eventBus.emit('uploadProgress', progressData)
             this.lastProgressEmitTime = now
           }
         }
-      }, 500)
+      }, 800)
     },
     stopProgressPolling() {
       if (this.progressTimer) {
@@ -776,6 +855,10 @@ export default {
 
   .text-waiting {
     color: #8b8bab;
+  }
+
+  .text-paused {
+    color: #e6a23c;
   }
 }
 

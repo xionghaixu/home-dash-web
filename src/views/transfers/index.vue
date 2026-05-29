@@ -95,12 +95,13 @@
             <template #default="{ row }">
               <div class="progress-cell">
                 <el-progress
-                  :percentage="row.progress || 0"
+                  :percentage="getTaskProgress(row)"
                   :status="progressStatus(row.status)"
                   :stroke-width="6"
                 />
-                <span v-if="row.status === 'uploading'" class="progress-text">
-                  {{ row.progress || 0 }}%
+                <span v-if="row.status === 'uploading' || row.status === 'paused'" class="progress-text">
+                  {{ getTaskProgress(row) }}%
+                  <span v-if="getTaskSpeed(row)" class="progress-speed">· {{ getTaskSpeed(row) }}</span>
                 </span>
               </div>
             </template>
@@ -156,7 +157,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, reactive } from 'vue'
 import { getFileRoute, getVideoRoute } from '@/router'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -173,6 +174,7 @@ import PageState from '@/components/PageState.vue'
 import DataCard from '@/components/DataCard.vue'
 import { formatFileDate, resolveErrorMessage } from '@/utils/file'
 import { formatSize } from '@/utils'
+import UploaderUtils from 'simple-uploader.js'
 
 const router = useRouter()
 
@@ -183,7 +185,10 @@ const errorMessage = ref('')
 const statusFilter = ref('all')
 let progressUpdateTimer = null
 let lastProgressUpdateTime = 0
-const PROGRESS_THROTTLE_MS = 3000
+const PROGRESS_THROTTLE_MS = 5000
+
+// 实时进度数据（来自 FileUpload 组件的 eventBus 推送）
+const realtimeProgress = reactive({})
 
 const filteredTasks = computed(() => {
   if (statusFilter.value === 'all') {
@@ -383,7 +388,16 @@ const handleUploadStarted = () => {
   loadTransfers(false)
 }
 
-const handleUploadProgress = () => {
+// 实时进度处理：接收来自 FileUpload 的详细进度数据
+const handleUploadProgress = (progressData) => {
+  // 更新实时进度数据
+  if (progressData && typeof progressData === 'object') {
+    Object.keys(progressData).forEach(identifier => {
+      realtimeProgress[identifier] = progressData[identifier]
+    })
+  }
+
+  // 后端同步仍然保留，但降低频率
   const now = Date.now()
   if (now - lastProgressUpdateTime < PROGRESS_THROTTLE_MS) {
     return
@@ -395,16 +409,40 @@ const handleUploadProgress = () => {
   }
   progressUpdateTimer = setTimeout(() => {
     loadTransfers(true)
-  }, 500)
+  }, 1000)
 }
 
-const handleUploadCompleted = () => {
+const getTaskProgress = (row) => {
+  const rt = realtimeProgress[row.identifier]
+  if (rt && (row.status === 'uploading' || row.status === 'paused')) {
+    return rt.progress || 0
+  }
+  return row.progress || 0
+}
+
+const getTaskSpeed = (row) => {
+  const rt = realtimeProgress[row.identifier]
+  if (rt && rt.uploading && rt.speed > 0) {
+    return UploaderUtils.formatSize(rt.speed) + '/s'
+  }
+  return ''
+}
+
+const handleUploadCompleted = (identifier) => {
   lastProgressUpdateTime = 0
+  delete realtimeProgress[identifier]
   loadTransfers(true)
 }
 
-const handleUploadError = () => {
+const handleUploadError = (identifier) => {
   lastProgressUpdateTime = 0
+  delete realtimeProgress[identifier]
+  loadTransfers(true)
+}
+
+const handleUploadCancelled = (identifier) => {
+  lastProgressUpdateTime = 0
+  delete realtimeProgress[identifier]
   loadTransfers(true)
 }
 
@@ -414,11 +452,6 @@ const handleUploadPaused = () => {
 }
 
 const handleUploadResumed = () => {
-  lastProgressUpdateTime = 0
-  loadTransfers(true)
-}
-
-const handleUploadCancelled = () => {
   lastProgressUpdateTime = 0
   loadTransfers(true)
 }
@@ -543,6 +576,12 @@ onUnmounted(() => {
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   min-width: 32px;
+}
+
+.progress-speed {
+  color: var(--color-text-placeholder);
+  font-size: 11px;
+  margin-left: 2px;
 }
 
 .status-dot {
