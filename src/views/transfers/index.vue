@@ -8,7 +8,7 @@
         </p>
       </div>
       <div class="page-header__actions">
-        <el-button type="primary" @click="triggerUpload">继续上传</el-button>
+        <el-button type="primary" @click="triggerUpload">上传文件</el-button>
         <el-button
           v-if="summaryCards.find(s => s.key === 'failed')?.value > 0"
           type="warning"
@@ -257,8 +257,9 @@ const pauseTask = task => {
     return
   }
   window.eventBus.emit('pauseUploadByIdentifier', task.identifier)
+  // 更新本地状态
+  task.status = 'paused'
   ElMessage.success('上传任务已暂停')
-  loadTransfers()
 }
 
 const resumeTask = task => {
@@ -267,8 +268,9 @@ const resumeTask = task => {
     return
   }
   window.eventBus.emit('resumeUploadByIdentifier', task.identifier)
+  // 更新本地状态
+  task.status = 'uploading'
   ElMessage.success('上传任务已继续')
-  loadTransfers()
 }
 
 const retryTask = async task => {
@@ -331,6 +333,7 @@ const statusLabel = status => {
   return (
     {
       uploading: '上传中',
+      paused: '已暂停',
       completed: '已完成',
       failed: '失败',
       cancelled: '已取消'
@@ -342,6 +345,7 @@ const statusTagType = status => {
   return (
     {
       uploading: 'primary',
+      paused: 'warning',
       completed: 'success',
       failed: 'danger',
       cancelled: 'info'
@@ -362,6 +366,7 @@ const statusHint = status => {
   return (
     {
       uploading: '任务正在上传中',
+      paused: '任务已暂停，可点击继续上传',
       completed: '文件已上传完成',
       failed: '上传失败，可重新选择文件上传',
       cancelled: '任务已被取消'
@@ -374,7 +379,8 @@ const handleRefresh = () => {
 }
 
 const handleUploadStarted = () => {
-  loadTransfers(true)
+  lastProgressUpdateTime = 0
+  loadTransfers(false)
 }
 
 const handleUploadProgress = () => {
@@ -549,6 +555,10 @@ onUnmounted(() => {
   &--uploading {
     background: var(--color-primary);
     animation: pulse 1.5s infinite;
+  }
+
+  &--paused {
+    background: var(--color-warning);
   }
 
   &--completed {
