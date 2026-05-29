@@ -370,7 +370,22 @@ export default {
         })
     },
     handleFileError(rootFile, file, response) {
-      const msg = typeof response === 'string' && response ? response : '上传失败'
+      let msg = '上传失败'
+      try {
+        if (typeof response === 'string' && response.startsWith('{')) {
+          const res = JSON.parse(response)
+          msg = res.msg || res.message || '上传失败'
+        } else if (typeof response === 'string' && response) {
+          msg = response
+        }
+      } catch (e) {
+        msg = typeof response === 'string' && response ? response : '上传失败'
+      }
+      
+      if (msg && msg.length > 50) {
+        msg = msg.substring(0, 50) + '...'
+      }
+
       ElMessage.error({
         message: `${file?.name || '文件'}：${msg}`,
         duration: 4000
@@ -389,7 +404,11 @@ export default {
       })
     },
     resumeFile(file) {
-      file.resume?.()
+      if (file.error) {
+        file.retry?.()
+      } else {
+        file.resume?.()
+      }
       this.$forceUpdate()
       this.syncStatusToBackend(file, 'uploading').then(() => {
         window.eventBus.emit('uploadResumed', file.uniqueIdentifier)
@@ -451,10 +470,10 @@ export default {
     resumeByIdentifier(identifier) {
       const file = this.files.find(f => f.uniqueIdentifier === identifier)
       if (file) {
-        if (file.paused) {
-          file.resume?.()
-        } else if (file.error) {
+        if (file.error) {
           file.retry?.()
+        } else if (file.paused) {
+          file.resume?.()
         } else {
           file.resume?.()
         }
