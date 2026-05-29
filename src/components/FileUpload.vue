@@ -171,7 +171,7 @@
 <script>
 import Uploader from './uploader/uploader.vue'
 import UploaderBtn from './uploader/btn.vue'
-import { resourceUploadUrl, mergeResource } from '@/apis/resource'
+import { resourceUploadUrl, mergeResource, updateTransferStatus } from '@/apis/resource'
 import { useAppStore } from '@/stores/app'
 import {
   Upload,
@@ -212,10 +212,18 @@ export default {
         testChunks: true,
         simultaneousUploads: 3,
         allowDuplicateUploads: true,
+        checkChunkUploadedByResponse: (chunk, response_message) => {
+          try {
+            const res = JSON.parse(response_message)
+            return res.code === 200 && res.data === '该文件块已经上传'
+          } catch (e) {
+            return false
+          }
+        },
         generateUniqueIdentifier: (file) => {
           const relativePath = file.relativePath || file.webkitRelativePath || file.fileName || file.name
-          const uniqueSuffix = Date.now() + '-' + Math.random().toString(36).substr(2, 9)
-          return file.size + '-' + relativePath.replace(/[^0-9a-zA-Z_-]/img, '') + '-' + uniqueSuffix
+          const lastModified = file.lastModified || ''
+          return file.size + '-' + lastModified + '-' + relativePath.replace(/[^0-9a-zA-Z_-]/img, '')
         }
       },
       statusText: {
@@ -307,11 +315,26 @@ export default {
         btn.click()
       }
     },
+    syncStatusToBackend(file, status) {
+      if (!file) return Promise.resolve()
+      const folderId = this.fileMap[file.uniqueIdentifier] || this.store.folderId
+      return updateTransferStatus(
+        file.uniqueIdentifier,
+        file.name,
+        status,
+        file.size,
+        folderId
+      ).catch(err => {
+        console.error('Failed to sync transfer status to backend:', err)
+      })
+    },
     handleFileAdded(file) {
       this.fileMap[file.uniqueIdentifier] = this.store.folderId
-      window.eventBus.emit('uploadStarted', file.uniqueIdentifier)
       this.store.incrementTransferCount()
       this.isMinimized = false
+      this.syncStatusToBackend(file, 'uploading').then(() => {
+        window.eventBus.emit('uploadStarted', file.uniqueIdentifier)
+      })
     },
     handleFileSuccess(rootFile) {
       const file = rootFile.file
@@ -353,66 +376,100 @@ export default {
         duration: 4000
       })
       const identifier = rootFile.uniqueIdentifier
-      window.eventBus.emit('uploadError', identifier)
       this.store.decrementTransferCount()
+      this.syncStatusToBackend(rootFile, 'failed').then(() => {
+        window.eventBus.emit('uploadError', identifier)
+      })
     },
     pauseFile(file) {
       file.pause?.()
       this.$forceUpdate()
-      window.eventBus.emit('uploadPaused', file.uniqueIdentifier)
+      this.syncStatusToBackend(file, 'paused').then(() => {
+        window.eventBus.emit('uploadPaused', file.uniqueIdentifier)
+      })
     },
     resumeFile(file) {
       file.resume?.()
       this.$forceUpdate()
-      window.eventBus.emit('uploadResumed', file.uniqueIdentifier)
+      this.syncStatusToBackend(file, 'uploading').then(() => {
+        window.eventBus.emit('uploadResumed', file.uniqueIdentifier)
+      })
     },
     retryFile(file) {
       file.retry?.()
-      window.eventBus.emit('uploadStarted', file.uniqueIdentifier)
+      this.syncStatusToBackend(file, 'uploading').then(() => {
+        window.eventBus.emit('uploadStarted', file.uniqueIdentifier)
+      })
     },
     removeFile(file) {
-      file.cancel?.()
-      this.uploaderInstance?.removeFile?.(file)
-      delete this.fileMap[file.uniqueIdentifier]
-      window.eventBus.emit('uploadCancelled', file.uniqueIdentifier)
+      this.syncStatusToBackend(file, 'cancelled').then(() => {
+        file.cancel?.()
+        this.uploaderInstance?.removeFile?.(file)
+        delete this.fileMap[file.uniqueIdentifier]
+        window.eventBus.emit('uploadCancelled', file.uniqueIdentifier)
+      })
     },
     pauseAll() {
+      const promises = []
       this.files.forEach(f => {
         if (f.isUploading?.()) {
           f.pause?.()
-          window.eventBus.emit('uploadPaused', f.uniqueIdentifier)
+          promises.push(
+            this.syncStatusToBackend(f, 'paused').then(() => {
+              window.eventBus.emit('uploadPaused', f.uniqueIdentifier)
+            })
+          )
         }
       })
-      this.$forceUpdate()
+      Promise.all(promises).then(() => {
+        this.$forceUpdate()
+      })
     },
     clearAll() {
+      const promises = []
       this.files.forEach(f => {
-        f.cancel?.()
-        this.uploaderInstance?.removeFile?.(f)
-        window.eventBus.emit('uploadCancelled', f.uniqueIdentifier)
+        promises.push(
+          this.syncStatusToBackend(f, 'cancelled').then(() => {
+            f.cancel?.()
+            this.uploaderInstance?.removeFile?.(f)
+            window.eventBus.emit('uploadCancelled', f.uniqueIdentifier)
+          })
+        )
       })
-      this.fileMap = {}
+      Promise.all(promises).then(() => {
+        this.fileMap = {}
+      })
     },
     pauseByIdentifier(identifier) {
       const file = this.files.find(f => f.uniqueIdentifier === identifier)
-      if (file && file.isUploading?.()) {
+      if (file) {
         file.pause?.()
         this.$forceUpdate()
+        this.syncStatusToBackend(file, 'paused')
       }
     },
     resumeByIdentifier(identifier) {
       const file = this.files.find(f => f.uniqueIdentifier === identifier)
-      if (file && file.paused) {
-        file.resume?.()
+      if (file) {
+        if (file.paused) {
+          file.resume?.()
+        } else if (file.error) {
+          file.retry?.()
+        } else {
+          file.resume?.()
+        }
         this.$forceUpdate()
+        this.syncStatusToBackend(file, 'uploading')
       }
     },
     cancelByIdentifier(identifier) {
       const file = this.files.find(f => f.uniqueIdentifier === identifier)
       if (file) {
-        file.cancel?.()
-        this.uploaderInstance?.removeFile?.(file)
-        delete this.fileMap[identifier]
+        this.syncStatusToBackend(file, 'cancelled').then(() => {
+          file.cancel?.()
+          this.uploaderInstance?.removeFile?.(file)
+          delete this.fileMap[identifier]
+        })
       }
     },
     handleDroppedFiles(files) {

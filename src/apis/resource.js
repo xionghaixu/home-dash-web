@@ -89,3 +89,12 @@ export const cleanupTimeoutUploads = () => {
     method: 'post'
   })
 }
+
+export const updateTransferStatus = (identifier, fileName, status, totalSize, parentId) => {
+  return request({
+    url: '/v1/resource/transfer/status',
+    method: 'post',
+    data: { identifier, fileName, status, totalSize, parentId }
+  })
+}
+
