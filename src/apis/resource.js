@@ -45,8 +45,8 @@ export const getTransferTasks = () => {
  */
 export const cancelUploadTask = identifier => {
   return request({
-    url: `/v1/resource/upload/${identifier}`,
-    method: 'delete'
+    url: `/v1/resource/upload/${identifier}/cancel`,
+    method: 'post'
   })
 }
 
@@ -57,16 +57,16 @@ export const cancelUploadTask = identifier => {
  */
 export const clearTransferTasks = (status = 'completed') => {
   return request({
-    url: '/v1/resource/transfers',
-    method: 'delete',
+    url: '/v1/resource/transfers/clear',
+    method: 'post',
     params: { status }
   })
 }
 
 export const clearTransferTask = identifier => {
   return request({
-    url: `/v1/resource/transfer/${identifier}`,
-    method: 'delete'
+    url: `/v1/resource/transfer/${identifier}/clear`,
+    method: 'post'
   })
 }
 
@@ -97,4 +97,3 @@ export const updateTransferStatus = (identifier, fileName, status, totalSize, pa
     data: { identifier, fileName, status, totalSize, parentId }
   })
 }
-

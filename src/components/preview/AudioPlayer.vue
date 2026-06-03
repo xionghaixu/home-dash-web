@@ -16,6 +16,7 @@
           :max="duration"
           :format-tooltip="formatTime"
           size="small"
+          aria-label="播放进度"
           @change="handleSeek"
         />
         <div class="time-display">
@@ -25,31 +26,48 @@
       </div>
 
       <div class="control-buttons">
-        <el-button circle size="small" @click="toggleMute">
+        <el-button
+          circle
+          size="small"
+          :aria-label="muted ? '取消静音' : '静音'"
+          @click="toggleMute"
+        >
           <el-icon v-if="muted"><Mute /></el-icon>
           <el-icon v-else><Microphone /></el-icon>
         </el-button>
 
-        <el-button circle size="default" @click="skipBackward">
+        <el-button circle size="default" aria-label="后退" @click="skipBackward">
           <el-icon><ArrowLeft /></el-icon>
         </el-button>
 
-        <el-button circle size="large" type="primary" @click="togglePlay">
+        <el-button
+          circle
+          size="large"
+          type="primary"
+          :aria-label="playing ? '暂停' : '播放'"
+          @click="togglePlay"
+        >
           <el-icon v-if="playing" :size="24"><VideoPause /></el-icon>
           <el-icon v-else :size="24"><VideoPlay /></el-icon>
         </el-button>
 
-        <el-button circle size="default" @click="skipForward">
+        <el-button circle size="default" aria-label="前进" @click="skipForward">
           <el-icon><ArrowRight /></el-icon>
         </el-button>
 
-        <el-button circle size="small" @click="toggleLoop">
+        <el-button
+          circle
+          size="small"
+          aria-label="循环播放"
+          :aria-pressed="loop"
+          @click="toggleLoop"
+        >
           <el-icon :color="loop ? 'var(--color-primary)' : ''"><RefreshRight /></el-icon>
         </el-button>
       </div>
 
       <div class="volume-control">
-        <el-slider v-model="volume" :max="100" size="small" />
+        <el-slider v-model="volume" :max="100" size="small" aria-label="音量" />
       </div>
     </div>
 

@@ -2,10 +2,12 @@
   <div class="recycle-bin-container">
     <div class="header-actions">
       <h2>回收站</h2>
-      <el-button type="danger" @click="handleEmptyBin" :loading="emptyLoading">清空回收站</el-button>
+      <el-button type="danger" :loading="emptyLoading" @click="handleEmptyBin">
+        清空回收站
+      </el-button>
     </div>
 
-    <el-table :data="tableData" v-loading="loading" style="width: 100%" class="recycle-table">
+    <el-table v-loading="loading" :data="tableData" style="width: 100%" class="recycle-table">
       <el-table-column prop="name" label="文件名" min-width="200" />
       <el-table-column prop="deletedAt" label="删除时间" width="180" />
       <el-table-column prop="size" label="大小" width="120">
@@ -45,12 +47,12 @@ const fetchList = async () => {
   }
 }
 
-const handleRestore = async (row) => {
+const handleRestore = async row => {
   try {
     await restoreFiles([row.id])
     ElMessage.success('恢复成功')
     fetchList()
-  } catch (error) {
+  } catch {
     ElMessage.error('恢复失败')
   }
 }

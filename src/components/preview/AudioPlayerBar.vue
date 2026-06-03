@@ -14,16 +14,22 @@
 
       <!-- 播放控制 -->
       <div class="player-controls">
-        <el-button circle size="small" @click="skipBackward">
+        <el-button circle size="small" aria-label="后退" @click="skipBackward">
           <el-icon><ArrowLeft /></el-icon>
         </el-button>
 
-        <el-button circle size="large" type="primary" @click="togglePlay">
+        <el-button
+          circle
+          size="large"
+          type="primary"
+          :aria-label="isPlaying ? '暂停' : '播放'"
+          @click="togglePlay"
+        >
           <el-icon v-if="isPlaying"><VideoPause /></el-icon>
           <el-icon v-else><VideoPlay /></el-icon>
         </el-button>
 
-        <el-button circle size="small" @click="skipForward">
+        <el-button circle size="small" aria-label="前进" @click="skipForward">
           <el-icon><ArrowRight /></el-icon>
         </el-button>
       </div>
@@ -36,6 +42,7 @@
           :max="100"
           :show-tooltip="false"
           size="small"
+          aria-label="播放进度"
           @change="handleProgressChange"
         />
         <span class="time-total">{{ formatTime(duration) }}</span>
@@ -43,7 +50,13 @@
 
       <!-- 音量控制 -->
       <div class="player-volume">
-        <el-icon @click="toggleMute">
+        <el-icon
+          role="button"
+          tabindex="0"
+          :aria-label="isMuted || volume === 0 ? '取消静音' : '静音'"
+          @click="toggleMute"
+          @keydown.enter="toggleMute"
+        >
           <Mute v-if="isMuted || volume === 0" />
           <Headset v-else />
         </el-icon>
@@ -52,12 +65,13 @@
           :max="100"
           :show-tooltip="false"
           size="small"
+          aria-label="音量"
           class="volume-slider"
         />
       </div>
 
       <!-- 关闭按钮 -->
-      <el-button circle size="small" @click="$emit('close')">
+      <el-button circle size="small" aria-label="关闭" @click="$emit('close')">
         <el-icon><Close /></el-icon>
       </el-button>
     </div>

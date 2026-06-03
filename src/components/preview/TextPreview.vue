@@ -18,13 +18,23 @@
       <span v-if="fileName" class="file-name">{{ fileName }}</span>
     </div>
     <div ref="containerRef" class="text-content" :class="{ 'wrap-text': wordWrap }">
-      <pre><code ref="codeRef" class="code-block">{{ displayContent }}</code></pre>
+      <div v-if="showLineNumbers" class="code-block line-number-container">
+        <table class="line-number-table">
+          <tbody>
+            <tr v-for="(line, index) in lines" :key="index">
+              <td class="line-number">{{ index + 1 }}</td>
+              <td class="line-content" v-html="highlightLine(line)"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <pre v-else><code class="code-block" v-html="highlightedContent"></code></pre>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Document, Reading, CopyDocument } from '@element-plus/icons-vue'
 
@@ -44,22 +54,16 @@ const props = defineProps({
 })
 
 const containerRef = ref(null)
-const codeRef = ref(null)
 const showLineNumbers = ref(true)
 const wordWrap = ref(true)
 
-const displayContent = computed(() => {
-  if (!props.content) return ''
+const lines = computed(() => {
+  if (!props.content) return []
+  return props.content.split('\n')
+})
 
-  let content = props.content
-
-  // 关键词高亮
-  if (props.highlightKeyword) {
-    const regex = new RegExp(`(${escapeRegExp(props.highlightKeyword)})`, 'gi')
-    content = content.replace(regex, '<mark class="keyword-highlight">$1</mark>')
-  }
-
-  return content
+const highlightedContent = computed(() => {
+  return lines.value.map(line => highlightLine(line)).join('\n')
 })
 
 const escapeRegExp = string => {
@@ -68,7 +72,6 @@ const escapeRegExp = string => {
 
 const toggleLineNumbers = () => {
   showLineNumbers.value = !showLineNumbers.value
-  applyLineNumbers()
 }
 
 const toggleWordWrap = () => {
@@ -84,48 +87,25 @@ const copyContent = async () => {
   }
 }
 
-const applyLineNumbers = () => {
-  nextTick(() => {
-    if (!codeRef.value) return
-
-    const codeElement = codeRef.value
-    const lines = props.content.split('\n')
-
-    if (showLineNumbers.value) {
-      let html = '<table class="line-number-table"><tbody>'
-      lines.forEach((line, index) => {
-        const lineNum = index + 1
-        const lineContent = escapeHtml(line) || '&nbsp;'
-        html += `<tr><td class="line-number">${lineNum}</td><td class="line-content">${lineContent}</td></tr>`
-      })
-      html += '</tbody></table>'
-      codeElement.innerHTML = html
-    } else {
-      codeElement.textContent = props.content
-    }
-  })
-}
-
 const escapeHtml = text => {
-  const div = document.createElement('div')
-  div.textContent = text
-  return div.innerHTML
+  if (!text) return ''
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
 }
 
-watch(
-  () => props.content,
-  () => {
-    applyLineNumbers()
-  },
-  { immediate: true }
-)
-
-watch(
-  () => props.highlightKeyword,
-  () => {
-    applyLineNumbers()
+const highlightLine = line => {
+  const escaped = escapeHtml(line)
+  if (!props.highlightKeyword) {
+    return escaped || '&nbsp;'
   }
-)
+  const escapedKeyword = escapeHtml(props.highlightKeyword)
+  const regex = new RegExp(`(${escapeRegExp(escapedKeyword)})`, 'gi')
+  return escaped.replace(regex, '<mark class="keyword-highlight">$1</mark>') || '&nbsp;'
+}
 </script>
 
 <style lang="scss" scoped>

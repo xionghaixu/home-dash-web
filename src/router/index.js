@@ -94,7 +94,7 @@ const routes = [
   {
     path: '/media/videos/:id/play',
     component: () => import('@/views/video/index.vue'),
-    props: true,
+    props: route => ({ fileId: String(route.params.id) }),
     meta: { title: '视频播放' }
   },
   {

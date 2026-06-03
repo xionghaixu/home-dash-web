@@ -57,6 +57,7 @@ const title = ref('加载中...')
 const playerStatus = ref('idle')
 const loading = ref(false)
 const errorMessage = ref('')
+const lastProgressSaveTime = ref(0)
 let dp = null
 
 const statusText = computed(() => {
@@ -136,16 +137,28 @@ const initPlayer = () => {
   })
 
   // 恢复播放进度
-  const savedTime = localStorage.getItem(`video_progress_${props.fileId}`)
-  if (savedTime) {
-    dp.seek(parseFloat(savedTime))
+  const savedProgress = localStorage.getItem(`video_progress_${props.fileId}`)
+  if (savedProgress) {
+    try {
+      const data = JSON.parse(savedProgress)
+      const time = typeof data === 'object' ? data.time : parseFloat(savedProgress)
+      if (time > 0) dp.seek(time)
+    } catch {
+      const time = parseFloat(savedProgress)
+      if (time > 0) dp.seek(time)
+    }
   }
 
-  // 定期保存播放进度
+  // 定期保存播放进度（节流：每5秒最多写一次）
   dp.on('timeupdate', () => {
-    if (dp.video.currentTime > 0) {
-      localStorage.setItem(`video_progress_${props.fileId}`, dp.video.currentTime.toString())
-    }
+    if (dp.video.currentTime <= 0) return
+    const now = Date.now()
+    if (now - lastProgressSaveTime.value < 5000) return
+    lastProgressSaveTime.value = now
+    localStorage.setItem(
+      `video_progress_${props.fileId}`,
+      JSON.stringify({ time: dp.video.currentTime, timestamp: now })
+    )
   })
 }
 
@@ -167,11 +180,35 @@ const download = () => {
 
 const saveProgress = () => {
   if (dp && dp.video.currentTime > 0) {
-    localStorage.setItem(`video_progress_${props.fileId}`, dp.video.currentTime.toString())
+    localStorage.setItem(
+      `video_progress_${props.fileId}`,
+      JSON.stringify({ time: dp.video.currentTime, timestamp: Date.now() })
+    )
+  }
+}
+
+const cleanupOldProgress = () => {
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key && key.startsWith('video_progress_')) {
+      try {
+        const data = JSON.parse(localStorage.getItem(key))
+        if (data.timestamp && data.timestamp < thirtyDaysAgo) {
+          localStorage.removeItem(key)
+          i-- // adjust index after removal
+        }
+      } catch {
+        // invalid entry, remove it
+        localStorage.removeItem(key)
+        i--
+      }
+    }
   }
 }
 
 onMounted(() => {
+  cleanupOldProgress()
   loadVideoInfo()
 })
 

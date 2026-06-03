@@ -14,7 +14,13 @@
 
     <!-- 核心统计卡片 -->
     <div class="stats-grid">
-      <div class="stat-card image-card" @click="goTo('/media/images')">
+      <div
+        class="stat-card image-card"
+        role="link"
+        tabindex="0"
+        @click="goTo('/media/images')"
+        @keydown.enter="goTo('/media/images')"
+      >
         <div class="stat-icon-wrap">
           <el-icon :size="28"><Picture /></el-icon>
         </div>
@@ -29,7 +35,13 @@
         </div>
       </div>
 
-      <div class="stat-card video-card" @click="goTo('/media/videos')">
+      <div
+        class="stat-card video-card"
+        role="link"
+        tabindex="0"
+        @click="goTo('/media/videos')"
+        @keydown.enter="goTo('/media/videos')"
+      >
         <div class="stat-icon-wrap">
           <el-icon :size="28"><VideoCamera /></el-icon>
         </div>
@@ -44,7 +56,13 @@
         </div>
       </div>
 
-      <div class="stat-card audio-card" @click="goTo('/media/audio')">
+      <div
+        class="stat-card audio-card"
+        role="link"
+        tabindex="0"
+        @click="goTo('/media/audio')"
+        @keydown.enter="goTo('/media/audio')"
+      >
         <div class="stat-icon-wrap">
           <el-icon :size="28"><Headset /></el-icon>
         </div>
@@ -59,7 +77,13 @@
         </div>
       </div>
 
-      <div class="stat-card total-card" @click="goTo('/files')">
+      <div
+        class="stat-card total-card"
+        role="link"
+        tabindex="0"
+        @click="goTo('/files')"
+        @keydown.enter="goTo('/files')"
+      >
         <div class="stat-icon-wrap">
           <el-icon :size="28"><FolderOpened /></el-icon>
         </div>
@@ -230,6 +254,10 @@
                 v-for="tab in uploadTabs"
                 :key="tab.key"
                 :class="['upload-tab', { active: activeUploadTab === tab.key }]"
+                tabindex="0"
+                role="tab"
+                :aria-selected="activeUploadTab === tab.key"
+                @keydown.enter="activeUploadTab = tab.key"
                 @click="activeUploadTab = tab.key"
               >
                 {{ tab.label }}
@@ -303,49 +331,97 @@
     <div class="quick-actions">
       <div class="quick-title">快捷入口</div>
       <div class="quick-grid">
-        <div class="quick-item" @click="goTo('/files')">
+        <div
+          class="quick-item"
+          tabindex="0"
+          role="link"
+          @click="goTo('/files')"
+          @keydown.enter="goTo('/files')"
+        >
           <div class="quick-icon folder">
             <el-icon><FolderOpened /></el-icon>
           </div>
           <span>文件管理</span>
         </div>
-        <div class="quick-item" @click="goTo('/media/images')">
+        <div
+          class="quick-item"
+          tabindex="0"
+          role="link"
+          @click="goTo('/media/images')"
+          @keydown.enter="goTo('/media/images')"
+        >
           <div class="quick-icon image">
             <el-icon><Picture /></el-icon>
           </div>
           <span>图片库</span>
         </div>
-        <div class="quick-item" @click="goTo('/media/videos')">
+        <div
+          class="quick-item"
+          tabindex="0"
+          role="link"
+          @click="goTo('/media/videos')"
+          @keydown.enter="goTo('/media/videos')"
+        >
           <div class="quick-icon video">
             <el-icon><VideoCamera /></el-icon>
           </div>
           <span>视频库</span>
         </div>
-        <div class="quick-item" @click="goTo('/media/audio')">
+        <div
+          class="quick-item"
+          tabindex="0"
+          role="link"
+          @click="goTo('/media/audio')"
+          @keydown.enter="goTo('/media/audio')"
+        >
           <div class="quick-icon audio">
             <el-icon><Headset /></el-icon>
           </div>
           <span>音频库</span>
         </div>
-        <div class="quick-item" @click="goTo('/transfers')">
+        <div
+          class="quick-item"
+          tabindex="0"
+          role="link"
+          @click="goTo('/transfers')"
+          @keydown.enter="goTo('/transfers')"
+        >
           <div class="quick-icon transfer">
             <el-icon><UploadFilled /></el-icon>
           </div>
           <span>上传任务</span>
         </div>
-        <div class="quick-item" @click="goTo('/category')">
+        <div
+          class="quick-item"
+          tabindex="0"
+          role="link"
+          @click="goTo('/category')"
+          @keydown.enter="goTo('/category')"
+        >
           <div class="quick-icon category">
             <el-icon><Grid /></el-icon>
           </div>
           <span>分类浏览</span>
         </div>
-        <div class="quick-item" @click="goTo('/system')">
+        <div
+          class="quick-item"
+          tabindex="0"
+          role="link"
+          @click="goTo('/system')"
+          @keydown.enter="goTo('/system')"
+        >
           <div class="quick-icon system">
             <el-icon><Monitor /></el-icon>
           </div>
           <span>系统监控</span>
         </div>
-        <div class="quick-item" @click="goTo('/files')">
+        <div
+          class="quick-item"
+          tabindex="0"
+          role="link"
+          @click="goTo('/files')"
+          @keydown.enter="goTo('/files')"
+        >
           <div class="quick-icon recent">
             <el-icon><UploadFilled /></el-icon>
           </div>
@@ -640,6 +716,11 @@ onUnmounted(() => {
   &:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
   }
 
   &::before {
@@ -1052,6 +1133,11 @@ onUnmounted(() => {
     color: var(--color-primary);
     font-weight: var(--font-weight-medium);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
 }
 
 .upload-list {
@@ -1234,6 +1320,11 @@ onUnmounted(() => {
     .quick-icon {
       transform: scale(1.1);
     }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
   }
 
   span {

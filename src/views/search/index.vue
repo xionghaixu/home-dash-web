@@ -121,7 +121,7 @@
       <main class="search-main">
         <!-- 结果头部工具栏 -->
         <div class="results-toolbar">
-          <div class="results-info">
+          <div class="results-info" aria-live="polite">
             <template v-if="keyword">
               <span class="results-keyword">"{{ keyword }}"</span>
               <span class="results-count">找到 {{ searchState.total }} 个结果</span>

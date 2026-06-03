@@ -7,7 +7,7 @@ import request from './request'
 export const getRecycleBinList = () => {
   return request({
     url: '/v1/recycle-bin/list',
-    method: 'post'
+    method: 'get'
   })
 }
 
@@ -16,7 +16,7 @@ export const getRecycleBinList = () => {
  * @param {Array} fileIds - 文件ID数组
  * @returns {Promise} 恢复结果
  */
-export const restoreFiles = (fileIds) => {
+export const restoreFiles = fileIds => {
   return request({
     url: '/v1/recycle-bin/restore',
     method: 'post',
@@ -31,6 +31,6 @@ export const restoreFiles = (fileIds) => {
 export const emptyRecycleBin = () => {
   return request({
     url: '/v1/recycle-bin/empty',
-    method: 'delete'
+    method: 'post'
   })
 }

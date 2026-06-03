@@ -1,7 +1,10 @@
 <template>
   <div class="header-container">
     <div class="header-left">
-      <div class="logo-area" @click="goHome">
+      <button class="mobile-nav-toggle" aria-label="打开导航菜单" @click="toggleMobileNav">
+        <el-icon><Fold /></el-icon>
+      </button>
+      <div class="logo-area" role="link" tabindex="0" @click="goHome" @keydown.enter="goHome">
         <div class="logo-icon">
           <el-icon :size="22"><FolderOpened /></el-icon>
         </div>
@@ -17,6 +20,7 @@
           type="text"
           class="search-input"
           placeholder="搜索文件..."
+          aria-label="搜索文件"
           @keyup.enter="handleSearch"
         />
       </div>
@@ -24,15 +28,15 @@
 
     <div class="header-right">
       <el-tooltip content="上传文件" placement="bottom">
-        <div class="header-action" @click="triggerUpload">
+        <button class="header-action" aria-label="上传文件" @click="triggerUpload">
           <el-icon :size="18"><Upload /></el-icon>
-        </div>
+        </button>
       </el-tooltip>
 
       <el-tooltip content="主题设置" placement="bottom">
-        <div class="header-action" @click="themeDialogVisible = true">
+        <button class="header-action" aria-label="主题设置" @click="themeDialogVisible = true">
           <el-icon :size="18"><Brush /></el-icon>
-        </div>
+        </button>
       </el-tooltip>
 
       <el-dropdown trigger="click" @command="handleCommand">
@@ -77,6 +81,10 @@
               :key="mode.value"
               class="theme-mode-item"
               :class="{ active: themeStore.mode === mode.value }"
+              tabindex="0"
+              role="radio"
+              :aria-checked="themeStore.mode === mode.value"
+              @keydown.enter="themeStore.setMode(mode.value)"
               @click="themeStore.setMode(mode.value)"
             >
               <el-icon :size="20"><component :is="mode.icon" /></el-icon>
@@ -95,6 +103,11 @@
               :class="{ active: themeStore.primaryColor === color.value }"
               :style="{ '--color': color.color }"
               :title="color.name"
+              tabindex="0"
+              role="radio"
+              :aria-checked="themeStore.primaryColor === color.value"
+              :aria-label="color.name"
+              @keydown.enter="themeStore.setPrimaryColor(color.value)"
               @click="themeStore.setPrimaryColor(color.value)"
             >
               <el-icon v-if="themeStore.primaryColor === color.value" :size="14"><Check /></el-icon>
@@ -165,7 +178,8 @@ import {
   Check,
   Sunny,
   Moon,
-  Monitor
+  Monitor,
+  Fold
 } from '@element-plus/icons-vue'
 import userAvatarImage from '@/assets/user.jpeg'
 
@@ -175,6 +189,15 @@ const themeStore = useThemeStore()
 const searchKeyword = ref('')
 const userAvatar = ref(userAvatarImage)
 const themeDialogVisible = ref(false)
+const mobileNavOpen = ref(false)
+
+const toggleMobileNav = () => {
+  mobileNavOpen.value = !mobileNavOpen.value
+  const sidebar = document.querySelector('.sidebar-container')
+  if (sidebar) {
+    sidebar.classList.toggle('mobile-open', mobileNavOpen.value)
+  }
+}
 
 const themeModes = [
   { value: ThemeMode.LIGHT, label: '日间', icon: Sunny },
@@ -331,6 +354,9 @@ const handleCommand = command => {
   justify-content: center;
   width: 36px;
   height: 36px;
+  padding: 0;
+  border: none;
+  background: none;
   color: var(--color-text-secondary);
   border-radius: var(--radius-full);
   cursor: pointer;
@@ -411,6 +437,11 @@ const handleCommand = command => {
     color: var(--color-primary);
   }
 
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
   span {
     font-size: var(--font-size-sm);
   }
@@ -444,6 +475,11 @@ const handleCommand = command => {
     border-color: var(--color-text-primary);
     transform: scale(1.1);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
 }
 
 .theme-option-row {
@@ -463,6 +499,32 @@ const handleCommand = command => {
   align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-md) var(--spacing-xl);
+}
+
+.mobile-nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    background: var(--color-fill-base);
+    color: var(--color-primary);
+  }
+}
+
+@media (max-width: 960px) {
+  .mobile-nav-toggle {
+    display: flex;
+  }
 }
 
 @media (max-width: 640px) {

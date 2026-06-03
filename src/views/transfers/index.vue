@@ -26,7 +26,7 @@
       </div>
     </div>
 
-    <div class="summary-grid">
+    <div class="summary-grid" aria-live="polite">
       <DataCard label="全部任务" :value="tasks.length" :icon="Document" type="info" />
       <DataCard
         label="上传中"
@@ -116,9 +116,14 @@
                   :stroke-width="6"
                   :show-text="false"
                 />
-                <span v-if="getTaskStatus(row) === 'uploading' || getTaskStatus(row) === 'paused'" class="progress-text">
+                <span
+                  v-if="getTaskStatus(row) === 'uploading' || getTaskStatus(row) === 'paused'"
+                  class="progress-text"
+                >
                   {{ getTaskProgress(row) }}%
-                  <span v-if="getTaskSpeed(row)" class="progress-speed">· {{ getTaskSpeed(row) }}</span>
+                  <span v-if="getTaskSpeed(row)" class="progress-speed">
+                    · {{ getTaskSpeed(row) }}
+                  </span>
                 </span>
               </div>
             </template>
@@ -216,7 +221,7 @@ const startPolling = () => {
       const response = await getTransferTasks()
       tasks.value = response.data || []
       summary.value = response.extra || {}
-      
+
       const hasUploading = tasks.value.some(t => t.status === 'uploading')
       if (!hasUploading) {
         stopPolling()
@@ -262,7 +267,7 @@ const loadTransfers = async (silent = false) => {
     const response = await getTransferTasks()
     tasks.value = response.data || []
     summary.value = response.extra || {}
-    
+
     // 如果有正在上传的任务，启动轮询
     const hasUploading = tasks.value.some(t => t.status === 'uploading')
     if (hasUploading) {
@@ -386,30 +391,6 @@ const openCompletedTask = task => {
   router.push(getFileRoute(task.parentId))
 }
 
-const statusLabel = status => {
-  return (
-    {
-      uploading: '上传中',
-      paused: '已暂停',
-      completed: '已完成',
-      failed: '失败',
-      cancelled: '已取消'
-    }[status] || '未知'
-  )
-}
-
-const statusTagType = status => {
-  return (
-    {
-      uploading: 'primary',
-      paused: 'warning',
-      completed: 'success',
-      failed: 'danger',
-      cancelled: 'info'
-    }[status] || 'info'
-  )
-}
-
 const progressStatus = status => {
   return (
     {
@@ -441,7 +422,7 @@ const handleUploadStarted = () => {
 }
 
 // 实时进度处理：接收来自 FileUpload 的详细进度数据
-const handleUploadProgress = (progressData) => {
+const handleUploadProgress = progressData => {
   // 更新实时进度数据
   if (progressData && typeof progressData === 'object') {
     Object.keys(progressData).forEach(identifier => {
@@ -464,7 +445,7 @@ const handleUploadProgress = (progressData) => {
   }, 1000)
 }
 
-const getTaskStatus = (row) => {
+const getTaskStatus = row => {
   const rt = realtimeProgress[row.identifier]
   if (rt) {
     if (rt.error) return 'failed'
@@ -474,7 +455,7 @@ const getTaskStatus = (row) => {
   return row.status
 }
 
-const getTaskProgress = (row) => {
+const getTaskProgress = row => {
   const status = getTaskStatus(row)
   const rt = realtimeProgress[row.identifier]
   if (rt && (status === 'uploading' || status === 'paused')) {
@@ -483,7 +464,7 @@ const getTaskProgress = (row) => {
   return row.progress || 0
 }
 
-const getTaskSpeed = (row) => {
+const getTaskSpeed = row => {
   const rt = realtimeProgress[row.identifier]
   if (rt && rt.uploading && rt.speed > 0) {
     return UploaderUtils.formatSize(rt.speed) + '/s'
@@ -491,19 +472,19 @@ const getTaskSpeed = (row) => {
   return ''
 }
 
-const handleUploadCompleted = (identifier) => {
+const handleUploadCompleted = identifier => {
   lastProgressUpdateTime = 0
   setTimeout(() => delete realtimeProgress[identifier], 2000)
   loadTransfers(true)
 }
 
-const handleUploadError = (identifier) => {
+const handleUploadError = identifier => {
   lastProgressUpdateTime = 0
   setTimeout(() => delete realtimeProgress[identifier], 2000)
   loadTransfers(true)
 }
 
-const handleUploadCancelled = (identifier) => {
+const handleUploadCancelled = identifier => {
   lastProgressUpdateTime = 0
   setTimeout(() => delete realtimeProgress[identifier], 2000)
   loadTransfers(true)

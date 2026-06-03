@@ -14,7 +14,8 @@
         <Aside></Aside>
       </el-aside>
       <el-main class="main-area">
-        <div class="main-container">
+        <a href="#main-content" class="skip-link">跳转到主要内容</a>
+        <div id="main-content" role="main" class="main-container">
           <router-view v-slot="{ Component, route }">
             <transition name="page-fade-slide" mode="out-in">
               <component :is="Component" :key="route.path" />
@@ -193,6 +194,25 @@ const handleDrop = e => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+// Skip navigation link
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: var(--spacing-md);
+  z-index: 10000;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+  transition: top var(--transition-fast);
+
+  &:focus {
+    top: var(--spacing-md);
+  }
 }
 
 // Responsive adaptations

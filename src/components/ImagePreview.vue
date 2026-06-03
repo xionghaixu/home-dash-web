@@ -9,7 +9,7 @@
     @closed="handleClosed"
   >
     <div class="preview-container">
-      <div class="preview-nav" v-if="hasPrev">
+      <div v-if="hasPrev" class="preview-nav">
         <el-button :icon="ArrowLeft" circle class="nav-btn" @click="prev" />
       </div>
       <div class="preview-image-wrapper">
@@ -37,7 +37,7 @@
           </template>
         </el-image>
       </div>
-      <div class="preview-nav" v-if="hasNext">
+      <div v-if="hasNext" class="preview-nav">
         <el-button :icon="ArrowRight" circle class="nav-btn" @click="next" />
       </div>
     </div>
@@ -54,7 +54,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { ArrowLeft, ArrowRight, Loading, PictureFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { downloadFileUrl } from '@/apis/file'
@@ -172,6 +172,23 @@ const download = () => {
     }
   }
 }
+
+const handleKeyDown = e => {
+  if (!visible.value) return
+  if (e.key === 'ArrowLeft') {
+    prev()
+  } else if (e.key === 'ArrowRight') {
+    next()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
+})
 
 defineExpose({
   prev,

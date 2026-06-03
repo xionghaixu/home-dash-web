@@ -21,14 +21,19 @@
       </div>
     </div>
 
-    <el-tabs v-model="activeTab" @tab-change="handleTabChange" class="cleanup-tabs">
+    <el-tabs v-model="activeTab" class="cleanup-tabs" @tab-change="handleTabChange">
       <!-- Tab 1: 大文件清理 -->
       <el-tab-pane label="大文件清理" name="largeFiles">
         <div class="tab-header">
           <span class="info-text">展示系统内文件大小排名前 100 的文件</span>
-          <el-button :icon="Refresh" circle @click="fetchLargeFiles" :loading="loading"></el-button>
+          <el-button :icon="Refresh" circle :loading="loading" @click="fetchLargeFiles"></el-button>
         </div>
-        <el-table :data="largeFiles" v-loading="loading" style="width: 100%" class="governance-table">
+        <el-table
+          v-loading="loading"
+          :data="largeFiles"
+          style="width: 100%"
+          class="governance-table"
+        >
           <el-table-column prop="fileName" label="文件名" min-width="250">
             <template #default="{ row }">
               <div class="file-cell">
@@ -49,7 +54,9 @@
           </el-table-column>
           <el-table-column label="操作" width="120" fixed="right">
             <template #default="{ row }">
-              <el-button link type="danger" :icon="Delete" @click="handleDelete(row, false)">删除</el-button>
+              <el-button link type="danger" :icon="Delete" @click="handleDelete(row, false)">
+                删除
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -60,11 +67,29 @@
         <div class="tab-header flex-header">
           <span class="info-text">扫描具有相同 MD5 值的重复文件，可以一键进行治理</span>
           <div class="actions-group">
-            <el-button type="primary" :icon="Warning" @click="handleSmartKeepOne" :loading="smartLoading">智能保留一份</el-button>
-            <el-button :icon="Refresh" circle @click="fetchDuplicates" :loading="loading"></el-button>
+            <el-button
+              type="primary"
+              :icon="Warning"
+              :loading="smartLoading"
+              @click="handleSmartKeepOne"
+            >
+              智能保留一份
+            </el-button>
+            <el-button
+              :icon="Refresh"
+              circle
+              :loading="loading"
+              @click="fetchDuplicates"
+            ></el-button>
           </div>
         </div>
-        <el-table :data="duplicateFiles" v-loading="loading" style="width: 100%" row-key="md5" class="governance-table">
+        <el-table
+          v-loading="loading"
+          :data="duplicateFiles"
+          style="width: 100%"
+          row-key="md5"
+          class="governance-table"
+        >
           <el-table-column prop="md5" label="文件特征 (MD5)" width="280">
             <template #default="{ row }">
               <code class="md5-code">{{ row.md5 }}</code>
@@ -72,7 +97,10 @@
           </el-table-column>
           <el-table-column label="重复大小" width="180">
             <template #default="{ row }">
-              <div>单份大小: <strong>{{ formatSize(row.size) }}</strong></div>
+              <div>
+                单份大小:
+                <strong>{{ formatSize(row.size) }}</strong>
+              </div>
               <div class="text-muted">份数: {{ row.fileCount }} 份</div>
             </template>
           </el-table-column>
@@ -89,7 +117,15 @@
           </el-table-column>
           <el-table-column label="操作" width="120" fixed="right">
             <template #default="{ row }">
-              <el-button link type="danger" :icon="Delete" @click="handleCleanupGroup(row)" :loading="cleanupLoading[row.id]">清理</el-button>
+              <el-button
+                link
+                type="danger"
+                :icon="Delete"
+                :loading="cleanupLoading[row.id]"
+                @click="handleCleanupGroup(row)"
+              >
+                清理
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -99,9 +135,14 @@
       <el-tab-pane label="空目录清理" name="emptyDirs">
         <div class="tab-header">
           <span class="info-text">展示系统中没有任何子文件或子文件夹的空目录</span>
-          <el-button :icon="Refresh" circle @click="fetchEmptyDirs" :loading="loading"></el-button>
+          <el-button :icon="Refresh" circle :loading="loading" @click="fetchEmptyDirs"></el-button>
         </div>
-        <el-table :data="emptyDirs" v-loading="loading" style="width: 100%" class="governance-table">
+        <el-table
+          v-loading="loading"
+          :data="emptyDirs"
+          style="width: 100%"
+          class="governance-table"
+        >
           <el-table-column prop="fileName" label="目录名" min-width="200">
             <template #default="{ row }">
               <div class="file-cell">
@@ -117,7 +158,9 @@
           </el-table-column>
           <el-table-column label="操作" width="120" fixed="right">
             <template #default="{ row }">
-              <el-button link type="danger" :icon="Delete" @click="handleDelete(row, true)">删除</el-button>
+              <el-button link type="danger" :icon="Delete" @click="handleDelete(row, true)">
+                删除
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -131,7 +174,13 @@ import { ref, onMounted, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { formatSize } from '@/utils'
 import { Document, Folder, Delete, Refresh, Warning } from '@element-plus/icons-vue'
-import { getLargeFiles, getDuplicates, getEmptyDirs, smartCleanup, cleanupGroup } from '@/apis/governance'
+import {
+  getLargeFiles,
+  getDuplicates,
+  getEmptyDirs,
+  smartCleanup,
+  cleanupGroup
+} from '@/apis/governance'
 import { deleteFiles } from '@/apis/file'
 
 const activeTab = ref('largeFiles')
@@ -143,7 +192,7 @@ const largeFiles = ref([])
 const duplicateFiles = ref([])
 const emptyDirs = ref([])
 
-const formatDate = (dateStr) => {
+const formatDate = dateStr => {
   if (!dateStr) return '-'
   const d = new Date(dateStr)
   return d.toLocaleString()
@@ -154,7 +203,7 @@ const fetchLargeFiles = async () => {
   try {
     const res = await getLargeFiles()
     largeFiles.value = res.data || []
-  } catch (error) {
+  } catch {
     ElMessage.error('获取大文件列表失败')
   } finally {
     loading.value = false
@@ -166,7 +215,7 @@ const fetchDuplicates = async () => {
   try {
     const res = await getDuplicates()
     duplicateFiles.value = res.data || []
-  } catch (error) {
+  } catch {
     ElMessage.error('获取重复文件失败')
   } finally {
     loading.value = false
@@ -178,14 +227,14 @@ const fetchEmptyDirs = async () => {
   try {
     const res = await getEmptyDirs()
     emptyDirs.value = res.data || []
-  } catch (error) {
+  } catch {
     ElMessage.error('获取空目录列表失败')
   } finally {
     loading.value = false
   }
 }
 
-const handleTabChange = (name) => {
+const handleTabChange = name => {
   if (name === 'largeFiles') {
     fetchLargeFiles()
   } else if (name === 'duplicates') {
@@ -198,7 +247,9 @@ const handleTabChange = (name) => {
 const handleDelete = async (row, isDir = false) => {
   try {
     await ElMessageBox.confirm(
-      isDir ? `确定要删除空目录 "${row.fileName}" 吗？该操作将移入回收站。` : `确定要删除大文件 "${row.fileName}" 吗？该操作将移入回收站。`,
+      isDir
+        ? `确定要删除空目录 "${row.fileName}" 吗？该操作将移入回收站。`
+        : `确定要删除大文件 "${row.fileName}" 吗？该操作将移入回收站。`,
       '提示',
       {
         confirmButtonText: '确定',
@@ -246,7 +297,7 @@ const handleSmartKeepOne = async () => {
   }
 }
 
-const handleCleanupGroup = async (row) => {
+const handleCleanupGroup = async row => {
   try {
     await ElMessageBox.confirm(
       `确定要清理此重复文件组吗？该操作将仅保留最早的文件，其余 ${row.fileCount - 1} 份副本将被移入回收站。`,

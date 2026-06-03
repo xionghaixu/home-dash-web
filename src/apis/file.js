@@ -108,7 +108,7 @@ export const createFile = (payloadOrParentId, fileName, type) => {
 export const renameFile = (fileId, fileName) => {
   return request({
     url: `/v1/file/${fileId}/rename`,
-    method: 'put',
+    method: 'post',
     data: {
       fileName
     }
@@ -122,8 +122,8 @@ export const renameFile = (fileId, fileName) => {
  */
 export const deleteFiles = fileIds => {
   return request({
-    url: `/v1/file`,
-    method: 'delete',
+    url: `/v1/file/delete`,
+    method: 'post',
     data: fileIds
   })
 }
@@ -151,8 +151,8 @@ export const moveOrCopyFiles = (payloadOrFileIds, targetIds, type) => {
           type
         }
   return request({
-    url: '/v1/file',
-    method: 'put',
+    url: '/v1/file/copy-or-move',
+    method: 'post',
     data: payload
   })
 }
@@ -216,7 +216,10 @@ export const uploadFile = (file, parentId) => {
   return request({
     url: '/v1/file/upload',
     method: 'post',
-    data: formData
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
   })
 }
 
@@ -268,8 +271,8 @@ export const getSearchHistory = (limit = 10) => {
  */
 export const clearSearchHistory = () => {
   return request({
-    url: '/v1/search/history',
-    method: 'delete'
+    url: '/v1/search/history/clear',
+    method: 'post'
   })
 }
 
@@ -280,8 +283,8 @@ export const clearSearchHistory = () => {
  */
 export const deleteSearchHistory = id => {
   return request({
-    url: `/v1/search/history/${id}`,
-    method: 'delete'
+    url: `/v1/search/history/${id}/delete`,
+    method: 'post'
   })
 }
 
@@ -329,8 +332,8 @@ export const saveFilterView = view => {
  */
 export const deleteFilterView = viewId => {
   return request({
-    url: `/v1/filter-view/${viewId}`,
-    method: 'delete'
+    url: `/v1/filter-view/${viewId}/delete`,
+    method: 'post'
   })
 }
 
@@ -459,7 +462,7 @@ export const getFileFavorite = resourceId => {
  */
 export const toggleFavorite = resourceId => {
   return request({
-    url: `/v1/favorite/${resourceId}`,
+    url: `/v1/favorite/${resourceId}/add`,
     method: 'post'
   })
 }
@@ -471,7 +474,7 @@ export const toggleFavorite = resourceId => {
  */
 export const addFavorite = resourceId => {
   return request({
-    url: `/v1/favorite/${resourceId}`,
+    url: `/v1/favorite/${resourceId}/add`,
     method: 'post'
   })
 }
@@ -483,8 +486,8 @@ export const addFavorite = resourceId => {
  */
 export const removeFavorite = resourceId => {
   return request({
-    url: `/v1/favorite/${resourceId}`,
-    method: 'delete'
+    url: `/v1/favorite/${resourceId}/remove`,
+    method: 'post'
   })
 }
 
@@ -588,7 +591,7 @@ export const getFileRemark = resourceId => {
  */
 export const saveFileRemark = (resourceId, remark) => {
   return request({
-    url: `/v1/remark/${resourceId}`,
+    url: `/v1/remark/${resourceId}/save`,
     method: 'post',
     data: { content: remark }
   })
@@ -601,8 +604,8 @@ export const saveFileRemark = (resourceId, remark) => {
  */
 export const deleteFileRemark = resourceId => {
   return request({
-    url: `/v1/remark/${resourceId}`,
-    method: 'delete'
+    url: `/v1/remark/${resourceId}/delete`,
+    method: 'post'
   })
 }
 

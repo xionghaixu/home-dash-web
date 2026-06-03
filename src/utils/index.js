@@ -16,8 +16,8 @@
  * console.log( formatSize( 1024 * 1024 * 1024, 0, ['B', 'KB', 'MB'] ) );    // => 1024MB
  */
 export const formatSize = (size, pointLength, units) => {
-  if (size === null || size === undefined) {
-    return undefined
+  if (size == null || size === undefined) {
+    return '-'
   }
   let unit
   const unitsCopy = [...(units || ['B', 'K', 'M', 'G', 'TB'])]
@@ -58,7 +58,10 @@ export const formatDateTime = (timestamp, format = 'yyyy/MM/dd hh:mm:ss') => {
 
   const yearMatch = format.match(/(y+)/)
   if (yearMatch) {
-    format = format.replace(yearMatch[1], (date.getFullYear() + '').substr(4 - yearMatch[1].length))
+    format = format.replace(
+      yearMatch[1],
+      (date.getFullYear() + '').substring(4 - yearMatch[1].length)
+    )
   }
 
   for (const k in o) {
@@ -67,7 +70,7 @@ export const formatDateTime = (timestamp, format = 'yyyy/MM/dd hh:mm:ss') => {
     if (match) {
       format = format.replace(
         match[1],
-        match[1].length === 1 ? o[k] : ('00' + o[k]).substr(('' + o[k]).length)
+        match[1].length === 1 ? o[k] : ('00' + o[k]).substring(('' + o[k]).length)
       )
     }
   }

@@ -101,7 +101,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 
 // 设置页面逻辑
 const language = ref('zh-CN')
@@ -116,14 +117,56 @@ const enableCache = ref(true)
 const cacheSize = ref(50)
 const autoClearCache = ref(true)
 
+const loadSettings = () => {
+  try {
+    const saved = localStorage.getItem('home-dash-settings')
+    if (saved) {
+      const settings = JSON.parse(saved)
+      language.value = settings.language || 'zh-CN'
+      timezone.value = settings.timezone || 'Asia/Shanghai'
+      defaultUploadPath.value = settings.defaultUploadPath || '/'
+      maxFileSize.value = settings.maxFileSize || 10
+      autoRename.value = settings.autoRename !== undefined ? settings.autoRename : true
+      enableNotifications.value =
+        settings.enableNotifications !== undefined ? settings.enableNotifications : true
+      uploadCompleteNotification.value =
+        settings.uploadCompleteNotification !== undefined
+          ? settings.uploadCompleteNotification
+          : true
+      downloadCompleteNotification.value =
+        settings.downloadCompleteNotification !== undefined
+          ? settings.downloadCompleteNotification
+          : true
+      enableCache.value = settings.enableCache !== undefined ? settings.enableCache : true
+      cacheSize.value = settings.cacheSize || 50
+      autoClearCache.value = settings.autoClearCache !== undefined ? settings.autoClearCache : true
+    }
+  } catch (e) {
+    console.warn('Failed to load settings, using defaults:', e)
+    localStorage.removeItem('home-dash-settings')
+  }
+}
+
 const saveSettings = () => {
-  // 保存设置的逻辑
-  console.log('保存设置')
-  // 这里可以添加API调用，将设置保存到后端
+  const settings = {
+    language: language.value,
+    timezone: timezone.value,
+    defaultUploadPath: defaultUploadPath.value,
+    maxFileSize: maxFileSize.value,
+    autoRename: autoRename.value,
+    enableNotifications: enableNotifications.value,
+    uploadCompleteNotification: uploadCompleteNotification.value,
+    downloadCompleteNotification: downloadCompleteNotification.value,
+    enableCache: enableCache.value,
+    cacheSize: cacheSize.value,
+    autoClearCache: autoClearCache.value
+  }
+  localStorage.setItem('home-dash-settings', JSON.stringify(settings))
+  ElMessage.success('设置已保存')
 }
 
 const resetSettings = () => {
-  // 重置默认设置的逻辑
+  localStorage.removeItem('home-dash-settings')
   language.value = 'zh-CN'
   timezone.value = 'Asia/Shanghai'
   defaultUploadPath.value = '/'
@@ -135,8 +178,12 @@ const resetSettings = () => {
   enableCache.value = true
   cacheSize.value = 50
   autoClearCache.value = true
-  console.log('重置默认设置')
+  ElMessage.success('设置已重置')
 }
+
+onMounted(() => {
+  loadSettings()
+})
 </script>
 
 <style lang="scss" scoped>

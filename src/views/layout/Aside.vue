@@ -1,14 +1,15 @@
 <template>
-  <div class="sidebar-container">
+  <nav class="sidebar-container" aria-label="主导航">
     <div class="sidebar-menu">
       <div class="menu-section">
-        <div class="section-title">我的文件</div>
+        <h3 class="section-title">我的文件</h3>
         <router-link
           v-for="item in myMenuItems"
           :key="item.path"
           :to="item.path"
           class="menu-item"
           :class="{ active: isActive(item.path) }"
+          :aria-current="isActive(item.path) ? 'page' : undefined"
         >
           <el-icon :size="18"><component :is="item.icon" /></el-icon>
           <span>{{ item.label }}</span>
@@ -16,13 +17,14 @@
       </div>
 
       <div class="menu-section">
-        <div class="section-title">媒体分类</div>
+        <h3 class="section-title">媒体分类</h3>
         <router-link
           v-for="item in mediaMenuItems"
           :key="item.path"
           :to="item.path"
           class="menu-item"
           :class="{ active: isActive(item.path) }"
+          :aria-current="isActive(item.path) ? 'page' : undefined"
         >
           <el-icon :size="18"><component :is="item.icon" /></el-icon>
           <span>{{ item.label }}</span>
@@ -30,13 +32,14 @@
       </div>
 
       <div class="menu-section">
-        <div class="section-title">系统</div>
+        <h3 class="section-title">系统</h3>
         <router-link
           v-for="item in systemMenuItems"
           :key="item.path"
           :to="item.path"
           class="menu-item"
           :class="{ active: isActive(item.path) }"
+          :aria-current="isActive(item.path) ? 'page' : undefined"
         >
           <el-icon :size="18"><component :is="item.icon" /></el-icon>
           <span>{{ item.label }}</span>
@@ -55,7 +58,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </nav>
 </template>
 
 <script setup>
@@ -244,7 +247,13 @@ onUnmounted(() => {
 
 @media (max-width: 960px) {
   .sidebar-container {
-    display: none;
+    position: fixed;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  .sidebar-container.mobile-open {
+    transform: translateX(0);
   }
 }
 </style>

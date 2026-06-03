@@ -216,7 +216,7 @@
                   @command="cmd => handleMoreAction(cmd, row)"
                   @click.stop
                 >
-                  <el-button link class="more-btn" @click.stop>
+                  <el-button link class="more-btn" aria-label="更多操作" @click.stop>
                     <el-icon><ArrowDown /></el-icon>
                   </el-button>
                   <template #dropdown>
@@ -264,30 +264,41 @@
     <div v-if="contextMenuVisible" class="context-menu-overlay" @click="closeContextMenu"></div>
     <div
       v-if="contextMenuVisible"
+      ref="contextMenuRef"
       class="context-menu"
+      role="menu"
       :style="{ top: contextMenuPosition.y + 'px', left: contextMenuPosition.x + 'px' }"
+      @keydown.escape="closeContextMenu"
+      @keydown.up.prevent="focusPrevMenuItem"
+      @keydown.down.prevent="focusNextMenuItem"
+      @keydown.tab.exact.prevent="focusNextMenuItem"
+      @keydown.shift.tab.exact.prevent="focusPrevMenuItem"
     >
-      <div class="context-menu-item" @click="handleContextAction('open')">
+      <button class="context-menu-item" role="menuitem" @click="handleContextAction('open')">
         <el-icon><FolderOpened /></el-icon>
         <span>打开</span>
-      </div>
-      <div class="context-menu-item" @click="handleContextAction('download')">
+      </button>
+      <button class="context-menu-item" role="menuitem" @click="handleContextAction('download')">
         <el-icon><Download /></el-icon>
         <span>下载</span>
-      </div>
-      <div class="context-menu-item" @click="handleContextAction('rename')">
+      </button>
+      <button class="context-menu-item" role="menuitem" @click="handleContextAction('rename')">
         <el-icon><Edit /></el-icon>
         <span>重命名</span>
-      </div>
-      <div class="context-menu-item" @click="handleContextAction('move')">
+      </button>
+      <button class="context-menu-item" role="menuitem" @click="handleContextAction('move')">
         <el-icon><Rank /></el-icon>
         <span>移动</span>
-      </div>
+      </button>
       <div class="context-menu-divider"></div>
-      <div class="context-menu-item danger" @click="handleContextAction('delete')">
+      <button
+        class="context-menu-item danger"
+        role="menuitem"
+        @click="handleContextAction('delete')"
+      >
         <el-icon><Delete /></el-icon>
         <span>删除</span>
-      </div>
+      </button>
     </div>
 
     <!-- Dialogs -->
@@ -296,7 +307,7 @@
       v-model="detailVisible"
       :file-id="detailFileId"
       @preview="handleDrawerPreview"
-      @playAudio="handlePlayAudio"
+      @play-audio="handlePlayAudio"
     />
 
     <!-- Image Preview -->
@@ -422,6 +433,7 @@ const isSearching = ref(false)
 const recentSummary = ref({})
 const summaryLoading = ref(false)
 const summaryErrorMessage = ref('')
+const requestId = ref(0)
 
 // Previews
 const imagePreviewVisible = ref(false)
@@ -626,12 +638,39 @@ const displayedFileList = computed(() => {
 const contextMenuVisible = ref(false)
 const contextMenuPosition = ref({ x: 0, y: 0 })
 const contextMenuRow = ref(null)
+const contextMenuRef = ref(null)
+
+const focusFirstMenuItem = () => {
+  setTimeout(() => {
+    if (contextMenuRef.value) {
+      const firstItem = contextMenuRef.value.querySelector('.context-menu-item')
+      if (firstItem) firstItem.focus()
+    }
+  })
+}
+
+const focusNextMenuItem = () => {
+  if (!contextMenuRef.value) return
+  const items = Array.from(contextMenuRef.value.querySelectorAll('.context-menu-item'))
+  const currentIndex = items.indexOf(document.activeElement)
+  const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0
+  items[nextIndex]?.focus()
+}
+
+const focusPrevMenuItem = () => {
+  if (!contextMenuRef.value) return
+  const items = Array.from(contextMenuRef.value.querySelectorAll('.context-menu-item'))
+  const currentIndex = items.indexOf(document.activeElement)
+  const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1
+  items[prevIndex]?.focus()
+}
 
 const handleRowContextMenu = (row, column, event) => {
   event.preventDefault()
   contextMenuRow.value = row
   contextMenuPosition.value = { x: event.clientX, y: event.clientY }
   contextMenuVisible.value = true
+  focusFirstMenuItem()
 }
 
 const closeContextMenu = () => {
@@ -709,31 +748,38 @@ const createFolder = async () => {
 }
 
 const renderFileList = async () => {
+  const currentRequestId = ++requestId.value
   loading.value = true
   errorMessage.value = ''
   try {
     if (isSearching.value && searchKeyword.value.trim()) {
       const response = await searchFiles(searchKeyword.value.trim())
+      if (currentRequestId !== requestId.value) return
       fileList.value = Array.isArray(response.data) ? response.data.map(normalizeFileItem) : []
       breadcrumbList.value = []
     } else {
       const response = await getFileList(toApiFolderId(currentFolderId.value))
+      if (currentRequestId !== requestId.value) return
       fileList.value = Array.isArray(response.data) ? response.data.map(normalizeFileItem) : []
       breadcrumbList.value = normalizeBreadcrumbs(response.extra)
     }
 
     await loadRecentSummary()
+    if (currentRequestId !== requestId.value) return
     store.fetchStorageInfo()
     selection.value = []
     syncPaginationState()
   } catch (error) {
+    if (currentRequestId !== requestId.value) return
     fileList.value = []
     breadcrumbList.value = []
     selection.value = []
     syncPaginationState()
     errorMessage.value = resolveErrorMessage(error, '加载失败')
   } finally {
-    loading.value = false
+    if (currentRequestId === requestId.value) {
+      loading.value = false
+    }
   }
 }
 
@@ -987,7 +1033,7 @@ const loadTextPreview = async () => {
   try {
     const response = await getTextPreview(previewFileId.value)
     textPreviewContent.value = response.data?.content || ''
-  } catch (error) {
+  } catch {
     textPreviewError.value = '文本预览加载失败'
   } finally {
     textPreviewLoading.value = false
@@ -1486,13 +1532,18 @@ onUnmounted(() => {
   transition: all var(--transition-fast);
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
 
   .el-icon {
     font-size: 15px;
     color: var(--color-text-secondary);
   }
 
-  &:hover {
+  &:hover,
+  &:focus-visible {
     background: var(--color-fill-base);
     color: var(--color-primary);
 
@@ -1508,7 +1559,8 @@ onUnmounted(() => {
       color: var(--color-danger);
     }
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
       background: var(--color-danger-light);
     }
   }

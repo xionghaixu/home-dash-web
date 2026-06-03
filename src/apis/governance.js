@@ -56,7 +56,7 @@ export const smartCleanup = () => {
  * @param {Number} groupId - 重复文件组ID
  * @returns {Promise} 操作结果
  */
-export const cleanupGroup = (groupId) => {
+export const cleanupGroup = groupId => {
   return request({
     url: '/v1/governance/duplicates/cleanup',
     method: 'post',

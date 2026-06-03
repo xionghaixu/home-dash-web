@@ -2,20 +2,26 @@
   <div class="storage-analysis-container">
     <div class="header">
       <h2>存储分析</h2>
-      <el-button @click="fetchAnalysis" :loading="loading">刷新</el-button>
+      <el-button :loading="loading" @click="fetchAnalysis">刷新</el-button>
     </div>
 
     <!-- 清理建议 -->
     <div v-if="analysis?.suggestions?.length > 0" class="suggestions-section">
       <h3>清理建议</h3>
       <div class="suggestions-grid">
-        <el-card v-for="suggestion in analysis.suggestions" :key="suggestion.type" class="suggestion-card">
+        <el-card
+          v-for="suggestion in analysis.suggestions"
+          :key="suggestion.type"
+          class="suggestion-card"
+        >
           <div class="suggestion-content">
             <div class="suggestion-info">
               <div class="suggestion-title">{{ suggestion.title }}</div>
               <div class="suggestion-desc">{{ suggestion.description }}</div>
             </div>
-            <el-button type="primary" size="small" @click="router.push(suggestion.actionPath)">去清理</el-button>
+            <el-button type="primary" size="small" @click="router.push(suggestion.actionPath)">
+              去清理
+            </el-button>
           </div>
         </el-card>
       </div>
@@ -63,7 +69,7 @@
     <!-- 目录占用排行 -->
     <div class="section">
       <h3>目录占用排行 Top10</h3>
-      <el-table :data="analysis?.topDirs || []" v-loading="loading" style="width: 100%">
+      <el-table v-loading="loading" :data="analysis?.topDirs || []" style="width: 100%">
         <el-table-column type="index" label="排名" width="60" />
         <el-table-column prop="dirName" label="目录名" min-width="200" />
         <el-table-column prop="fileCount" label="文件数" width="100" />
@@ -78,7 +84,7 @@
     <!-- 大文件排行 -->
     <div class="section">
       <h3>大文件排行 Top20</h3>
-      <el-table :data="analysis?.topFiles || []" v-loading="loading" style="width: 100%">
+      <el-table v-loading="loading" :data="analysis?.topFiles || []" style="width: 100%">
         <el-table-column type="index" label="排名" width="60" />
         <el-table-column prop="fileName" label="文件名" min-width="250" />
         <el-table-column prop="type" label="类型" width="100" />
@@ -126,7 +132,7 @@ const fetchAnalysis = async () => {
   }
 }
 
-const formatDate = (dateStr) => {
+const formatDate = dateStr => {
   if (!dateStr) return '-'
   const d = new Date(dateStr)
   return d.toLocaleString()
