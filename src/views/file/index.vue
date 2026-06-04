@@ -866,6 +866,7 @@ const handleDrop = async (event, row) => {
 
   if (!draggedItem.value) return
   const sourceId = draggedItem.value.id
+  const sourceName = draggedItem.value.fileName
   const targetId = row.id
 
   if (String(sourceId) === String(targetId)) return
@@ -874,7 +875,7 @@ const handleDrop = async (event, row) => {
   try {
     loading.value = true
     await moveOrCopyFiles([sourceId], [targetId], 'move')
-    ElMessage.success(`成功移动 "${draggedItem.value.fileName}" 到 "${row.fileName}"`)
+    ElMessage.success(`成功移动 "${sourceName}" 到 "${row.fileName}"`)
     await renderFileList()
   } catch (error) {
     ElMessage.error(resolveErrorMessage(error, '移动失败'))
