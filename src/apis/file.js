@@ -93,7 +93,7 @@ export const createFile = (payloadOrParentId, fileName, type) => {
       ? payloadOrParentId
       : { parentId: payloadOrParentId, fileName, type }
   return request({
-    url: `/v1/file`,
+    url: `/v1/file/create`,
     method: 'post',
     data: payload
   })
