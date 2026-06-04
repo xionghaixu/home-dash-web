@@ -33,12 +33,6 @@
         </button>
       </el-tooltip>
 
-      <el-tooltip content="主题设置" placement="bottom">
-        <button class="header-action" aria-label="主题设置" @click="themeDialogVisible = true">
-          <el-icon :size="18"><Brush /></el-icon>
-        </button>
-      </el-tooltip>
-
       <el-dropdown trigger="click" @command="handleCommand">
         <div class="user-avatar">
           <el-avatar :size="32" :src="userAvatar">
