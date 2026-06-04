@@ -160,7 +160,18 @@
 
           <el-table-column label="名称" min-width="280">
             <template #default="{ row }">
-              <div class="name-cell">
+              <div
+                class="name-cell"
+                draggable="true"
+                :class="{
+                  'drag-hover': dragOverFolderId === String(row.id) && row.type === 'folder'
+                }"
+                @dragstart="handleDragStart($event, row)"
+                @dragover="handleDragOver($event, row)"
+                @dragleave="handleDragLeave($event, row)"
+                @drop="handleDrop($event, row)"
+                @dragend="handleDragEnd"
+              >
                 <FileTypeIcon :type="row.type" />
                 <el-button
                   link
@@ -821,6 +832,63 @@ const handlePageSizeChange = pageSize => {
   syncPaginationState()
 }
 
+// Drag and Drop implementation
+const draggedItem = ref(null)
+const dragOverFolderId = ref(null)
+
+const handleDragStart = (event, row) => {
+  draggedItem.value = row
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/plain', String(row.id))
+}
+
+const handleDragOver = (event, row) => {
+  if (!draggedItem.value) return
+  // Cannot drag onto itself
+  if (String(draggedItem.value.id) === String(row.id)) return
+  // Can only drop onto folder
+  if (row.type !== 'folder') return
+
+  event.preventDefault()
+  event.dataTransfer.dropEffect = 'move'
+  dragOverFolderId.value = String(row.id)
+}
+
+const handleDragLeave = (event, row) => {
+  if (dragOverFolderId.value === String(row.id)) {
+    dragOverFolderId.value = null
+  }
+}
+
+const handleDrop = async (event, row) => {
+  event.preventDefault()
+  dragOverFolderId.value = null
+
+  if (!draggedItem.value) return
+  const sourceId = draggedItem.value.id
+  const targetId = row.id
+
+  if (String(sourceId) === String(targetId)) return
+  if (row.type !== 'folder') return
+
+  try {
+    loading.value = true
+    await moveOrCopyFiles([sourceId], [targetId], 'move')
+    ElMessage.success(`成功移动 "${draggedItem.value.fileName}" 到 "${row.fileName}"`)
+    await renderFileList()
+  } catch (error) {
+    ElMessage.error(resolveErrorMessage(error, '移动失败'))
+  } finally {
+    loading.value = false
+    draggedItem.value = null
+  }
+}
+
+const handleDragEnd = () => {
+  draggedItem.value = null
+  dragOverFolderId.value = null
+}
+
 const handleSelectionChange = val => {
   selection.value = val
 }
@@ -1465,6 +1533,21 @@ onUnmounted(() => {
   align-items: center;
   gap: var(--spacing-sm);
   min-width: 0;
+  border: 1px dashed transparent;
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  transition: all var(--transition-fast);
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &.drag-hover {
+    background: var(--color-primary-bg) !important;
+    border-color: var(--color-primary) !important;
+    transform: scale(1.02);
+  }
 }
 
 .name-button {

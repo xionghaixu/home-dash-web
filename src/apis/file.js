@@ -137,7 +137,9 @@ export const deleteFiles = fileIds => {
  */
 export const moveOrCopyFiles = (payloadOrFileIds, targetIds, type) => {
   const payload =
-    typeof payloadOrFileIds === 'object' && payloadOrFileIds !== null
+    typeof payloadOrFileIds === 'object' &&
+    payloadOrFileIds !== null &&
+    !Array.isArray(payloadOrFileIds)
       ? {
           fileIds: payloadOrFileIds.fileIds || payloadOrFileIds.sourceIds || [],
           targetIds:
