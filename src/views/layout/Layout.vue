@@ -49,12 +49,17 @@ const isDragOver = ref(false)
 let dragCounter = 0
 
 const handleDragEnter = e => {
+  const types = e.dataTransfer?.types || []
+  if (!Array.from(types).includes('Files')) {
+    return
+  }
   e.preventDefault()
   dragCounter++
   isDragOver.value = true
 }
 
 const handleDragLeave = () => {
+  if (!isDragOver.value) return
   dragCounter--
   if (dragCounter <= 0) {
     isDragOver.value = false
@@ -63,6 +68,7 @@ const handleDragLeave = () => {
 }
 
 const handleDrop = e => {
+  if (!isDragOver.value) return
   e.preventDefault()
   isDragOver.value = false
   dragCounter = 0
